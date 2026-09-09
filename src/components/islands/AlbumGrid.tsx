@@ -1,3 +1,20 @@
+/**
+ * AlbumGrid —— 相册列表，React island（albums.astro 中 client:visible 水合）。
+ *
+ * 视觉/交互对齐原版 Xinghongia/Kirameku 的 /photowall：
+ *  - AlbumCard：封面 3 张堆叠 → 悬停扇形展开（STACK_ANGLES → FAN_ANGLES）→ 点击内联高度展开照片墙
+ *  - 展开后内部是拍立得风格 PhotoCard（白边 + 胶带 + 确定性倾斜 tiltFromId），点图进 Lightbox
+ *  - 展开卡片占满整行（sm:col-span-2 lg:col-span-3），照片墙才够宽
+ *
+ * 数据来源：静态数据 web/src/data/albums.ts（鬼刀图床 jsDelivr 链接，6 册共 234 张），
+ * 不走 bff（后端 albums 为空）。要接真实后端：把 albums 换成 useAlbums() 取回的数据即可。
+ *
+ * 二次开发提示：
+ *  - 扇形角度：STACK_ANGLES / FAN_ANGLES / FAN_Y（本文件顶部常量）
+ *  - 拍立得倾斜：tiltFromId(id)（variants.ts），按 id 确定性派生，禁止随机
+ *  - 展开动画时长/缓动：AlbumCard 内 AnimatePresence 的 transition
+ */
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { albums } from "../../data/albums";
@@ -10,10 +27,12 @@ interface AlbumPhoto {
   caption?: string;
 }
 
+// 封面堆叠（收起）角度 / 悬停扇形角度 / 扇形纵向偏移。索引对应封面第 i 张（上/中/下）。
 const STACK_ANGLES = [-4, 0, 3];
 const FAN_ANGLES = [-12, 0, 12];
 const FAN_Y = [-4, -10, -4];
 
+// 拍立得照片卡片：白底 + 底部留白 + 胶带 + 确定性倾斜 + 悬停回正放大
 function PhotoCard({
   photo,
   index,
@@ -24,7 +43,7 @@ function PhotoCard({
   onClick: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const rotation = tiltFromId(photo.id);
+  const rotation = tiltFromId(photo.id); // 由 id 派生 ±2.4° 内的固定倾斜角
 
   return (
     <motion.div
@@ -41,6 +60,7 @@ function PhotoCard({
       className="group relative mb-3 cursor-pointer break-inside-avoid"
       style={{ transformOrigin: "center center" }}
     >
+      {/* 拍立得白框（深色模式变深灰）+ 图片淡入 + 骨架占位 */}
       <div className="relative rounded-sm bg-white p-2 pb-6 shadow-lg transition-shadow duration-300 group-hover:shadow-2xl dark:bg-slate-800 dark:shadow-black/30">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[1px]">
           <img
@@ -64,6 +84,7 @@ function PhotoCard({
           </div>
         )}
       </div>
+      {/* 左上角胶带装饰 */}
       <div
         className="absolute -top-2 left-3 h-4 w-10 rotate-[-6deg] rounded-sm bg-amber-200/60 dark:bg-amber-300/30"
         style={{ backdropFilter: "blur(2px)" }}
@@ -83,7 +104,9 @@ function AlbumCard({
   onToggle: () => void;
   onPhotoClick: (photos: LightboxPhoto[], index: number) => void;
 }) {
+  // 取前 3 张做封面，reverse 让「最上面」是最后一张（视觉更自然）
   const covers = album.photos.slice(0, 3).reverse();
+  // 灯箱用的全量照片（按 index 当 id，caption 透传）
   const lightboxPhotos: LightboxPhoto[] = album.photos.map((p) => ({
     id: String(p.index),
     url: p.url,
@@ -96,6 +119,7 @@ function AlbumCard({
       onClick={onToggle}
     >
       <div className="relative px-4 pb-3 pt-4">
+        {/* 封面堆叠区：rest=堆叠态，hover=扇形态（悬停或展开时触发） */}
         <motion.div
           className="relative mx-auto h-36 max-w-[200px]"
           initial="rest"
@@ -145,6 +169,7 @@ function AlbumCard({
         </div>
       </div>
 
+      {/* 内联展开：高度 0→auto 的缓动过渡，内部渲染照片墙 */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -156,6 +181,7 @@ function AlbumCard({
             className="overflow-hidden"
           >
             <div className="px-4 pb-6">
+              {/* 照片墙网格：2 列(移动)/3 列(>=sm)；每张是拍立得 PhotoCard */}
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {album.photos.map((photo, idx) => (
                   <PhotoCard
@@ -189,6 +215,7 @@ export default function AlbumGrid() {
       {albums.map((album) => {
         const isExpanded = expandedId === album.id;
         return (
+          // 展开时占满整行，照片墙才够宽
           <div key={album.id} className={isExpanded ? "sm:col-span-2 lg:col-span-3" : ""}>
             <AlbumCard
               album={album}

@@ -1,3 +1,22 @@
+/**
+ * MomentsList —— 说说（动态）列表，React island（在 moments.astro 中以 client:visible 水合）。
+ *
+ * 视觉/交互对齐原版 Xinghongia/Kirameku（f:/AI/projects/Kirameku-ref）的 /moments 页：
+ *  - 按「日期」分组展示（同一天的多条动态聚在一起）
+ *  - 同一天多条时：绝对定位堆叠 + 确定性倾斜（stackRotations），模拟实体卡片随手摆的质感
+ *  - 点击任意卡片：layout 弹簧展开（spring 300/25），显示全文 + 图片网格 + 点赞 + 「只看这条」
+ *  - 悬停未展开卡片：回正角度并轻微上浮（whileHover）
+ *
+ * 数据来源：useChatters() → bff.neutronstar.fun（Hono Worker）→ 回源真实后端 kirameku-api。
+ * 后端若没有 chatters 数据，页面显示「还没有动态」（动画只在有内容时可见）。
+ *
+ * 二次开发提示：
+ *  - 倾斜角度/弹簧手感：改 web/src/lib/variants.ts 的 stackRotations / spring。
+ *  - 点赞目前是【前端乐观态】，未落库（后端缺 likeChatter 接口）。要做持久化点赞/评论，
+ *    需在 bff 加对应接口并在本文件用 SWR mutate 更新。
+ *  - 图片地址：imgUrl() 走 bff 的 /img 边缘优化（AVIF，w= 控制宽度）；直接给 http(s) 链接则原样返回。
+ */
+
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useChatters } from "../../lib/api/hooks";
@@ -6,17 +25,20 @@ import type { Chatter } from "../../lib/api/types";
 import { spring, stackRotations } from "../../lib/variants";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
 
+/** 把后端返回的图片路径拼成可访问 URL：http(s) 直返；相对路径走 bff /img 边缘优化（w= 控制宽度）。 */
 function imgUrl(path: string, w = 400) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   return `${API_BASE_URL}/img${path.startsWith("/") ? "" : "/"}${path}?w=${w}`;
 }
 
+/** 日期 → 「M月D日」分组标题。 */
 function formatDate(d: string) {
   const dt = new Date(d);
   return `${dt.getMonth() + 1}月${dt.getDate()}日`;
 }
 
+/** 相对时间（刚刚 / N分钟前 / N小时前 / N天前 / 绝对时间）。 */
 function relativeTime(d: string) {
   const now = new Date();
   const dt = new Date(d);
@@ -33,14 +55,20 @@ function relativeTime(d: string) {
 }
 
 export default function MomentsList() {
+  // 真实数据：每页最多取 30 条动态（size 可调）。SWR 自动 30s 去重 + 聚焦重校验。
   const { data, isLoading, error } = useChatters({ page: 1, size: 30 });
+  // 当前「弹簧展开」的卡片 id（同一时刻只展开一张）
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  // 「只看这条」隔离模式：非 null 时只渲染该条并回正所有角度
   const [onlyViewId, setOnlyViewId] = useState<number | null>(null);
+  // 已点赞集合（乐观态，未落库）
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  // 灯箱状态：null = 关闭；否则 { photos, index }
   const [lightbox, setLightbox] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null);
 
   const moments: Chatter[] = data ?? [];
 
+  // 按 created_at 的「年月日」分组，得到 dayGroups：[{ date, label, moments[] }]
   const dayGroups = useMemo(() => {
     const map = new Map<string, Chatter[]>();
     for (const m of moments) {
@@ -55,6 +83,7 @@ export default function MomentsList() {
     }));
   }, [moments]);
 
+  // 隔离模式下只保留目标条（过滤掉其它分组里的无关项）
   const visibleGroups =
     onlyViewId != null
       ? dayGroups
@@ -65,6 +94,7 @@ export default function MomentsList() {
           .filter((g) => g.moments.length > 0)
       : dayGroups;
 
+  // 点赞乐观切换（落库需接后端 likeChatter + SWR mutate）
   function toggleLike(id: number) {
     setLikedIds((prev) => {
       const n = new Set(prev);
@@ -108,6 +138,7 @@ export default function MomentsList() {
             <div className="h-px flex-1 bg-gradient-to-r from-outline to-transparent" />
           </div>
 
+          {/* 堆叠容器：同一天多条时给一个最小高度，避免绝对定位卡片溢出重叠错位 */}
           <div
             className="relative"
             style={{
@@ -116,13 +147,17 @@ export default function MomentsList() {
             }}
           >
             {group.moments.map((moment, i) => {
+              // 倾斜角：从 variants.ts 的固定序列循环取（确定性，禁止 Math.random，保证 SSR/水合一致）
               const rot = stackRotations[i % stackRotations.length];
+              // 水平错落：奇偶左右各偏 4px，增强手摆感
               const offsetX = i % 2 === 0 ? -4 : 4;
               const isExpanded = expandedId === moment.id;
               const isLiked = likedIds.has(moment.id);
               const hasImages = moment.images && moment.images.length > 0;
+              // 显示点赞数 = 后端基数 + 本次乐观 +1
               const likeCount = moment.likes + (isLiked ? 1 : 0);
 
+              // 该条动态的图片 → 灯箱数据结构（url 走 imgUrl 取大图 w=1200）
               const photos: LightboxPhoto[] = (moment.images ?? []).map((url, pi) => ({
                 id: `${moment.id}-${pi}`,
                 url: imgUrl(url, 1200),
@@ -134,6 +169,7 @@ export default function MomentsList() {
                   key={moment.id}
                   layout
                   ref={(el) => {
+                    // 展开后平滑滚到可视区
                     if (isExpanded && el)
                       setTimeout(
                         () => el.scrollIntoView({ behavior: "smooth", block: "nearest" }),
@@ -144,9 +180,11 @@ export default function MomentsList() {
                   animate={{
                     opacity: 1,
                     y: 0,
+                    // 展开或隔离模式：回正角度/位移；否则用堆叠倾斜角
                     rotate: isExpanded || onlyViewId != null ? 0 : rot,
                     x: isExpanded || onlyViewId != null ? 0 : offsetX,
                   }}
+                  // 弹簧展开手感：stiffness/damping 可调（也可改用 variants.ts 的 spring.card）
                   transition={{
                     type: "spring",
                     stiffness: 300,
@@ -159,12 +197,14 @@ export default function MomentsList() {
                       : undefined
                   }
                   onClick={() => setExpandedId(isExpanded ? null : moment.id)}
+                  // 多张堆叠：绝对定位铺满宽度；单张或隔离模式：相对定位正常流
                   className={`${
                     group.moments.length > 1 && onlyViewId == null
                       ? "absolute left-0 right-0"
                       : "relative"
                   } cursor-pointer`}
                   style={{
+                    // 展开卡片置顶；其余按「越新越靠上」递减层叠
                     zIndex: isExpanded ? 50 : group.moments.length - i,
                     ...(group.moments.length > 1 && onlyViewId == null
                       ? { top: i * 18 }
@@ -172,6 +212,7 @@ export default function MomentsList() {
                   }}
                 >
                   <div className="overflow-hidden rounded-m3 border border-outline/40 bg-surface-container shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
+                    {/* 收起态：相对时间 + 心情 + 📷 + 2 行截断正文 */}
                     {!isExpanded && onlyViewId == null && (
                       <div className="px-4 py-3">
                         <div className="mb-1.5 flex items-center gap-2">
@@ -191,6 +232,7 @@ export default function MomentsList() {
                       </div>
                     )}
 
+                    {/* 展开态 / 隔离态：作者 + 全文 + 图片网格 + 点赞 + 只看这条 */}
                     {(isExpanded || onlyViewId != null) && (
                       <motion.div
                         initial={{ opacity: 0 }}
@@ -295,6 +337,7 @@ export default function MomentsList() {
         </motion.div>
       ))}
 
+      {/* 展开遮罩：点击空白处收起当前卡片 */}
       <AnimatePresence>
         {expandedId != null && onlyViewId == null && (
           <motion.div

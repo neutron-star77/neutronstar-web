@@ -1,3 +1,8 @@
+/**
+ * Lightbox —— 可复用灯箱（MomentsList / AlbumGrid 共用）。
+ * 特性：spring 缩放进场 + 键盘(Esc 关 / ← 上一张 / → 下一张) + 移动端左右滑动 + 打开锁背景滚动。
+ * 改动画手感：调内部图片 motion.div 的 transition（spring stiffness/damping）。
+ */
 import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -16,10 +21,6 @@ interface LightboxProps {
   onNext: () => void;
 }
 
-/**
- * 复用灯箱：spring 缩放 + 键盘(←/→/Esc) + 锁滚动 + 触摸左右滑动。
- * 供 MomentsList / AlbumGrid 共用。
- */
 export default function Lightbox({
   photos,
   index,
@@ -30,6 +31,7 @@ export default function Lightbox({
 }: LightboxProps) {
   const photo = photos[index];
 
+  // 键盘导航：打开时监听全局 keydown
   const handleKey = useCallback(
     (e: KeyboardEvent) => {
       if (!open) return;
@@ -52,6 +54,7 @@ export default function Lightbox({
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
+  // 打开时禁止背景滚动，关闭/卸载恢复
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -69,6 +72,7 @@ export default function Lightbox({
           transition={{ duration: 0.25 }}
           className="fixed inset-0 z-[9999] flex items-center justify-center touch-none"
           onClick={onClose}
+          // 触摸：记录起点 x，松手时按横向位移 >40px 切上/下一张
           onTouchStart={(e) => {
             (e.currentTarget as HTMLElement).dataset.sx = String(
               e.touches[0].clientX
@@ -87,6 +91,7 @@ export default function Lightbox({
         >
           <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
 
+          {/* 关闭按钮 */}
           <button
             type="button"
             onClick={onClose}
@@ -157,6 +162,7 @@ export default function Lightbox({
             </button>
           )}
 
+          {/* 图片本体：spring 缩放进场（手感调这里） */}
           <motion.div
             key={photo.id}
             initial={{ scale: 0.85, opacity: 0 }}
