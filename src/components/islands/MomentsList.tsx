@@ -20,8 +20,12 @@ export default function MomentsList() {
       )}
 
       <div className="space-y-3">
-        {data?.map((c: Chatter) => (
-          <article key={c.id} className="rounded-m3 bg-surface-container p-4">
+        {data?.map((c: Chatter, i) => (
+          <article
+            key={c.id}
+            className="fade-up rounded-m3 bg-surface-container p-4"
+            style={{ animationDelay: `${i * 45}ms` }}
+          >
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-on-surface">
               {c.content}
             </p>

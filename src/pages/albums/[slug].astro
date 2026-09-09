@@ -1,0 +1,21 @@
+---
+import Page from "../../layouts/Page.astro";
+import AlbumDetail from "../../components/islands/AlbumDetail.tsx";
+import { albums, getAlbum } from "../../data/albums";
+
+export function getStaticPaths() {
+  return albums.map((a) => ({ params: { slug: a.slug } }));
+}
+
+const { slug } = Astro.params;
+const album = getAlbum(slug ?? "");
+if (!album) return Astro.redirect("/albums");
+---
+
+<Page
+  title={`${album.title} · NeutronStar`}
+  description={album.description}
+  wordmark={album.title}
+>
+  <AlbumDetail album={album} client:visible />
+</Page>

@@ -32,11 +32,12 @@ export default function PostList() {
       )}
 
       <div className="space-y-3">
-        {items.map((p) => (
+        {items.map((p, i) => (
           <a
             key={p.id}
             href={`/posts/${encodeURIComponent(p.slug)}`}
-            className="group flex gap-4 rounded-m3 bg-surface-container p-4 transition-transform hover:-translate-y-0.5 hover:bg-surface-container-high"
+            className="fade-up group flex gap-4 rounded-m3 bg-surface-container p-4 transition-transform hover:-translate-y-0.5 hover:bg-surface-container-high"
+            style={{ animationDelay: `${i * 45}ms` }}
           >
             {p.cover && (
               <img
