@@ -1,0 +1,68 @@
+---
+import Base from "../layouts/Base.astro";
+import "../styles/global.css";
+
+// 占位页：零 JS（除主题脚本）、无图片、无字体请求 —— 只验证骨架与部署链路
+const nav = [
+  { label: "文章", href: "/archive" },
+  { label: "说说", href: "/moments" },
+  { label: "相册", href: "/albums" },
+  { label: "杂谈", href: "/messages" },
+  { label: "书架", href: "/bookshelf" },
+  { label: "关于", href: "/about" },
+];
+---
+
+<Base title="NeutronStar" description="星舰之上的技术与生活">
+  <main class="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-16">
+    <header class="mb-10 flex items-center justify-between">
+      <span
+        class="text-sm font-semibold tracking-[0.3em] text-[var(--m3-primary)]"
+        >NEUTRONSTAR</span
+      >
+      <button
+        id="theme-toggle"
+        type="button"
+        class="rounded-full border border-[var(--m3-outline-variant)] px-3 py-1 text-xs text-[var(--m3-on-surface-variant)] transition-colors hover:bg-[var(--m3-surface-container)]"
+        aria-label="切换明暗主题"
+      >
+        主题
+      </button>
+    </header>
+
+    <h1
+      class="text-4xl font-bold tracking-[0.18em] sm:text-6xl"
+      style="color: var(--m3-on-surface)"
+    >
+      NEUTRONSTAR
+    </h1>
+    <p class="mt-4 text-base text-[var(--m3-on-surface-variant)] sm:text-lg">
+      A visual archive of technology, moments and passing days.
+    </p>
+
+    <nav class="mt-10 flex flex-wrap gap-2">
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            class="rounded-[var(--m3-radius)] bg-[var(--m3-surface-container)] px-4 py-2 text-sm text-[var(--m3-on-surface)] transition-transform hover:-translate-y-0.5 hover:bg-[var(--m3-surface-container-high)]"
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <footer class="mt-16 text-xs text-[var(--m3-on-surface-variant)]">
+      Powered by Astro · 骨架占位页
+    </footer>
+  </main>
+
+  <script>
+    const toggle = document.getElementById("theme-toggle");
+    toggle?.addEventListener("click", () => {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+    });
+  </script>
+</Base>
