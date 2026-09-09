@@ -1,0 +1,46 @@
+---
+import { site } from "../../config/site";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`);
+---
+
+<header
+  class="sticky top-0 z-40 border-b border-outline-variant/40 bg-surface/80 backdrop-blur-md"
+>
+  <div class="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+    <a
+      href="/"
+      class="shrink-0 text-xs font-semibold tracking-[0.28em] text-primary sm:text-sm"
+      >{site.wordmark}</a
+    >
+
+    <nav
+      class="flex flex-1 items-center gap-1 overflow-x-auto text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      aria-label="主导航"
+    >
+      {
+        site.nav.map((item) => (
+          <a
+            href={item.href}
+            aria-current={isActive(item.href) ? "page" : undefined}
+            class:list={[
+              "shrink-0 rounded-full px-3 py-1.5 hover:bg-surface-container",
+              isActive(item.href)
+                ? "bg-secondary-container font-medium text-on-surface"
+                : "text-on-surface-variant",
+            ]}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex shrink-0 items-center gap-2">
+      <ThemeToggle />
+    </div>
+  </div>
+</header>

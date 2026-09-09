@@ -1,68 +1,53 @@
 ---
-import Base from "../layouts/Base.astro";
-import "../styles/global.css";
+import Page from "../layouts/Page.astro";
+import SurfaceCard from "../components/ui/SurfaceCard.astro";
+import { site } from "../config/site";
 
-// 占位页：零 JS（除主题脚本）、无图片、无字体请求 —— 只验证骨架与部署链路
-const nav = [
-  { label: "文章", href: "/archive" },
-  { label: "说说", href: "/moments" },
-  { label: "相册", href: "/albums" },
-  { label: "杂谈", href: "/messages" },
-  { label: "书架", href: "/bookshelf" },
-  { label: "关于", href: "/about" },
+/** 首页骨架：Hero + 三个内容区占位。数据接入在 T4/T8，这里只定版式。 */
+const sections = [
+  { label: "LATEST POSTS", desc: "最近发布的文章", href: "/archive" },
+  { label: "MOMENTS", desc: "碎片化的日常记录", href: "/moments" },
+  { label: "ALBUMS", desc: "影像归档", href: "/albums" },
 ];
 ---
 
-<Base title="NeutronStar" description="星舰之上的技术与生活">
-  <main class="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-16">
-    <header class="mb-10 flex items-center justify-between">
-      <span
-        class="text-sm font-semibold tracking-[0.3em] text-[var(--m3-primary)]"
-        >NEUTRONSTAR</span
-      >
-      <button
-        id="theme-toggle"
-        type="button"
-        class="rounded-full border border-[var(--m3-outline-variant)] px-3 py-1 text-xs text-[var(--m3-on-surface-variant)] transition-colors hover:bg-[var(--m3-surface-container)]"
-        aria-label="切换明暗主题"
-      >
-        主题
-      </button>
-    </header>
-
+<Page title={site.name} description={site.description}>
+  {/* Hero */}
+  <section class="mb-10">
     <h1
-      class="text-4xl font-bold tracking-[0.18em] sm:text-6xl"
-      style="color: var(--m3-on-surface)"
+      class="text-4xl font-bold uppercase tracking-[0.18em] text-on-surface sm:text-6xl"
     >
-      NEUTRONSTAR
+      {site.wordmark}
     </h1>
-    <p class="mt-4 text-base text-[var(--m3-on-surface-variant)] sm:text-lg">
-      A visual archive of technology, moments and passing days.
-    </p>
+    <p class="mt-4 text-base text-on-surface-variant sm:text-lg">{site.tagline}</p>
 
-    <nav class="mt-10 flex flex-wrap gap-2">
+    <div class="mt-6 flex flex-wrap items-center gap-3">
       {
-        nav.map((item) => (
+        site.social.map((item) => (
           <a
             href={item.href}
-            class="rounded-[var(--m3-radius)] bg-[var(--m3-surface-container)] px-4 py-2 text-sm text-[var(--m3-on-surface)] transition-transform hover:-translate-y-0.5 hover:bg-[var(--m3-surface-container-high)]"
+            class="rounded-full bg-secondary-container px-4 py-2 text-xs font-medium text-on-surface hover:-translate-y-0.5"
           >
             {item.label}
           </a>
         ))
       }
-    </nav>
+    </div>
+  </section>
 
-    <footer class="mt-16 text-xs text-[var(--m3-on-surface-variant)]">
-      Powered by Astro · 骨架占位页
-    </footer>
-  </main>
-
-  <script>
-    const toggle = document.getElementById("theme-toggle");
-    toggle?.addEventListener("click", () => {
-      const dark = document.documentElement.classList.toggle("dark");
-      localStorage.setItem("theme", dark ? "dark" : "light");
-    });
-  </script>
-</Base>
+  {/* 内容区占位 */}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {
+      sections.map((s) => (
+        <SurfaceCard interactive>
+          <a href={s.href} class="block">
+            <h2 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              {s.label}
+            </h2>
+            <p class="mt-2 text-sm text-on-surface">{s.desc}</p>
+          </a>
+        </SurfaceCard>
+      ))
+    }
+  </div>
+</Page>

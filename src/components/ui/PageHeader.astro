@@ -1,0 +1,26 @@
+---
+/**
+ * 页面头：全大写字标 + 一行描述（Shirone 风格）
+ * 例：ALBUMS / A visual archive of places, people and passing moments.
+ */
+interface Props {
+  title: string;
+  description?: string;
+  /** 右下角补充信息，如 "3 albums" */
+  meta?: string;
+}
+
+const { title, description, meta } = Astro.props;
+---
+
+<header class="mb-8 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1
+      class="text-3xl font-bold uppercase tracking-[0.18em] text-on-surface sm:text-4xl"
+    >
+      {title}
+    </h1>
+    {description && <p class="mt-2 text-sm text-on-surface-variant sm:text-base">{description}</p>}
+  </div>
+  {meta && <span class="text-xs text-on-surface-variant">{meta}</span>}
+</header>

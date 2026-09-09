@@ -1,0 +1,32 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+
+const now = new Date();
+const year = now.getFullYear();
+const month = now.getMonth();
+const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // 周一为首
+const dayCount = new Date(year, month + 1, 0).getDate();
+/** 占位：有文章的日子（后续由中间层提供） */
+const activeDays = new Set([3, 8, 12, 17, 19, 26]);
+const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+const monthLabel = `${year} 年 ${month + 1} 月`;
+---
+
+<SurfaceCard title={monthLabel}>
+  <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-on-surface-variant">
+    {weekdays.map((d) => <div class="py-1">{d}</div>)}
+    {Array.from({ length: firstWeekday }, () => <div></div>)}
+    {
+      Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => (
+        <div
+          class:list={[
+            "grid place-items-center rounded-m3-sm py-1",
+            activeDays.has(d) ? "bg-primary text-on-primary" : "text-on-surface",
+          ]}
+        >
+          {d}
+        </div>
+      ))
+    }
+  </div>
+</SurfaceCard>

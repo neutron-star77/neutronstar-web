@@ -1,0 +1,63 @@
+---
+import SurfaceCard from "../ui/SurfaceCard.astro";
+import AuthorCard from "./AuthorCard.astro";
+import Calendar from "./Calendar.astro";
+
+/** 占位数据 —— 后续统一从中间层取（T4 取数层） */
+const categories = [
+  { name: "Guides", count: 12 },
+  { name: "Examples", count: 8 },
+];
+const tags = [
+  "Markdown",
+  "Astro",
+  "Shirone",
+  "Typography",
+  "Collapse",
+  "Demo",
+  "Theme",
+  "Blogging",
+  "Audio Reader",
+  "Annotation",
+];
+---
+
+<AuthorCard />
+
+<SurfaceCard title="Announcement">
+  <p class="text-xs leading-relaxed text-on-surface-variant">
+    The only way to do great work is to love what you do.
+  </p>
+</SurfaceCard>
+
+<SurfaceCard title="Categories">
+  <ul class="space-y-1 text-sm">
+    {
+      categories.map((c) => (
+        <li>
+          <a href={`/archive?category=${c.name}`} class="flex items-center justify-between rounded-m3-sm px-2 py-1.5 hover:bg-surface-container-high">
+            <span class="text-on-surface">{c.name}</span>
+            <span class="text-xs text-on-surface-variant">{c.count}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</SurfaceCard>
+
+<SurfaceCard title="Tags">
+  <div class="flex flex-wrap gap-1.5">
+    {
+      tags.map((t) => (
+        <a
+          href={`/archive?tag=${t}`}
+          class="rounded-full bg-secondary-container px-2.5 py-1 text-[11px] text-on-surface hover:bg-surface-container-high"
+        >
+          {t}
+        </a>
+      ))
+    }
+  </div>
+</SurfaceCard>
+
+<Calendar />
