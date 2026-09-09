@@ -18,7 +18,6 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="alternate" type="application/rss+xml" title={title} href="/rss.xml" />
     {/* 主题提前应用，避免首帧白闪（阻塞渲染是刻意的，仅几行脚本） */}
     <script is:inline>
       (() => {
