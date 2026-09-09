@@ -1,22 +1,13 @@
 ---
 import Page from "../layouts/Page.astro";
-import SurfaceCard from "../components/ui/SurfaceCard.astro";
+import HomeFeed from "../components/islands/HomeFeed.tsx";
 import { site } from "../config/site";
-
-/** 首页骨架：Hero + 三个内容区占位。数据接入在 T4/T8，这里只定版式。 */
-const sections = [
-  { label: "LATEST POSTS", desc: "最近发布的文章", href: "/archive" },
-  { label: "MOMENTS", desc: "碎片化的日常记录", href: "/moments" },
-  { label: "ALBUMS", desc: "影像归档", href: "/albums" },
-];
 ---
 
 <Page title={site.name} description={site.description}>
-  {/* Hero */}
+  {/* Hero：纯 Astro 静态渲染，零 JS 首屏 */}
   <section class="mb-10">
-    <h1
-      class="text-4xl font-bold uppercase tracking-[0.18em] text-on-surface sm:text-6xl"
-    >
+    <h1 class="text-4xl font-bold uppercase tracking-[0.18em] text-on-surface sm:text-6xl">
       {site.wordmark}
     </h1>
     <p class="mt-4 text-base text-on-surface-variant sm:text-lg">{site.tagline}</p>
@@ -35,19 +26,6 @@ const sections = [
     </div>
   </section>
 
-  {/* 内容区占位 */}
-  <div class="grid gap-4 sm:grid-cols-2">
-    {
-      sections.map((s) => (
-        <SurfaceCard interactive>
-          <a href={s.href} class="block">
-            <h2 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              {s.label}
-            </h2>
-            <p class="mt-2 text-sm text-on-surface">{s.desc}</p>
-          </a>
-        </SurfaceCard>
-      ))
-    }
-  </div>
+  {/* 真实数据区：React island，进入视口才水合 */}
+  <HomeFeed client:visible />
 </Page>

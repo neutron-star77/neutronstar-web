@@ -1,0 +1,13 @@
+---
+// 文章页按需渲染（实时取数），其余页面保持静态预渲染
+export const prerender = false;
+
+import Page from "../../layouts/Page.astro";
+import PostView from "../../components/islands/PostView.tsx";
+
+const { slug } = Astro.params;
+---
+
+<Page title="文章" description="NeutronStar 文章" wordmark="POST">
+  <PostView slug={slug} client:visible />
+</Page>
