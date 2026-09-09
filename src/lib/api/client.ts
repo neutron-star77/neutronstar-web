@@ -8,7 +8,7 @@
  */
 
 const API_BASE =
-  import.meta.env.PUBLIC_API_BASE ?? "https://kirameku-api.neutronstar.fun";
+  import.meta.env.PUBLIC_API_BASE ?? "https://bff.neutronstar.fun";
 
 export const API_BASE_URL = API_BASE;
 
