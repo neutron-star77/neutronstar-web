@@ -1,0 +1,9 @@
+---
+import Page from "../layouts/Page.astro";
+import AlbumGrid from "../components/islands/AlbumGrid.tsx";
+import { site } from "../config/site";
+---
+
+<Page title={`${site.name} · Albums`} description="相册" wordmark="ALBUMS">
+  <AlbumGrid client:visible />
+</Page>

@@ -1,0 +1,9 @@
+---
+import Page from "../layouts/Page.astro";
+import MomentsList from "../components/islands/MomentsList.tsx";
+import { site } from "../config/site";
+---
+
+<Page title={`${site.name} · Moments`} description="说说与日常" wordmark="MOMENTS">
+  <MomentsList client:visible />
+</Page>

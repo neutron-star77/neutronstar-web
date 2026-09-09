@@ -1,0 +1,9 @@
+---
+import Page from "../layouts/Page.astro";
+import PostList from "../components/islands/PostList.tsx";
+import { site } from "../config/site";
+---
+
+<Page title={`${site.name} · Archive`} description="全部文章" wordmark="ARCHIVE">
+  <PostList client:visible />
+</Page>
