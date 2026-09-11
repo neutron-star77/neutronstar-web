@@ -1,12 +1,17 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import AlbumGrid from "@components/islands/AlbumGrid";
+import AuthButton from "@components/islands/AuthButton";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
 // P2：相册页静态壳 + AlbumGrid island（客户端 SWR 拉取 /api/albums）
+// P5：顶部右侧挂登录入口
 ---
 
 <MainGridLayout title={i18n(I18nKey.albums)} page="albums">
+    <div class="mb-4 flex justify-end">
+        <AuthButton client:load />
+    </div>
     <AlbumGrid client:visible />
 </MainGridLayout>

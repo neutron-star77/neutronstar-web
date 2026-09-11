@@ -1,12 +1,17 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import MomentsList from "@components/islands/MomentsList";
+import AuthButton from "@components/islands/AuthButton";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
 // P2/P3：说说页静态壳 + MomentsList island（客户端 SWR 拉取 /api/chatters）
+// P5：顶部右侧挂登录入口（点赞/评论需要 GitHub 登录）
 ---
 
 <MainGridLayout title={i18n(I18nKey.moments)} page="moments">
+    <div class="mb-4 flex justify-end">
+        <AuthButton client:load />
+    </div>
     <MomentsList client:load />
 </MainGridLayout>

@@ -1,0 +1,58 @@
+---
+// P5：GitHub OAuth 回跳落地页。
+//
+// 后端 `/api/auth/github/callback` 换完 code 后会 302 到
+// `${FRONTEND_ORIGIN}/auth/callback?token=<JWT>`；本页只做一件事：
+// 把 token 写进 localStorage，然后回首页。刻意做成独立极简页（不套主布局），
+// 既快又不依赖主题样式，且不把 token 留在浏览器历史里太久。
+export const prerender = false;
+
+const token = Astro.url.searchParams.get("token") ?? "";
+const ok = Boolean(token);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>{ok ? "登录成功" : "登录失败"} - Neutronstar</title>
+		<style>
+			:root { color-scheme: dark; }
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+				background: #141218;
+				color: #e6e1e9;
+				font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+			}
+			p { font-size: 14px; opacity: 0.85; }
+			a { color: #d0bcff; }
+		</style>
+	</head>
+	<body>
+		<p>
+			{ok ? "登录成功，正在返回首页…" : "没有拿到授权信息"}
+			&nbsp;<a href="/">若没有自动跳转，点这里</a>
+		</p>
+
+		{ok && (
+			<script is:inline define:vars={{ token }}>
+				try {
+					localStorage.setItem("kirameku_github_token", token);
+				} catch (error) {
+					// 隐私模式等场景写不进去，用户回首页后仍是未登录态
+				}
+			</script>
+		)}
+
+		<script is:inline>
+			setTimeout(function () {
+				location.replace("/");
+			}, 350);
+		</script>
+	</body>
+</html>

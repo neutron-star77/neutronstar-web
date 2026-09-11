@@ -12,16 +12,18 @@
  *
  * 二次开发提示：
  *  - 倾斜角度/弹簧手感：改 web/src/lib/variants.ts 的 stackRotations / spring。
- *  - 点赞目前是【前端乐观态】，未落库（后端缺 likeChatter 接口）。要做持久化点赞/评论，
- *    需在 bff 加对应接口并在本文件用 SWR mutate 更新。
+ *  - 点赞已落库（P5）：`POST /api/chatters/{id}/like|unlike`，乐观更新 + 失败回滚 +
+ *    成功后 SWR mutate 重拉真实计数。要做"用户维度防刷/我的点赞态"需后端加 like 关联表。
+ *  - 评论尚未接入：`/api/comments` 只支持 post 维度，说说/相册要多态关联（见 HANDOFF P5）。
  *  - 图片地址：imgUrl() 走 bff 的 /img 边缘优化（AVIF，w= 控制宽度）；直接给 http(s) 链接则原样返回。
  */
 
 import { useMemo, useState } from "react";
+import { mutate } from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import { useChatters } from "../../lib/api/hooks";
 import { useRealtimeRefresh } from "../../lib/realtime";
-import { API_BASE_URL } from "../../lib/api/client";
+import { API_BASE_URL, apiPost } from "../../lib/api/client";
 import type { Chatter } from "../../lib/api/types";
 import { spring, stackRotations } from "../../lib/variants";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
@@ -97,14 +99,30 @@ export default function MomentsList() {
           .filter((g) => g.moments.length > 0)
       : dayGroups;
 
-  // 点赞乐观切换（落库需接后端 likeChatter + SWR mutate）
-  function toggleLike(id: number) {
+  // P5：点赞落库（乐观更新 + 失败回滚 + 成功后重拉真实计数）
+  // 后端接口无需登录即可调用（点赞防刷/用户维度去重属后续加固项）。
+  async function toggleLike(id: number) {
+    const wasLiked = likedIds.has(id);
     setLikedIds((prev) => {
       const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
+      if (wasLiked) n.delete(id);
       else n.add(id);
       return n;
     });
+
+    try {
+      await apiPost(`/api/chatters/${id}/${wasLiked ? "unlike" : "like"}`);
+      // 计数以服务端为准（同时把 BFF 缓存刷成最新值）
+      void mutate((key) => Array.isArray(key) && String(key[0]) === "chatters");
+    } catch {
+      // 回滚乐观态
+      setLikedIds((prev) => {
+        const n = new Set(prev);
+        if (wasLiked) n.add(id);
+        else n.delete(id);
+        return n;
+      });
+    }
   }
 
   return (
