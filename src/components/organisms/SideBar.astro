@@ -21,6 +21,7 @@ import { i18n } from "@i18n/translation";
 import { isWidgetVisibleOnPage, pagesToAttribute } from "@utils/sidebar-page";
 import { musicConfig, resolveMusicOptions } from "@/config/musicConfig";
 import { sidebarConfig } from "@/config/sidebarConfig";
+import { getSiteOverrides } from "@utils/site-overrides";
 import type {
 	SidebarColumn,
 	SidebarPage,
@@ -81,10 +82,12 @@ type WidgetRenderer = (props: Record<string, unknown>) => unknown;
 
 // 按列取整：SSR 不做页面过滤（全量渲染，swup 导航后客户端才能恢复
 // 被隐藏的 widget），页面可见性仅体现在包装层的 hidden 标记上
+// P2：后台 site_config.sidebar_widgets 可覆盖每个 widget 的显示开关
+const sidebarOverrides = (await getSiteOverrides()).sidebar;
 const widgets = sidebarConfig.enable
 	? sidebarConfig.components.filter(
 			(widget) =>
-				widget.enable &&
+				(sidebarOverrides?.[widget.type] ?? widget.enable) &&
 				(widget.column ?? "primary") === column &&
 				(widget.type !== "music" || MusicSidebar !== null),
 		)

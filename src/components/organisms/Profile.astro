@@ -7,6 +7,7 @@ import Card from "@components/atoms/display/Card.svelte";
 import Tooltip from "@components/atoms/overlay/Tooltip.svelte";
 import UmamiStats from "@components/organisms/UmamiStats.astro";
 import { resolveImageAsset } from "@utils/asset-utils";
+import { getSiteOverrides } from "@utils/site-overrides";
 import { Icon } from "astro-icon/components";
 import { profileConfig } from "@/config";
 import type { ProfileWidget } from "@/types/sidebarConfig";
@@ -24,7 +25,9 @@ const style = Astro.props.style;
 const priority = Astro.props.priority ?? false;
 
 const config = profileConfig;
-const avatarAsset = await resolveImageAsset(config.avatar ?? "");
+// P2：后台 site_images.avatar 可覆盖头像（远程 URL 直接用，本地路径走资产解析）
+const siteAvatar = (await getSiteOverrides()).images.avatar;
+const avatarAsset = siteAvatar ?? (await resolveImageAsset(config.avatar ?? ""));
 let avatarUrl = typeof avatarAsset === "string" ? avatarAsset : avatarAsset.src;
 let avatarSrcset: string | undefined;
 let avatarWidth: number | undefined;

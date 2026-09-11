@@ -29,6 +29,19 @@ interface AlbumPhoto {
   caption?: string;
 }
 
+/**
+ * fastimage 两级派生：母版 URL（.../2026/08/xxx.webp）按目录约定派生
+ * thumbs/xxx.webp（800w 列表）与 full/xxx.webp（1600w 灯箱）。非图床 URL 原样返回。
+ */
+const FASTIMAGE_RE = /^(https:\/\/(?:cdn|fastly|gcore)\.jsdelivr\.net\/gh\/neutron-star77\/fastimage@main\/2026\/08\/)(.+)$/;
+const GCORE_BASE = "https://gcore.jsdelivr.net/gh/neutron-star77/fastimage@main/2026/08/";
+function deriveVariants(url: string): { thumb: string; full: string } | null {
+  const m = url.match(FASTIMAGE_RE);
+  if (!m) return null;
+  // cdn/fastly 子域目前对 gh 资源 301 到 raw（大陆直连差），gcore 直出，统一走 gcore
+  return { thumb: `${GCORE_BASE}thumbs/${m[2]}`, full: `${GCORE_BASE}full/${m[2]}` };
+}
+
 /** 相册照片列表（展开/封面共用，39 条 URL 级数据量很小） */
 function useAlbumPhotos(albumId: number) {
   return useSWR<AlbumPhoto[]>(
@@ -84,7 +97,13 @@ function PhotoCard({
       <div className="relative rounded-sm bg-white p-2 pb-6 shadow-lg transition-shadow duration-300 group-hover:shadow-2xl dark:bg-slate-800 dark:shadow-black/30">
         <div className="relative aspect-[4/3] overflow-hidden rounded-[1px]">
           <img
-            src={photo.url}
+            src={deriveVariants(photo.url)?.thumb ?? photo.url}
+            srcSet={
+              deriveVariants(photo.url)
+                ? `${deriveVariants(photo.url)!.thumb} 800w, ${deriveVariants(photo.url)!.full} 1600w, ${photo.url} 1920w`
+                : undefined
+            }
+            sizes="(min-width: 640px) 30vw, 45vw"
             alt={photo.caption || "照片"}
             loading="lazy"
             className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
@@ -129,7 +148,7 @@ function AlbumCard({
 
   const lightboxPhotos: LightboxPhoto[] = (photos ?? []).map((p) => ({
     id: p.id,
-    url: p.url,
+    url: deriveVariants(p.url)?.full ?? p.url,
     caption: p.caption,
   }));
   const photoCount = photos?.length ?? album.photo_count;

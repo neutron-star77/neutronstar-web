@@ -228,17 +228,3 @@ export async function getPostBySlug(slug: string): Promise<PostEntry | null> {
 	entry.url = getPostUrl(entry);
 	return entry;
 }
-
-/** 站点元信息（site_config 的站名/描述，Layout/Banner 覆盖默认值用） */
-export interface SiteIdentity {
-	title: string | null;
-	description: string | null;
-}
-
-export async function getSiteIdentity(): Promise<SiteIdentity> {
-	const cfg = await apiGet<Record<string, string>>("/api/site-config", 60_000);
-	return {
-		title: cfg?.site_title || null,
-		description: cfg?.site_description || null,
-	};
-}

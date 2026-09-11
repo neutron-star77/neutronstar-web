@@ -1,0 +1,15 @@
+{
+  "name": "neutronstar-web",
+  "main": "dist/server/entry.mjs",
+  "compatibility_date": "2026-09-07",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "dist/client"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "routes": [
+    { "pattern": "neutronstar.fun", "custom_domain": true }
+  ]
+}
