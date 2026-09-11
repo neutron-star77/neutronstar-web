@@ -10,6 +10,7 @@
     "enabled": true
   },
   "routes": [
-    { "pattern": "neutronstar.fun", "custom_domain": true }
+    { "pattern": "neutronstar.fun", "custom_domain": true },
+    { "pattern": "www.neutronstar.fun", "custom_domain": true }
   ]
 }

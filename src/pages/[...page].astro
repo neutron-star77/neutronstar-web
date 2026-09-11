@@ -9,6 +9,15 @@ import { getArchivePage } from "@utils/content-utils";
 export const prerender = false;
 
 const rawPage = Astro.params.page;
+// 根级 catch-all 只允许「首页」与「/2/、/3/ 这类纯数字分页」。
+// 其余路径（如 /albums/xxx/、/foobar/）必须 404，否则 SSR 后 catch-all 会把未知 URL
+// 全部渲染成首页（软 404，污染 SEO 也让用户以为链接有效）。
+if (rawPage !== undefined && !/^\d+$/.test(String(rawPage))) {
+	return new Response("404 Not Found", {
+		status: 404,
+		headers: { "content-type": "text/plain; charset=utf-8" },
+	});
+}
 const pageNum = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
 const archive = await getArchivePage(pageNum, postListConfig.pageSize);
 // PostPage 消费 page.data（与原版 astro Page 鸭子兼容）
