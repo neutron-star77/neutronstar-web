@@ -6,8 +6,8 @@
  *  - 展开后内部是拍立得风格 PhotoCard（白边 + 胶带 + 确定性倾斜 tiltFromId），点图进 Lightbox
  *  - 展开卡片占满整行（sm:col-span-2 lg:col-span-3），照片墙才够宽
  *
- * 数据来源：静态数据 web/src/data/albums.ts（鬼刀图床 jsDelivr 链接，6 册共 234 张），
- * 不走 bff（后端 albums 为空）。要接真实后端：把 albums 换成 useAlbums() 取回的数据即可。
+ * 数据来源（P2 数据换血）：相册列表 useAlbums()（/api/albums），照片墙
+ * useAlbumPhotos(album.id)（/api/albums/{id}/photos，SWR 懒加载）。
  *
  * 二次开发提示：
  *  - 扇形角度：STACK_ANGLES / FAN_ANGLES / FAN_Y（本文件顶部常量）
@@ -16,15 +16,35 @@
  */
 
 import { useState } from "react";
+import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
-import { albums } from "../../data/albums";
 import { spring, tiltFromId } from "../../lib/variants";
+import { apiGet } from "../../lib/api/client";
+import type { Album } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
 
 interface AlbumPhoto {
   id: string;
   url: string;
   caption?: string;
+}
+
+/** 相册照片列表（展开/封面共用，39 条 URL 级数据量很小） */
+function useAlbumPhotos(albumId: number) {
+  return useSWR<AlbumPhoto[]>(
+    ["album-photos", albumId],
+    async ([, id]) => {
+      const rows = await apiGet<
+        { id: number; url: string; caption: string }[]
+      >(`/api/albums/${id}/photos`);
+      return (rows ?? []).map((p) => ({
+        id: String(p.id),
+        url: p.url,
+        caption: p.caption || undefined,
+      }));
+    },
+    { revalidateOnFocus: false }
+  );
 }
 
 // 封面堆叠（收起）角度 / 悬停扇形角度 / 扇形纵向偏移。索引对应封面第 i 张（上/中/下）。
@@ -78,17 +98,12 @@ function PhotoCard({
         </div>
         {photo.caption && (
           <div className="absolute bottom-1.5 left-0 right-0 text-center">
-            <span className="font-serif text-xs italic text-slate-400 dark:text-slate-500">
+            <span className="rounded-full bg-black/40 px-2 py-0.5 text-[10px] text-white">
               {photo.caption}
             </span>
           </div>
         )}
       </div>
-      {/* 左上角胶带装饰 */}
-      <div
-        className="absolute -top-2 left-3 h-4 w-10 rotate-[-6deg] rounded-sm bg-amber-200/60 dark:bg-amber-300/30"
-        style={{ backdropFilter: "blur(2px)" }}
-      />
     </motion.div>
   );
 }
@@ -99,19 +114,25 @@ function AlbumCard({
   onToggle,
   onPhotoClick,
 }: {
-  album: (typeof albums)[number];
+  album: Album;
   isExpanded: boolean;
   onToggle: () => void;
   onPhotoClick: (photos: LightboxPhoto[], index: number) => void;
 }) {
-  // 取前 3 张做封面，reverse 让「最上面」是最后一张（视觉更自然）
-  const covers = album.photos.slice(0, 3).reverse();
-  // 灯箱用的全量照片（按 index 当 id，caption 透传）
-  const lightboxPhotos: LightboxPhoto[] = album.photos.map((p) => ({
-    id: String(p.index),
+  const { data: photos } = useAlbumPhotos(album.id);
+
+  // 取前 3 张做封面，reverse 让「最上面」是最后一张（视觉更自然）；
+  // 照片未加载时用相册 cover 兜底单张
+  const covers = (photos && photos.length > 0
+    ? photos.slice(0, 3).reverse()
+    : [{ id: `cover-${album.id}`, url: album.cover }]) as AlbumPhoto[];
+
+  const lightboxPhotos: LightboxPhoto[] = (photos ?? []).map((p) => ({
+    id: p.id,
     url: p.url,
     caption: p.caption,
   }));
+  const photoCount = photos?.length ?? album.photo_count;
 
   return (
     <div
@@ -157,7 +178,7 @@ function AlbumCard({
             </motion.div>
           ))}
           <div className="absolute -bottom-2 right-0 z-20 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-on-primary shadow-lg">
-            {album.photos.length} 张
+            {photoCount} 张
           </div>
         </motion.div>
 
@@ -182,16 +203,22 @@ function AlbumCard({
           >
             <div className="px-4 pb-6">
               {/* 照片墙网格：2 列(移动)/3 列(>=sm)；每张是拍立得 PhotoCard */}
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {album.photos.map((photo, idx) => (
-                  <PhotoCard
-                    key={photo.url}
-                    photo={{ id: String(photo.index), url: photo.url, caption: photo.caption }}
-                    index={idx}
-                    onClick={() => onPhotoClick(lightboxPhotos, idx)}
-                  />
-                ))}
-              </div>
+              {photos ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {photos.map((photo, idx) => (
+                    <PhotoCard
+                      key={photo.id}
+                      photo={photo}
+                      index={idx}
+                      onClick={() => onPhotoClick(lightboxPhotos, idx)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <span className="text-sm text-on-surface-variant">照片加载中…</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -201,48 +228,65 @@ function AlbumCard({
 }
 
 export default function AlbumGrid() {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { data: albums, isLoading } = useSWR<Album[]>(
+    ["albums"],
+    () => apiGet<Album[]>("/api/albums"),
+    { revalidateOnFocus: false }
+  );
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [lightbox, setLightbox] = useState<{ photos: LightboxPhoto[]; index: number } | null>(
     null
   );
 
-  if (albums.length === 0) {
+  if (isLoading) {
+    return (
+      <p className="text-sm text-on-surface-variant">相册加载中…</p>
+    );
+  }
+
+  if (!albums || albums.length === 0) {
     return <p className="text-sm text-on-surface-variant">还没有相册。</p>;
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {albums.map((album) => {
-        const isExpanded = expandedId === album.id;
-        return (
-          // 展开时占满整行，照片墙才够宽
-          <div key={album.id} className={isExpanded ? "sm:col-span-2 lg:col-span-3" : ""}>
-            <AlbumCard
-              album={album}
-              isExpanded={isExpanded}
-              onToggle={() => setExpandedId((prev) => (prev === album.id ? null : album.id))}
-              onPhotoClick={(photos, index) => setLightbox({ photos, index })}
-            />
-          </div>
-        );
-      })}
+    <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {albums.map((album) => {
+          const isExpanded = expandedId === album.id;
+          return (
+            // 展开时占满整行，照片墙才够宽
+            <div key={album.id} className={isExpanded ? "sm:col-span-2 lg:col-span-3" : ""}>
+              <AlbumCard
+                album={album}
+                isExpanded={isExpanded}
+                onToggle={() => setExpandedId((prev) => (prev === album.id ? null : album.id))}
+                onPhotoClick={(photos, index) => setLightbox({ photos, index })}
+              />
+            </div>
+          );
+        })}
+      </div>
 
-      <Lightbox
-        photos={lightbox?.photos ?? []}
-        index={lightbox?.index ?? 0}
-        open={!!lightbox}
-        onClose={() => setLightbox(null)}
-        onPrev={() =>
-          setLightbox((lb) =>
-            lb ? { ...lb, index: (lb.index - 1 + lb.photos.length) % lb.photos.length } : null
-          )
-        }
-        onNext={() =>
-          setLightbox((lb) =>
-            lb ? { ...lb, index: (lb.index + 1) % lb.photos.length } : null
-          )
-        }
-      />
+      {lightbox && (
+        <Lightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          open={true}
+          onClose={() => setLightbox(null)}
+          onPrev={() =>
+            setLightbox((prev) =>
+              prev
+                ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length }
+                : prev
+            )
+          }
+          onNext={() =>
+            setLightbox((prev) =>
+              prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : prev
+            )
+          }
+        />
+      )}
     </div>
   );
 }

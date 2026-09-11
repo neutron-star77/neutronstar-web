@@ -1,10 +1,5 @@
 ---
-import MainGridLayout from "../layouts/MainGridLayout.astro";
+// 文章列表并入归档页（/archive/），旧链接永久重定向
+import { url } from "@utils/url-utils";
+return Astro.redirect(url("/archive/"));
 ---
-
-<MainGridLayout title="文章">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">文章</h1>
-        <p>P2 迁移：文章列表接 /bff/archive。</p>
-    </div>
-</MainGridLayout>

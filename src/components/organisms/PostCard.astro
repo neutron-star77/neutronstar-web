@@ -5,7 +5,6 @@ import { getImage } from "astro:assets";
  * 只负责取数转 props：封面解析、日期格式化、分类/标签 URL、字数/时长文案。
  */
 import type { CollectionEntry } from "astro:content";
-import { render } from "astro:content";
 import path from "node:path";
 import PostCard from "@components/atoms/blog/PostCard.astro";
 import I18nKey from "@i18n/i18nKey";
@@ -49,7 +48,11 @@ const imageBasePath = entry.filePath
 	? path.relative(path.resolve("src"), path.dirname(entry.filePath))
 	: path.join("content/posts/", getDir(entry.id));
 
-const { remarkPluginFrontmatter } = await render(entry);
+// P2 数据换血：API 文章不走 remark 渲染，字数/摘要直接读适配字段
+const remarkPluginFrontmatter = {
+	words: (entry as { wordCount?: number }).wordCount ?? 0,
+	excerpt: undefined as string | undefined,
+};
 
 // 解析封面：本地相对路径 → 构建产物 URL（与 ImageWrapper 同法）
 let coverUrl = image;

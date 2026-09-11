@@ -1,20 +1,20 @@
 ---
 import Pagination from "@components/molecules/Pagination.astro";
 import PostPage from "@components/organisms/PostPage.astro";
-import type { GetStaticPaths } from "astro";
 import { postListConfig } from "@/config/postListConfig";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import { getSortedPosts } from "../utils/content-utils";
+import { getArchivePage } from "@utils/content-utils";
 
-export const getStaticPaths = (async ({ paginate }) => {
-	const allBlogPosts = await getSortedPosts();
-	return paginate(allBlogPosts, { pageSize: postListConfig.pageSize });
-}) satisfies GetStaticPaths;
-// https://github.com/withastro/astro/issues/6507#issuecomment-1489916992
+// P2 数据换血：首页 SSR，文章来自 /bff/archive（BFF 边缘缓存 + 发布失效）
+export const prerender = false;
 
-const { page } = Astro.props;
+const rawPage = Astro.params.page;
+const pageNum = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
+const archive = await getArchivePage(pageNum, postListConfig.pageSize);
+// PostPage 消费 page.data（与原版 astro Page 鸭子兼容）
+const page = { ...archive, data: archive.posts };
 
-const len = page.data.length;
+const len = page.posts.length;
 ---
 
 <MainGridLayout page="home">

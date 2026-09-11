@@ -1,15 +1,44 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
+import Markdown from "@components/content/Markdown.astro";
+import { getPostBySlug } from "@utils/content-utils";
+import { siteMarkdownProcessor } from "@utils/markdown-processor";
+import { url } from "@utils/url-utils";
+import { formatDateToYYYYMMDD } from "@utils/date-utils";
 
-// P1 占位：不生成任何静态路由；P2 接真实数据时改回 getStaticPaths。
-export function getStaticPaths() {
-	return [];
+// P2：文章详情页 SSR（markdown 服务端渲染），正文来自后端
+export const prerender = false;
+
+const { slug = "" } = Astro.params;
+const entry = await getPostBySlug(slug);
+
+if (!entry) {
+	return Astro.redirect(url("/"));
 }
+
+let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
+rendererPromise ??= siteMarkdownProcessor.createRenderer({});
+const renderer = await rendererPromise;
+const { code: html } = await renderer.render(entry.body ?? "", {
+	frontmatter: entry.data as unknown as Record<string, unknown>,
+});
 ---
 
-<MainGridLayout title="文章" page="post">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">文章详情</h1>
-        <p>P2 迁移：Shirone 原版 posts/[...slug]（Markdown 全管线 + 加密 + TOC）将在此移植。</p>
-    </div>
+<MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle>
+    <article class="card-base onload-animation p-6">
+        <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
+        <div class="opacity-60 text-sm mb-2">
+            {formatDateToYYYYMMDD(entry.data.published)}
+            {entry.data.category && <span class="mx-2">·</span>}{entry.data.category}
+            {entry.wordCount > 0 && <span class="mx-2">·</span>}{entry.wordCount} 字
+        </div>
+        {entry.data.tags.length > 0 && (
+            <div class="flex flex-wrap gap-2 mb-6">
+                {entry.data.tags.map((tag) => (
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--primary)]/10">#{tag}</span>
+                ))}
+            </div>
+        )}
+        <Markdown class="!max-w-none"><div set:html={html} /></Markdown>
+    </article>
 </MainGridLayout>

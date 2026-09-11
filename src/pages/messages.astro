@@ -1,10 +1,10 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import MessagesList from "@components/islands/MessagesList";
+
+// P2/P3：留言页静态壳 + MessagesList island（客户端 SWR 拉取 /api/messages）
 ---
 
 <MainGridLayout title="留言">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">留言</h1>
-        <p>P2/P3 迁移：MessagesList islands 将在此挂载。</p>
-    </div>
+    <MessagesList client:load />
 </MainGridLayout>

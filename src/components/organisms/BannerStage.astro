@@ -5,6 +5,7 @@ import { resolveImageAsset } from "@utils/asset-utils";
 import { url } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { siteConfig } from "@/config";
+import { getSiteIdentity } from "@utils/content-utils";
 import type { SidebarPage } from "@/types/sidebarConfig";
 
 interface Props {
@@ -22,10 +23,13 @@ const initialSupportingText =
 const initialDate = date.trim();
 const initialCopyMode =
 	page === "home" ? "home" : page && normalizedTitle ? "context" : "none";
+// P2：首页大标题以后台 site_config 的 site_title 为准
+const siteIdentity = await getSiteIdentity();
+const homeTitle = siteIdentity.title || siteConfig.banner.homeText.title;
 const initialLabel =
 	initialCopyMode === "context"
 		? normalizedTitle
-		: siteConfig.banner.homeText.title;
+		: homeTitle;
 
 interface ResponsiveBannerImage {
 	fallback: string;
@@ -92,7 +96,8 @@ const mobileResponsiveImages = await Promise.all(
 const desktopImages = desktopResponsiveImages.map(({ fallback }) => fallback);
 const mobileImages = mobileResponsiveImages.map(({ fallback }) => fallback);
 const dimOpacity = Math.min(Math.max(siteConfig.banner.dim.opacity, 0), 1);
-const rawSubtitles = siteConfig.banner.homeText.subtitle;
+const rawSubtitles =
+	siteIdentity.description ?? siteConfig.banner.homeText.subtitle;
 const subtitleArray = Array.isArray(rawSubtitles)
 	? rawSubtitles
 	: [rawSubtitles];
@@ -126,7 +131,7 @@ const initialMobileBanner = page === "home";
 	data-carousel-animation={carouselAnimation}
 	style={`--banner-fade-duration: ${carouselFadeDuration}ms;`}
 	data-position={siteConfig.banner.position ?? "center"}
-	data-home-title={siteConfig.banner.homeText.title}
+	data-home-title={homeTitle}
 	data-home-subtitles={JSON.stringify(subtitleArray)}
 	data-subtitle-typewriter-enabled={String(typewriter.enable)}
 	data-subtitle-typewriter-loop={String(typewriter.loop)}
@@ -173,7 +178,7 @@ const initialMobileBanner = page === "home";
 	)}
 	{siteConfig.banner.homeText.enable && (
 		<div class="banner-stage__copy banner-stage__copy--home" data-banner-home-copy>
-			<h1>{siteConfig.banner.homeText.title}</h1>
+			<h1>{homeTitle}</h1>
 			<p
 				aria-label={defaultInitialSubtitle}
 				data-subtitle-state="complete"

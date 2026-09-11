@@ -5,6 +5,7 @@ import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
 import { pathsEqual, toAbsoluteUrl, url } from "@utils/url-utils";
+import { getSiteIdentity } from "@utils/content-utils";
 import {
 	expressiveCodeConfig,
 	profileConfig,
@@ -79,11 +80,16 @@ const umamiOptions = resolveUmamiOptions(umamiConfig);
 const hasDesktopBanner = siteConfig.banner.src.desktop.length > 0;
 const hasMobileBanner = siteConfig.banner.src.mobile.length > 0;
 
+// P2：站名/副标题以后台 site_config 为准（site_title / site_description）
+const identity = await getSiteIdentity();
+const siteTitle = identity.title || siteConfig.title;
+const siteSubtitle = identity.description || siteConfig.subtitle;
+
 let pageTitle: string;
 if (title) {
-	pageTitle = `${title} - ${siteConfig.title}`;
+	pageTitle = `${title} - ${siteTitle}`;
 } else {
-	pageTitle = `${siteConfig.title} - ${siteConfig.subtitle}`;
+	pageTitle = `${siteTitle} - ${siteSubtitle}`;
 }
 
 const favicons: Favicon[] =
@@ -114,7 +120,7 @@ const hasMonoFont =
 		<meta name="description" content={description || pageTitle}>
 		<meta name="author" content={profileConfig.name}>
 
-		<meta property="og:site_name" content={siteConfig.title}>
+		<meta property="og:site_name" content={siteTitle}>
 		<meta property="og:url" content={canonicalUrl}>
 		<meta property="og:title" content={pageTitle}>
 		<meta property="og:description" content={description || pageTitle}>

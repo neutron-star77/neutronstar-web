@@ -1,12 +1,11 @@
 /**
  * 站点统计取数（SideBar stats widget 消费）。
- * 模块级备忘化：构建期多个页面渲染共享一次汇总（总字数需要对全部
- * 文章跑 render 提取 remark 字数，不做缓存会逐页重复开销）。
+ * P2 数据换血：字数/时间直接来自后端统计字段（后台发文时计算），
+ * 不再构建期跑 remark。模块级备忘化 + isolate 内存 TTL 由本层管理。
  */
-import { render } from "astro:content";
+import { apiGet } from "@/lib/server/api";
 import {
 	getCategoryList,
-	getSortedMoments,
 	getSortedPosts,
 	getTagList,
 } from "./content-utils";
@@ -16,7 +15,7 @@ export interface SiteStats {
 	moments: number;
 	categories: number;
 	tags: number;
-	/** 全部文章 remark 字数之和 */
+	/** 全部文章字数之和（后端 word_count） */
 	words: number;
 	/** 运行天数：以最早一篇文章的发布日为起点（无文章则 0） */
 	days: number;
@@ -26,25 +25,23 @@ export interface SiteStats {
 
 const DAY_MS = 86_400_000;
 
-let cache: SiteStats | null = null;
+let cache: { expires: number; data: SiteStats } | null = null;
 
 export async function getSiteStats(): Promise<SiteStats> {
-	if (cache) return cache;
+	if (cache && cache.expires > Date.now()) return cache.data;
 
-	const [posts, moments, categories, tags] = await Promise.all([
+	const [posts, categories, tags, chatterCount] = await Promise.all([
 		getSortedPosts(),
-		getSortedMoments(),
 		getCategoryList(),
 		getTagList(),
+		apiGet<{ count: number }>("/api/chatters/count?status=published", 30_000),
 	]);
 
-	// 总字数、最早发布日与最近更新日来自同一批文章，一次遍历
 	let words = 0;
 	let earliest = Number.POSITIVE_INFINITY;
 	let latestActivity = 0;
 	for (const post of posts) {
-		const { remarkPluginFrontmatter } = await render(post);
-		words += remarkPluginFrontmatter.words ?? 0;
+		words += post.wordCount;
 		const published = new Date(post.data.published).getTime();
 		if (published < earliest) earliest = published;
 		const updated = post.data.updated
@@ -53,9 +50,9 @@ export async function getSiteStats(): Promise<SiteStats> {
 		latestActivity = Math.max(latestActivity, published, updated);
 	}
 
-	cache = {
+	const data: SiteStats = {
 		posts: posts.length,
-		moments: moments.length,
+		moments: chatterCount?.count ?? 0,
 		categories: categories.length,
 		tags: tags.length,
 		words,
@@ -65,5 +62,6 @@ export async function getSiteStats(): Promise<SiteStats> {
 		lastActivity:
 			latestActivity > 0 ? new Date(latestActivity).toISOString() : null,
 	};
-	return cache;
+	cache = { expires: Date.now() + 15_000, data };
+	return data;
 }

@@ -1,15 +1,13 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
+import AlbumGrid from "@components/islands/AlbumGrid";
 
-// P1 占位：不生成任何静态路由；P2 接真实数据时改回 getStaticPaths。
+// P2 占位：相册详情并入 /albums/（island 内展开），旧链接重定向
 export function getStaticPaths() {
 	return [];
 }
 ---
 
 <MainGridLayout title="相册" page="albums">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">相册详情</h1>
-        <p>P2/P3 迁移：AlbumDetail + Lightbox islands 将在此挂载。</p>
-    </div>
+    <AlbumGrid client:load />
 </MainGridLayout>

@@ -1,10 +1,12 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import MomentsList from "@components/islands/MomentsList";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
+// P2/P3：说说页静态壳 + MomentsList island（客户端 SWR 拉取 /api/chatters）
 ---
 
-<MainGridLayout title="说说" page="moments">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">说说</h1>
-        <p>P3 迁移：MomentsList 按日堆叠动画 islands 将在此挂载。</p>
-    </div>
+<MainGridLayout title={i18n(I18nKey.moments)} page="moments">
+    <MomentsList client:load />
 </MainGridLayout>

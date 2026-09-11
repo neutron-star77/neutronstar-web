@@ -1,10 +1,12 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import FriendsGrid from "@components/islands/FriendsGrid";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
+// P2/P3：友链页静态壳 + FriendsGrid island（客户端拉取 /api/friend-links）
 ---
 
-<MainGridLayout title="友链" page="friends">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">友链</h1>
-        <p>P3 迁移：FriendsGrid 错位卡片 islands 将在此挂载。</p>
-    </div>
+<MainGridLayout title={i18n(I18nKey.friends)} page="friends">
+    <FriendsGrid client:load />
 </MainGridLayout>
