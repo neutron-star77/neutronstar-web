@@ -1,4 +1,5 @@
 import { usePosts, useChatters } from "../../lib/api/hooks";
+import { useRealtimeRefresh } from "../../lib/realtime";
 
 /**
  * 首页数据区：React island（client:visible 按需水合）。
@@ -7,6 +8,9 @@ import { usePosts, useChatters } from "../../lib/api/hooks";
 export default function HomeFeed() {
   const { data: posts, isLoading, error } = usePosts({ page: 1, size: 4 });
   const { data: chatters } = useChatters({ page: 1, size: 1 });
+
+  // P4 实时：新文章/新说说 → 首页数据区自动重拉
+  useRealtimeRefresh(["posts", "chatters", "albums"]);
 
   return (
     <div className="space-y-8">

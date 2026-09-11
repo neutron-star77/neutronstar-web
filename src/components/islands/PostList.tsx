@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePosts } from "../../lib/api/hooks";
+import { useRealtimeRefresh } from "../../lib/realtime";
 import { API_BASE_URL } from "../../lib/api/client";
 import type { PostSummary } from "../../lib/api/types";
 
@@ -15,6 +16,9 @@ export default function PostList() {
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = usePosts({ page, size: SIZE });
   const [items, setItems] = useState<PostSummary[]>([]);
+
+  // P4 实时：后台发文 → BFF 广播 posts 频道 → 本列表自动重拉
+  useRealtimeRefresh(["posts"]);
 
   useEffect(() => {
     if (!data) return;

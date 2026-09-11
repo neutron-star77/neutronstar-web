@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { API_BASE_URL } from "../../lib/api/client";
+import { useRealtimeRefresh } from "../../lib/realtime";
 
 export interface NavigationItem {
   id: string;
@@ -34,20 +35,24 @@ export default function NavigationIsland({ className = "" }: Props) {
   const [items, setItems] = useState(defaultNavigation);
   const [pathname, setPathname] = useState("/");
 
-  useEffect(() => {
-    setPathname(window.location.pathname);
-    const controller = new AbortController();
+  const loadNavigation = useCallback(() => {
     fetch(`${API_BASE_URL}/api/site-config/navigation`, {
       headers: { Accept: "application/json" },
-      signal: controller.signal,
     })
       .then((response) => (response.ok ? response.json() : null))
       .then((value) => {
         if (Array.isArray(value)) setItems(value);
       })
       .catch(() => undefined);
-    return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    setPathname(window.location.pathname);
+    loadNavigation();
+  }, [loadNavigation]);
+
+  // P4 实时：后台改导航/站点配置 → 广播 nav 频道 → 菜单即时刷新（无需刷新页面）
+  useRealtimeRefresh(["site-config"], loadNavigation);
 
   return (
     <nav

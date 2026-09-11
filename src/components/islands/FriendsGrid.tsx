@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiGet } from "../../lib/api/client";
+import { useRealtimeRefresh } from "../../lib/realtime";
 
 interface FriendLink {
   id: number;
@@ -13,11 +14,16 @@ export default function FriendsGrid() {
   const [friends, setFriends] = useState<FriendLink[]>([]);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     apiGet<FriendLink[]>("/api/friend-links")
       .then(setFriends)
       .catch(() => setError(true));
   }, []);
+
+  useEffect(load, [load]);
+
+  // P4 实时：后台增删友链 → 广播 friends 频道 → 这里用非 SWR 数据源，走 onChange 回调重拉
+  useRealtimeRefresh(["friend-links"], load);
 
   if (error) return <p className="text-sm text-on-surface-variant">友链暂时无法加载。</p>;
   if (!friends.length) return <p className="text-sm text-on-surface-variant">暂时还没有友链。</p>;

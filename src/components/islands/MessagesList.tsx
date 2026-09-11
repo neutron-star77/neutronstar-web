@@ -1,4 +1,5 @@
 import { useMessages } from "../../lib/api/hooks";
+import { useRealtimeRefresh } from "../../lib/realtime";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("zh-CN", {
@@ -10,6 +11,8 @@ function formatDate(value: string) {
 
 export default function MessagesList() {
   const { data, isLoading, error } = useMessages();
+  // P4 实时：新留言/杂谈入库 → 自动重拉（注意必须在任何 return 之前调用）
+  useRealtimeRefresh(["messages"]);
 
   if (isLoading) return <p className="text-sm text-on-surface-variant">加载中…</p>;
   if (error) return <p className="text-sm text-on-surface-variant">留言暂时无法加载。</p>;

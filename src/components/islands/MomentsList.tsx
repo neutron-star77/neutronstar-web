@@ -20,6 +20,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useChatters } from "../../lib/api/hooks";
+import { useRealtimeRefresh } from "../../lib/realtime";
 import { API_BASE_URL } from "../../lib/api/client";
 import type { Chatter } from "../../lib/api/types";
 import { spring, stackRotations } from "../../lib/variants";
@@ -57,6 +58,8 @@ function relativeTime(d: string) {
 export default function MomentsList() {
   // 真实数据：每页最多取 30 条动态（size 可调）。SWR 自动 30s 去重 + 聚焦重校验。
   const { data, isLoading, error } = useChatters({ page: 1, size: 30 });
+  // P4 实时：后台发说说 → BFF 广播 moments 频道 → 本列表自动重拉（新卡片按原入场动画插入）
+  useRealtimeRefresh(["chatters"]);
   // 当前「弹簧展开」的卡片 id（同一时刻只展开一张）
   const [expandedId, setExpandedId] = useState<number | null>(null);
   // 「只看这条」隔离模式：非 null 时只渲染该条并回正所有角度

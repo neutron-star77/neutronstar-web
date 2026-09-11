@@ -19,6 +19,7 @@ import { useState } from "react";
 import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, tiltFromId } from "../../lib/variants";
+import { useRealtimeRefresh } from "../../lib/realtime";
 import { apiGet } from "../../lib/api/client";
 import type { Album } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
@@ -256,6 +257,9 @@ export default function AlbumGrid() {
   const [lightbox, setLightbox] = useState<{ photos: LightboxPhoto[]; index: number } | null>(
     null
   );
+
+  // P4 实时：后台改相册/加照片 → BFF 广播 albums 频道 → 相册列表与已展开的照片墙自动重拉
+  useRealtimeRefresh(["albums", "album-photos"]);
 
   if (isLoading) {
     return (
