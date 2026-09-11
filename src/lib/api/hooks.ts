@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { apiGet } from "./client";
-import type { Post, PostSummary, Chatter, Album } from "./types";
+import type { Post, PostSummary, Chatter, Album, Message } from "./types";
 
 /** 实时性策略：聚焦重校验 + 30s 去重。配合中间层 s-maxage/swr 实现「发布即见」。 */
 const opts = {
@@ -35,4 +35,12 @@ export function useChatters({ page = 1, size = 10 }: { page?: number; size?: num
 
 export function useAlbums() {
   return useSWR<Album[]>(["albums"], () => apiGet<Album[]>("/api/albums"), opts);
+}
+
+export function useMessages({ page = 1, size = 20 }: { page?: number; size?: number } = {}) {
+  return useSWR<Message[]>(
+    ["messages", page, size],
+    ([, p, s]) => apiGet<Message[]>(`/api/messages?page=${p}&size=${s}`),
+    opts,
+  );
 }

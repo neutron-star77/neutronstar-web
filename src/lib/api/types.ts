@@ -35,6 +35,15 @@ export interface Chatter {
   updated_at: string;
 }
 
+export interface Message {
+  id: number;
+  content: string;
+  likes: number;
+  status: string;
+  created_at: string;
+  github_user_id?: number | null;
+}
+
 export interface Album {
   id: number;
   title: string;

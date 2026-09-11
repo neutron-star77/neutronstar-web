@@ -16,10 +16,14 @@ export const site = {
     avatar: "/avatar.svg",
   },
   nav: [
+    { label: "首页", href: "/" },
     { label: "文章", href: "/archive" },
+    { label: "归档", href: "/archive" },
     { label: "说说", href: "/moments" },
     { label: "相册", href: "/albums" },
+    { label: "友链", href: "/friends" },
     { label: "杂谈", href: "/messages" },
+    { label: "小说", href: "/novel" },
     { label: "关于", href: "/about" },
   ] satisfies NavItem[],
   social: [

@@ -36,7 +36,7 @@ export default function PostList() {
           <a
             key={p.id}
             href={`/posts/${encodeURIComponent(p.slug)}`}
-            className="fade-up group flex gap-4 rounded-m3 bg-surface-container p-4 transition-transform hover:-translate-y-0.5 hover:bg-surface-container-high"
+            className="post-card fade-up group flex gap-4 rounded-m3 bg-surface-container p-4 transition-transform hover:-translate-y-1 hover:bg-surface-container-high"
             style={{ animationDelay: `${i * 45}ms` }}
           >
             {p.cover && (
@@ -44,11 +44,14 @@ export default function PostList() {
                 src={imgUrl(p.cover, 240)}
                 alt={p.title}
                 loading="lazy"
-                className="h-20 w-28 shrink-0 rounded-m3 object-cover"
+                className="post-card__cover h-20 w-28 shrink-0 rounded-m3 object-cover"
               />
             )}
             <div className="min-w-0">
-              <h3 className="font-medium text-on-surface">{p.title}</h3>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+                {p.category || "ARTICLE"}
+              </p>
+              <h3 className="text-lg font-semibold text-on-surface">{p.title}</h3>
               {p.description && (
                 <p className="mt-1 line-clamp-2 text-sm text-on-surface-variant">
                   {p.description}
