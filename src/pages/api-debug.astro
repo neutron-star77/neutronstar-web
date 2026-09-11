@@ -1,0 +1,22 @@
+---
+// 临时诊断路由（P2 调试用，验证后删除）：SSR worker 内直连 BFF 的真实结果
+export const prerender = false;
+
+const base = (import.meta.env.PUBLIC_API_BASE as string | undefined) ?? "https://bff.neutronstar.fun";
+const results: Record<string, unknown> = { base, node: import.meta.env.MODE };
+for (const path of ["/health", "/bff/archive?page=1&size=2", "/api/site-config"]) {
+  try {
+    const res = await fetch(base + path, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    const text = await res.text();
+    results[path] = { status: res.status, body: text.slice(0, 160) };
+  } catch (e) {
+    const err = e as Error;
+    results[path] = { error: String(e), name: err?.name, cause: String(err?.cause ?? "") };
+  }
+}
+---
+
+<pre>{JSON.stringify(results, null, 2)}</pre>
