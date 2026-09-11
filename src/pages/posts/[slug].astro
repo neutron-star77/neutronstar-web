@@ -1,13 +1,15 @@
 ---
-// 文章页按需渲染（实时取数），其余页面保持静态预渲染
-export const prerender = false;
+import MainGridLayout from "../../layouts/MainGridLayout.astro";
 
-import Page from "../../layouts/Page.astro";
-import PostView from "../../components/islands/PostView.tsx";
-
-const { slug } = Astro.params;
+// P1 占位：不生成任何静态路由；P2 接真实数据时改回 getStaticPaths。
+export function getStaticPaths() {
+	return [];
+}
 ---
 
-<Page title="文章" description="NeutronStar 文章" wordmark="POST">
-  <PostView slug={slug} client:visible />
-</Page>
+<MainGridLayout title="文章" page="post">
+    <div class="card-base onload-animation p-6">
+        <h1 class="text-2xl font-bold mb-4">文章详情</h1>
+        <p>P2 迁移：Shirone 原版 posts/[...slug]（Markdown 全管线 + 加密 + TOC）将在此移植。</p>
+    </div>
+</MainGridLayout>

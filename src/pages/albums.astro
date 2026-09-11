@@ -1,9 +1,10 @@
 ---
-import Page from "../layouts/Page.astro";
-import AlbumGrid from "../components/islands/AlbumGrid.tsx";
-import { site } from "../config/site";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
 ---
 
-<Page title={`${site.name} · Albums`} description="相册" wordmark="ALBUMS">
-  <AlbumGrid client:visible />
-</Page>
+<MainGridLayout title="相册" page="albums">
+    <div class="card-base onload-animation p-6">
+        <h1 class="text-2xl font-bold mb-4">相册</h1>
+        <p>P2/P3 迁移：相册数据导入后端后，此处挂载 AlbumGrid 拍立得瀑布流 islands。</p>
+    </div>
+</MainGridLayout>

@@ -1,21 +1,15 @@
 ---
-import Page from "../../layouts/Page.astro";
-import AlbumDetail from "../../components/islands/AlbumDetail.tsx";
-import { albums, getAlbum } from "../../data/albums";
+import MainGridLayout from "../../layouts/MainGridLayout.astro";
 
+// P1 占位：不生成任何静态路由；P2 接真实数据时改回 getStaticPaths。
 export function getStaticPaths() {
-  return albums.map((a) => ({ params: { slug: a.slug } }));
+	return [];
 }
-
-const { slug } = Astro.params;
-const album = getAlbum(slug ?? "");
-if (!album) return Astro.redirect("/albums");
 ---
 
-<Page
-  title={`${album.title} · NeutronStar`}
-  description={album.description}
-  wordmark={album.title}
->
-  <AlbumDetail album={album} client:visible />
-</Page>
+<MainGridLayout title="相册" page="albums">
+    <div class="card-base onload-animation p-6">
+        <h1 class="text-2xl font-bold mb-4">相册详情</h1>
+        <p>P2/P3 迁移：AlbumDetail + Lightbox islands 将在此挂载。</p>
+    </div>
+</MainGridLayout>
