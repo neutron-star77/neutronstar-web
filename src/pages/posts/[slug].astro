@@ -2,6 +2,7 @@
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
 import CommentsThread from "@components/islands/CommentsThread";
+import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import { getPostBySlug } from "@utils/content-utils";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
 import { url } from "@utils/url-utils";
@@ -45,3 +46,4 @@ const { code: html } = await renderer.render(entry.body ?? "", {
         {entry.postId ? <CommentsThread client:load kind="post" targetId={entry.postId} /> : null}
     </article>
 </MainGridLayout>
+<LiveRefreshBanner client:load />

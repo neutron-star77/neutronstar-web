@@ -7,6 +7,7 @@
  */
 import Icon from "@iconify/svelte";
 import { resolveNavBarLinks, resolvePageKey } from "@utils/nav-utils";
+import { fetchNavigation } from "@utils/navigation-api";
 import { url } from "@utils/url-utils";
 import { onMount, tick } from "svelte";
 import { siteConfig } from "@/config";
@@ -16,9 +17,9 @@ let open = $state(false);
 let activePrimary = $state("");
 const openGroups = $state<Record<string, boolean>>({});
 
-const links = resolveNavBarLinks(navBarConfig.links);
+let links = $state(resolveNavBarLinks(navBarConfig.links));
 
-const primaryItems = links.map((link) => {
+const primaryItems = $derived(links.map((link) => {
 	const key = link.name.toLowerCase();
 	return {
 		value: key,
@@ -40,7 +41,7 @@ const primaryItems = links.map((link) => {
 			pageKey: child.pageKey ?? "",
 		})),
 	};
-});
+}));
 
 function syncFromRoute() {
 	const pageKey = resolvePageKey(new URL(window.location.href));
@@ -70,7 +71,11 @@ function toggleGroup(group: string) {
 	openGroups[group] = !openGroups[group];
 }
 
-onMount(() => {
+onMount(async () => {
+		try {
+			const apiLinks = await fetchNavigation();
+			links = resolveNavBarLinks(apiLinks);
+		} catch { /* 保持静态导航 */ }
 	syncFromRoute();
 	const onToggle = () => {
 		open = !open;

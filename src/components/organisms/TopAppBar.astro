@@ -11,14 +11,15 @@ import { url } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { siteConfig } from "@/config";
 import { getSiteIdentity } from "@utils/site-overrides";
-import { navBarConfig } from "@/config/navBarConfig";
+import { getNavigation } from "@utils/navigation-api";
 import DisplaySettings from "./DisplaySettings.svelte";
 import LightDarkSwitch from "./LightDarkSwitch.svelte";
 import Search from "./Search.svelte";
 
 const className = Astro.props.class;
 const { title: siteTitle } = await getSiteIdentity();
-const links = resolveNavBarLinks(navBarConfig.links);
+// P6 ⑥：导航从后台 site_config 拉取，失败回退静态配置
+const links = resolveNavBarLinks(await getNavigation());
 const currentPageKey = resolvePageKey(Astro.url);
 
 function hrefFor(path?: string) {

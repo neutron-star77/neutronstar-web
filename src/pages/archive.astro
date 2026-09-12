@@ -4,6 +4,7 @@ import { getSortedPostsList } from "@utils/content-utils";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
+import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 
 // P2：归档页 SSR，数据来自后端文章接口
 export const prerender = false;
@@ -40,3 +41,4 @@ const years = [...byYear.keys()].sort((a, b) => b - a);
         {posts.length === 0 && <p class="opacity-60">暂无文章</p>}
     </div>
 </MainGridLayout>
+<LiveRefreshBanner client:load />
