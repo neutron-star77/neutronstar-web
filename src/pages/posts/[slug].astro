@@ -3,10 +3,14 @@ import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
 import CommentsThread from "@components/islands/CommentsThread";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import ArticleShare from "@components/organisms/ArticleShare.svelte";
 import { getPostBySlug } from "@utils/content-utils";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
 import { url } from "@utils/url-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
+import { getSiteIdentity } from "@utils/site-overrides";
+import { articleConfig, resolveArticleShareOptions } from "@/config/articleConfig";
+import { siteConfig } from "@/config";
 
 // P2：文章详情页 SSR（markdown 服务端渲染），正文来自后端
 export const prerender = false;
@@ -24,6 +28,11 @@ const renderer = await rendererPromise;
 const { code: html } = await renderer.render(entry.body ?? "", {
 	frontmatter: entry.data as unknown as Record<string, unknown>,
 });
+
+// P6 ⑧：分享海报
+const shareOptions = resolveArticleShareOptions(articleConfig);
+const { title: siteTitle } = await getSiteIdentity();
+const postPath = entry.url || url(`/posts/${slug}`);
 ---
 
 <MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle>
@@ -42,6 +51,20 @@ const { code: html } = await renderer.render(entry.body ?? "", {
             </div>
         )}
         <Markdown class="!max-w-none"><div set:html={html} /></Markdown>
+        {/* P6 ⑧：分享海报 */}
+        {shareOptions && (
+            <ArticleShare
+                client:load
+                options={shareOptions}
+                title={entry.data.title}
+                description={entry.data.description || ""}
+                author={siteConfig.author || ""}
+                published={formatDateToYYYYMMDD(entry.data.published)}
+                siteTitle={siteTitle || siteConfig.title}
+                postPath={postPath}
+                avatarUrl={siteConfig.avatar || ""}
+            />
+        )}
         {/* P5：文章评论区（多态评论表 post 维度，GitHub 登录后可发言/点赞/回复） */}
         {entry.postId ? <CommentsThread client:load kind="post" targetId={entry.postId} /> : null}
     </article>

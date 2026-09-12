@@ -1,0 +1,14 @@
+---
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+import AnimeSection from "@components/organisms/AnimeSection.svelte";
+import { animeData } from "../data/anime";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
+// P6 ⑧：追番页（静态数据源 src/data/anime.ts，客户端筛选/搜索/布局切换）
+export const prerender = false;
+---
+
+<MainGridLayout title={i18n(I18nKey.anime)} page="anime">
+    <AnimeSection client:load animes={animeData} />
+</MainGridLayout>
