@@ -89,7 +89,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 			source: "local",
 			variants: [
 				{
-					file: "src/assets/fonts/Yozai-Medium.ttf",
+					file: "src/assets/fonts/Yozai-Medium.subset.woff2",
 					weight: 500,
 					style: "normal",
 				},
@@ -138,12 +138,12 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 	 * - Build 生产构建：自动执行子集裁剪，将几十兆大字体压缩为几百 KB 的专属子集，秒开加载。
 	 */
 	subsetting: {
-		enable: false, // P1 暂关子集（P6 再启用，需要先跑 fonts:subset）
-		includeContent: true, // 扫描 src/content/ 下所有文章
-		includeI18n: true, // 扫描全部 10 种语言词典
-		includeConfig: true, // 扫描站点配置与导航
-		includeCommon: true, // 包含常用标点与基础字符
-		allowRemoteText: true, // 允许抓取 Meting 云端歌单曲目文本参与字形提取
+		enable: false, // 使用预生成子集（scripts/subset-font.mjs），不启用构建期自动子集
+		includeContent: true,
+		includeI18n: true,
+		includeConfig: true,
+		includeCommon: true,
+		allowRemoteText: true,
 	},
 
 	/**
