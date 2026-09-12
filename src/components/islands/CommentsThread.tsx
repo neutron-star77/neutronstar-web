@@ -22,7 +22,7 @@ import { API_BASE_URL, apiGet, apiPost, ApiError } from "../../lib/api/client";
 import { getToken, loginUrl } from "../../lib/auth";
 import { useRealtimeRefresh } from "../../lib/realtime";
 
-type Kind = "chatter" | "post";
+type Kind = "chatter" | "post" | "album";
 
 interface Author {
   id: number;
@@ -70,6 +70,19 @@ const ADAPTERS: Record<Kind, Adapter> = {
     createUrl: "/api/comments",
     createBody: (id, content, parentId) => ({
       target_type: "post",
+      target_id: id,
+      parent_id: parentId,
+      content,
+    }),
+    deleteUrl: (commentId) => `/api/comments/${commentId}`,
+    likeTarget: "comment",
+  },
+  album: {
+    key: (id) => ["comments", "album", id],
+    listUrl: (id) => `/api/comments?target_type=album&target_id=${id}`,
+    createUrl: "/api/comments",
+    createBody: (id, content, parentId) => ({
+      target_type: "album",
       target_id: id,
       parent_id: parentId,
       content,

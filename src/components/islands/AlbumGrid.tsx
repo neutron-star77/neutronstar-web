@@ -20,6 +20,7 @@ import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, tiltFromId } from "../../lib/variants";
 import { useRealtimeRefresh } from "../../lib/realtime";
+import CommentsThread from "./CommentsThread";
 import { apiGet } from "../../lib/api/client";
 import type { Album } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
@@ -239,6 +240,9 @@ function AlbumCard({
                   <span className="text-sm text-on-surface-variant">照片加载中…</span>
                 </div>
               )}
+
+              {/* P5：相册评论（多态评论表 album 维度，GitHub 登录后可发言/点赞） */}
+              <CommentsThread kind="album" targetId={album.id} />
             </div>
           </motion.div>
         )}
