@@ -13,6 +13,7 @@
 import Announcement from "@components/molecules/Announcement.astro";
 import Calendar from "@components/molecules/Calendar.astro";
 import Categories from "@components/molecules/Categories.astro";
+import MusicLinkCard from "@components/molecules/MusicLinkCard.astro";
 import SidebarTOC from "@components/molecules/SidebarTOC.astro";
 import SiteStats from "@components/molecules/SiteStats.astro";
 import Tags from "@components/molecules/Tags.astro";
@@ -66,6 +67,15 @@ const MusicSidebar =
 		? (await import("virtual:shirone-music-sidebar")).default
 		: null;
 
+// 兜底：重型播放器不可用（musicConfig.enable=false，stylus 与 workerd 冲突）时，
+// 后台 music_widget 配置了 enabled + 合法外链就渲染外链卡片，否则整个 music widget 不渲染
+const siteOverrides = await getSiteOverrides();
+const musicWidget = siteOverrides.musicWidget;
+const MusicFallback =
+	!MusicSidebar && musicWidget?.enabled && musicWidget.url
+		? MusicLinkCard
+		: null;
+
 // widget 类型 → 组件（键必须覆盖 SidebarWidget 的全部 type）
 const componentMap = {
 	profile: Profile,
@@ -75,7 +85,7 @@ const componentMap = {
 	stats: SiteStats,
 	calendar: Calendar,
 	toc: SidebarTOC,
-	music: MusicSidebar,
+	music: MusicSidebar ?? MusicFallback,
 } satisfies Record<SidebarWidget["type"], unknown>;
 
 type WidgetRenderer = (props: Record<string, unknown>) => unknown;
@@ -83,13 +93,13 @@ type WidgetRenderer = (props: Record<string, unknown>) => unknown;
 // 按列取整：SSR 不做页面过滤（全量渲染，swup 导航后客户端才能恢复
 // 被隐藏的 widget），页面可见性仅体现在包装层的 hidden 标记上
 // P2：后台 site_config.sidebar_widgets 可覆盖每个 widget 的显示开关
-const sidebarOverrides = (await getSiteOverrides()).sidebar;
+const sidebarOverrides = siteOverrides.sidebar;
 const widgets = sidebarConfig.enable
 	? sidebarConfig.components.filter(
 			(widget) =>
 				(sidebarOverrides?.[widget.type] ?? widget.enable) &&
 				(widget.column ?? "primary") === column &&
-				(widget.type !== "music" || MusicSidebar !== null),
+				(widget.type !== "music" || componentMap.music != null),
 		)
 	: [];
 const topWidgets = widgets.filter((widget) => widget.slot === "top");

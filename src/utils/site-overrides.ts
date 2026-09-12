@@ -8,6 +8,7 @@
  *  - site_images     JSON：{ bannerDesktop: string[], bannerMobile: string[], avatar: string, logo: string }
  *  - sidebar_widgets JSON：{ profile: true, announcement: true, categories: true, tags: true, stats: true, calendar: true }
  *  - umami          JSON：{ enable: bool, websiteId: string, scriptUrl: string, shareUrl: string }
+ *  - music_widget   JSON：{ enabled: bool, title: string, subtitle: string, url: string }（外链卡片）
  */
 import { apiGet } from "@/lib/server/api";
 
@@ -25,12 +26,21 @@ export interface UmamiOverride {
 	shareUrl: string;
 }
 
+/** 后台 music_widget：外链卡片（如跳转 B 站收藏夹顺序播放） */
+export interface MusicWidgetOverride {
+	enabled: boolean;
+	title: string;
+	subtitle: string;
+	url: string;
+}
+
 export interface SiteOverrides {
 	title: string | null;
 	description: string | null;
 	images: SiteImages;
 	sidebar: Record<string, boolean> | null;
 	umami: UmamiOverride | null;
+	musicWidget: MusicWidgetOverride | null;
 }
 
 const EMPTY: SiteOverrides = {
@@ -39,6 +49,7 @@ const EMPTY: SiteOverrides = {
 	images: {},
 	sidebar: null,
 	umami: null,
+	musicWidget: null,
 };
 
 let cache: { expires: number; data: SiteOverrides } | null = null;
@@ -121,6 +132,24 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		umami = null;
 	}
 
+	// 音乐挂件外链卡片（后台可配；url 仅接受 http(s) 外链，防 javascript: 注入）
+	let musicWidget: MusicWidgetOverride | null = null;
+	try {
+		const raw = cfg.music_widget;
+		const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			const url = typeof parsed.url === "string" ? parsed.url.trim() : "";
+			musicWidget = {
+				enabled: parsed.enabled === true || parsed.enable === true,
+				title: typeof parsed.title === "string" ? parsed.title.trim() : "",
+				subtitle: typeof parsed.subtitle === "string" ? parsed.subtitle.trim() : "",
+				url: /^https?:\/\//i.test(url) ? url : "",
+			};
+		}
+	} catch {
+		musicWidget = null;
+	}
+
 	const data: SiteOverrides = {
 		title:
 			typeof cfg.site_title === "string" && cfg.site_title.trim()
@@ -133,6 +162,7 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		images,
 		sidebar,
 		umami,
+		musicWidget,
 	};
 	cache = { expires: Date.now() + 30_000, data };
 	return data;
@@ -159,4 +189,14 @@ export async function getUmamiOverride() {
 		websiteId: o.umami.websiteId || undefined,
 		scriptUrl: o.umami.scriptUrl || undefined,
 	};
+}
+
+/**
+ * 取后台音乐挂件配置；未启用或 url 不是合法 http(s) 外链时返回 null
+ * （侧栏据此隐藏 music widget，保持「禁用零残留」）。
+ */
+export async function getMusicWidgetOverride(): Promise<MusicWidgetOverride | null> {
+	const o = await getSiteOverrides();
+	if (!o.musicWidget || !o.musicWidget.enabled || !o.musicWidget.url) return null;
+	return o.musicWidget;
 }

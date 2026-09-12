@@ -1,0 +1,55 @@
+---
+/**
+ * 音乐挂件兜底：外链卡片（跳转 B 站收藏夹顺序播放）。
+ *
+ * 原 Shirone 内置播放器的 stylus 在 workerd 运行时编译冲突
+ * （musicConfig.enable 必须保持 false），重型播放器不可用；
+ * 本组件作为 SideBar 的 music widget 兜底，纯静态 SSR 直出：
+ * 零 island、零运行时 JS、零音频请求。
+ *
+ * 数据来自后台 site_config.music_widget（经 getMusicWidgetOverride
+ * 校验：enabled 且 url 为 http(s) 外链），未配置时本组件不渲染。
+ */
+import { Icon } from "astro-icon/components";
+import { getMusicWidgetOverride } from "@utils/site-overrides";
+import WidgetLayout from "./WidgetLayout.astro";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+const className = Astro.props.class;
+const style = Astro.props.style;
+
+const config = await getMusicWidgetOverride();
+const url = config?.url ?? "";
+const title = config?.title || "音乐";
+const subtitle = config?.subtitle || "前往 B 站收藏夹顺序播放";
+---
+
+{url && (
+	<WidgetLayout name={title} id="music-link" class={className} style={style}>
+		<a
+			href={url}
+			target="_blank"
+			rel="noopener noreferrer"
+			class="group flex items-center gap-3 rounded-xl px-4 py-3 bg-[var(--btn-regular-bg)] text-[var(--primary)] hover:bg-[var(--btn-regular-bg-hover)] active:scale-[0.98] transition-all shadow-sm"
+			aria-label={`${title}：${subtitle}`}
+		>
+			<Icon
+				name="material-symbols:music-note-rounded"
+				class="text-2xl shrink-0"
+			/>
+			<span class="flex flex-col min-w-0 flex-1">
+				<span class="text-sm font-medium truncate">{subtitle}</span>
+				<span class="text-xs text-50 opacity-80 truncate">
+					Bilibili · 打开后点「播放全部」顺序连播
+				</span>
+			</span>
+			<Icon
+				name="material-symbols:arrow-outward-rounded"
+				class="text-base opacity-70 shrink-0 transition-transform group-hover:translate-x-0.5"
+			/>
+		</a>
+	</WidgetLayout>
+)}
