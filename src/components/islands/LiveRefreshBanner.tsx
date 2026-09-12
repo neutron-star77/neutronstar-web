@@ -28,7 +28,10 @@ export default function LiveRefreshBanner() {
 		return () => document.removeEventListener("visibilitychange", onVisible);
 	}, []);
 
-	if (!visible) return null;
+	// SSR 期（visible 恒为 false）必须返回占位元素而不是 null/undefined：
+	// Astro 对服务端返回 null 的框架组件会抛「Unable to render」并中断整个
+	// 响应流（线上 SSR 页因此被截断，见坑 6.1.7）
+	if (!visible) return <div role="alert" hidden />;
 
 	const handleRefresh = () => {
 		// 带时间戳破缓存，强制重新拉取 SSR HTML
