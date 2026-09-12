@@ -374,7 +374,7 @@ function drawBrandBadge(
 	palette: SharePosterPalette,
 ) {
 	ctx.font = `700 26px ${FONT_FAMILY}`;
-	const label = text || "Shirone";
+	const label = text || "Neutronstar";
 	const width = Math.min(ctx.measureText(label).width + 40, 520);
 	ctx.fillStyle = palette.primaryContainer;
 	drawRoundedRect(ctx, PAGE_PADDING, 40, width, 52, 26);
@@ -426,7 +426,7 @@ function drawNoCoverHeader(
 	ctx.font = `700 46px ${FONT_FAMILY}`;
 	drawTextEllipsis(
 		ctx,
-		input.siteTitle || "Shirone",
+		input.siteTitle || "Neutronstar",
 		PAGE_PADDING + 36,
 		62,
 		CONTENT_WIDTH - 36,
