@@ -1,6 +1,7 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
+import CommentsThread from "@components/islands/CommentsThread";
 import { getPostBySlug } from "@utils/content-utils";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
 import { url } from "@utils/url-utils";
@@ -40,5 +41,7 @@ const { code: html } = await renderer.render(entry.body ?? "", {
             </div>
         )}
         <Markdown class="!max-w-none"><div set:html={html} /></Markdown>
+        {/* P5：文章评论区（多态评论表 post 维度，GitHub 登录后可发言/点赞/回复） */}
+        {entry.postId ? <CommentsThread client:load kind="post" targetId={entry.postId} /> : null}
     </article>
 </MainGridLayout>

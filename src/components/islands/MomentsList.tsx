@@ -18,12 +18,14 @@
  *  - 图片地址：imgUrl() 走 bff 的 /img 边缘优化（AVIF，w= 控制宽度）；直接给 http(s) 链接则原样返回。
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { mutate } from "swr";
 import { motion, AnimatePresence } from "motion/react";
 import { useChatters } from "../../lib/api/hooks";
 import { useRealtimeRefresh } from "../../lib/realtime";
-import { API_BASE_URL, apiPost } from "../../lib/api/client";
+import { API_BASE_URL, apiGet, apiPost } from "../../lib/api/client";
+import { getToken, loginUrl } from "../../lib/auth";
+import CommentsThread from "./CommentsThread";
 import type { Chatter } from "../../lib/api/types";
 import { spring, stackRotations } from "../../lib/variants";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
@@ -99,9 +101,37 @@ export default function MomentsList() {
           .filter((g) => g.moments.length > 0)
       : dayGroups;
 
-  // P5：点赞落库（乐观更新 + 失败回滚 + 成功后重拉真实计数）
-  // 后端接口无需登录即可调用（点赞防刷/用户维度去重属后续加固项）。
+  // P5：点赞落库（登录 + 用户维度去重，真值在 likes 表；乐观更新 + 失败回滚）
+  const [token, setTokenState] = useState<string | null>(null);
+  const [likeNotice, setLikeNotice] = useState("");
+
+  useEffect(() => {
+    setTokenState(getToken());
+  }, []);
+
+  // 回填「我点过赞的说说」，避免刷新后点赞态丢失
+  useEffect(() => {
+    if (!token) {
+      setLikedIds(new Set());
+      return;
+    }
+    let alive = true;
+    apiGet<{ ids: number[] }>("/api/likes/mine?target_type=chatter")
+      .then((res) => {
+        if (alive) setLikedIds(new Set(res?.ids ?? []));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
   async function toggleLike(id: number) {
+    if (!token) {
+      setLikeNotice("点赞需要先用 GitHub 登录");
+      return;
+    }
+    setLikeNotice("");
     const wasLiked = likedIds.has(id);
     setLikedIds((prev) => {
       const n = new Set(prev);
@@ -111,7 +141,7 @@ export default function MomentsList() {
     });
 
     try {
-      await apiPost(`/api/chatters/${id}/${wasLiked ? "unlike" : "like"}`);
+      await apiPost("/api/likes/toggle", { target_type: "chatter", target_id: id });
       // 计数以服务端为准（同时把 BFF 缓存刷成最新值）
       void mutate((key) => Array.isArray(key) && String(key[0]) === "chatters");
     } catch {
@@ -122,6 +152,7 @@ export default function MomentsList() {
         else n.delete(id);
         return n;
       });
+      setLikeNotice("点赞失败，请稍后再试");
     }
   }
 
@@ -129,6 +160,14 @@ export default function MomentsList() {
     <div className="max-w-2xl">
       {isLoading && <p className="text-sm text-on-surface-variant">加载中…</p>}
       {error && <p className="text-sm text-on-surface-variant">加载失败，请刷新</p>}
+      {likeNotice && (
+        <p className="mb-3 text-xs text-on-surface-variant">
+          {likeNotice}{" "}
+          <a href={loginUrl()} className="underline hover:text-primary">
+            去登录
+          </a>
+        </p>
+      )}
       {!isLoading && moments.length === 0 && (
         <p className="text-sm text-on-surface-variant">还没有动态。</p>
       )}
@@ -175,8 +214,8 @@ export default function MomentsList() {
               const isExpanded = expandedId === moment.id;
               const isLiked = likedIds.has(moment.id);
               const hasImages = moment.images && moment.images.length > 0;
-              // 显示点赞数 = 后端基数 + 本次乐观 +1
-              const likeCount = moment.likes + (isLiked ? 1 : 0);
+              // 点赞数直接读服务端计数（点击后会 mutate 重拉；心形颜色由 likedIds 即时反馈）
+              const likeCount = moment.likes;
 
               // 该条动态的图片 → 灯箱数据结构（url 走 imgUrl 取大图 w=1200）
               const photos: LightboxPhoto[] = (moment.images ?? []).map((url, pi) => ({
@@ -347,6 +386,9 @@ export default function MomentsList() {
                               {onlyViewId === moment.id ? "返回全部" : "只看这条"}
                             </button>
                           </div>
+
+                          {/* P5：评论区（说说维度；GitHub 登录后可发言/点赞/回复） */}
+                          <CommentsThread kind="chatter" targetId={moment.id} />
                         </div>
                       </motion.div>
                     )}

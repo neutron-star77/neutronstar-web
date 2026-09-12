@@ -60,6 +60,8 @@ export interface PostData {
 export interface PostEntry {
 	id: string;
 	slug: string;
+	/** 后端主键（评论等多态关联要用数字 id，slug 只能做路由） */
+	postId?: number;
 	body?: string;
 	/** API 文章的封面等资源全是远程 URL，无 filePath */
 	filePath?: undefined;
@@ -77,6 +79,7 @@ export function apiPostToEntry(p: ApiPost): PostEntry {
 	return {
 		id: p.slug,
 		slug: p.slug,
+		postId: p.id,
 		data: {
 			title: p.title,
 			published,
