@@ -231,3 +231,25 @@ export async function getPostBySlug(slug: string): Promise<PostEntry | null> {
 	entry.url = getPostUrl(entry);
 	return entry;
 }
+
+/**
+ * 全量已发布文章 + 逐篇拉取正文（供 llms-full.txt / feed 全文输出用）。
+ * 列表接口不返回 content，这里并行调用单篇详情接口；BFF 有缓存，重复调用快。
+ */
+export async function getSortedPostsWithContent(): Promise<PostEntry[]> {
+	const posts = await getSortedPosts();
+	await Promise.all(
+		posts.map(async (p) => {
+			if (p.body) return;
+			try {
+				const detail = await apiGet<ApiPost>(
+					`/api/posts/${encodeURIComponent(p.slug)}`,
+				);
+				if (detail?.content) p.body = detail.content;
+			} catch {
+				// 单篇拉取失败不阻塞整体，该篇正文留空
+			}
+		}),
+	);
+	return posts;
+}
