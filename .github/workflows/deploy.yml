@@ -29,6 +29,12 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # 每次构建按线上最新文章重新子集化中文字体，避免新增生僻字缺字；
+      # 失败不阻断（回退仓库内已提交的子集 woff2）
+      - name: Subset CJK font from latest posts
+        run: node scripts/subset-font.mjs
+        continue-on-error: true
+
       - name: Build
         run: pnpm build
 

@@ -7,6 +7,7 @@
  *  - site_description 站点描述（副标题/og:description）
  *  - site_images     JSON：{ bannerDesktop: string[], bannerMobile: string[], avatar: string, logo: string }
  *  - sidebar_widgets JSON：{ profile: true, announcement: true, categories: true, tags: true, stats: true, calendar: true }
+ *  - umami          JSON：{ enable: bool, websiteId: string, scriptUrl: string, shareUrl: string }
  */
 import { apiGet } from "@/lib/server/api";
 
@@ -17,11 +18,19 @@ export interface SiteImages {
 	logo?: string;
 }
 
+export interface UmamiOverride {
+	enable: boolean;
+	websiteId: string;
+	scriptUrl: string;
+	shareUrl: string;
+}
+
 export interface SiteOverrides {
 	title: string | null;
 	description: string | null;
 	images: SiteImages;
 	sidebar: Record<string, boolean> | null;
+	umami: UmamiOverride | null;
 }
 
 const EMPTY: SiteOverrides = {
@@ -29,6 +38,7 @@ const EMPTY: SiteOverrides = {
 	description: null,
 	images: {},
 	sidebar: null,
+	umami: null,
 };
 
 let cache: { expires: number; data: SiteOverrides } | null = null;
@@ -94,6 +104,23 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		sidebar = null;
 	}
 
+	// Umami 统计配置（后台可配，覆盖静态 umamiConfig）
+	let umami: UmamiOverride | null = null;
+	try {
+		const raw = cfg.umami;
+		const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			umami = {
+				enable: parsed.enable === true,
+				websiteId: typeof parsed.websiteId === "string" ? parsed.websiteId.trim() : "",
+				scriptUrl: typeof parsed.scriptUrl === "string" ? parsed.scriptUrl.trim() : "",
+				shareUrl: typeof parsed.shareUrl === "string" ? parsed.shareUrl.trim() : "",
+			};
+		}
+	} catch {
+		umami = null;
+	}
+
 	const data: SiteOverrides = {
 		title:
 			typeof cfg.site_title === "string" && cfg.site_title.trim()
@@ -105,6 +132,7 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 				: null,
 		images,
 		sidebar,
+		umami,
 	};
 	cache = { expires: Date.now() + 30_000, data };
 	return data;
@@ -114,4 +142,21 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 export async function getSiteIdentity() {
 	const o = await getSiteOverrides();
 	return { title: o.title, description: o.description };
+}
+
+/**
+ * 取后台 Umami 配置；后台未配置时返回 null（调用方回退静态 umamiConfig）。
+ * 返回结构与 ResolvedUmamiOptions 对齐。
+ */
+export async function getUmamiOverride() {
+	const o = await getSiteOverrides();
+	if (!o.umami || !o.umami.enable) return null;
+	// shareUrl 是显示统计数字的必要项；采集脚本需要 websiteId + scriptUrl
+	const shareUrl = o.umami.shareUrl;
+	if (!shareUrl && !o.umami.websiteId) return null;
+	return {
+		shareUrl: shareUrl || undefined,
+		websiteId: o.umami.websiteId || undefined,
+		scriptUrl: o.umami.scriptUrl || undefined,
+	};
 }

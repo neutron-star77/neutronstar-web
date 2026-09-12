@@ -5,7 +5,7 @@ import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
 import { pathsEqual, toAbsoluteUrl, url } from "@utils/url-utils";
-import { getSiteIdentity } from "@utils/site-overrides";
+import { getSiteIdentity, getUmamiOverride } from "@utils/site-overrides";
 import {
 	expressiveCodeConfig,
 	profileConfig,
@@ -75,7 +75,8 @@ const textureOptions = resolveTextureOptions();
 const defaultTexturePreset = textureOptions.defaultPreset;
 const defaultTextureOpacity = textureOptions.defaultOpacity;
 const textureEnabled = textureOptions.enable;
-const umamiOptions = resolveUmamiOptions(umamiConfig);
+// Umami：后台 site_config(umami) 优先，未配置时回退静态 umamiConfig
+const umamiOptions = (await getUmamiOverride()) ?? resolveUmamiOptions(umamiConfig);
 
 const hasDesktopBanner = siteConfig.banner.src.desktop.length > 0;
 const hasMobileBanner = siteConfig.banner.src.mobile.length > 0;
