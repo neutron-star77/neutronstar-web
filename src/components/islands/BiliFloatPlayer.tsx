@@ -209,7 +209,20 @@ export default function BiliFloatPlayer() {
 		setClosed(true);
 	};
 
-	if (closed || phase === "boot" || phase === "off") return null;
+	if (closed) return null;
+
+	/* 加载中：小提示条（client:only 水合后先短暂出现，取数完成即被替换） */
+	if (phase === "boot") {
+		return (
+			<div
+				className="fixed bottom-24 right-4 z-[70] rounded-full bg-[var(--card-bg)] px-4 py-2 text-xs text-50 shadow-lg"
+			>
+				♪ 音乐挂件加载中…
+			</div>
+		);
+	}
+
+	if (phase === "off") return null;
 
 	/* 错误态：小条提示 + 外链兜底（不打扰，可关） */
 	if (phase === "error") {
