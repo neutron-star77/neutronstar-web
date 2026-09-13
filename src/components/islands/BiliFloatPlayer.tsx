@@ -5,11 +5,10 @@
  * client:only="react"——配置与播放列表由浏览器现场拉取（后台改配置 ≤60s 生效），
  * 也天然避开「island SSR 返回 null 截断响应流」的坑（6.1.14）。
  *
- * 音频源（两级，对比 2026-09-13 方案的重大升级——**不再内嵌 B 站 iframe**）：
- *   1. 主源：GitHub 仓 neutron-star77/bilimusic 的 audio/{bvid}.mp3（gcore.jsdelivr
- *      CDN 直拉，秒开/可拖/零风控/不占 NAS 带宽）。上传规范见 docs/站点功能与使用说明.md
- *   2. 回退：/api/bili-audio?bvid=（NAS 后端 view→playurl→流转发，spi-buvid 版），
- *      GitHub 上还没有该曲的音频文件时临时使用；B 站风控窗口期会失败 → 跳曲并标记
+ * 音频源（2026-09-14 定稿——**不再内嵌 B 站 iframe**，B 站代理回退已移除）：
+ *   唯一源 = GitHub 仓 neutron-star77/bilimusic 的 audio/{bvid}.mp3（gcore.jsdelivr
+ *   CDN 直拉，秒开/可拖/零风控/不占 NAS 带宽）。上传规范见 docs/站点功能与使用说明.md。
+ *   仓里还没有的曲目自动标记跳过（badTracks），不影响其余曲目连播。
  *
  * 连播：<audio> ended 事件天然驱动（旧 iframe 方案的 message/定时器双保险全部退役）。
  *
@@ -56,11 +55,8 @@ const fmt = (sec: number): string => {
 	return `${m}:${String(s).padStart(2, "0")}`;
 };
 
-/** 音源两级：GitHub 主源 → 后端 B 站代理回退 */
-const sources = (bvid: string): string[] => [
-	`${AUDIO_BASE}/${bvid}.mp3`,
-	`/api/bili-audio?bvid=${bvid}`,
-];
+/** 音源唯一：bilimusic 仓（audio/{bvid}.mp3），缺失曲目由 badTracks 跳过 */
+const audioSrc = (bvid: string): string => `${AUDIO_BASE}/${bvid}.mp3`;
 
 export default function BiliFloatPlayer() {
 	const [phase, setPhase] = useState<"boot" | "off" | "error" | "ready">("boot");
@@ -138,8 +134,8 @@ export default function BiliFloatPlayer() {
 	useEffect(() => {
 		const a = audioRef.current;
 		if (!a || phase !== "ready" || !track) return;
-		const [main] = sources(track.bvid);
-		if (!a.src.endsWith(main)) a.src = main;
+		const src = audioSrc(track.bvid);
+		if (!a.src.endsWith(src)) a.src = src;
 		if (playing) a.play().catch(() => {});
 	}, [current, track, phase, playing]);
 
@@ -178,20 +174,12 @@ export default function BiliFloatPlayer() {
 		else a.pause();
 	}, [track]);
 
-	/** 音频加载失败：主源 → 回退源 → 标记坏曲跳下一首 */
+	/** 音频加载失败（仓里还没传该曲）：标记坏曲跳下一首 */
 	const onAudioError = useCallback(() => {
-		const a = audioRef.current;
-		if (!a || !track) return;
-		const [, fallback] = sources(track.bvid);
-		if (!a.src.endsWith(fallback)) {
-			a.src = fallback;
-			a.play().catch(() => {});
-			return;
-		}
 		setBadTracks((prev) => new Set(prev).add(current));
 		setPlaying(false);
 		next();
-	}, [track, current, next]);
+	}, [current, next]);
 
 	/** 拖动（球与卡片头部共用；会话内有效，刷新即回默认位） */
 	const onDragStart = (e: React.PointerEvent, el: HTMLElement | null) => {
@@ -489,7 +477,7 @@ export default function BiliFloatPlayer() {
 				ref={audioRef}
 				hidden
 				preload="none"
-				src={track ? sources(track.bvid)[0] : undefined}
+				src={track ? audioSrc(track.bvid) : undefined}
 				onPlay={() => setPlaying(true)}
 				onPause={() => setPlaying(false)}
 				onTimeUpdate={(e) => {
