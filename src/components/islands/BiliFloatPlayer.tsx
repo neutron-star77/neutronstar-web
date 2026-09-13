@@ -16,8 +16,13 @@
  *   2. 按曲目时长 +3s 的兜底定时器自动切换
  *   已知限制：用户在 iframe 里暂停视频时兜底定时器仍会走，到点切歌。
  *
- * 交互：头部按住可拖动（位置存 localStorage）；可最小化成小球（iframe 不卸载，
- * 音乐不断）；关闭存 sessionStorage（本标签页不再出现）。
+ * 交互：
+ *   - 头部按住拖动；⚠️ 指针按下时必须放过 button/a——setPointerCapture 会把
+ *     后续 click 重新定向到捕获元素，不放行的话头部里的最小化/关闭按钮永远点不到
+ *   - 右下角手柄拖拽调整宽度（240–520，localStorage 记忆）
+ *   - 最小化成小球（iframe 不卸载，音乐不断）；关闭存 sessionStorage
+ *   - 所有封面图必须 referrerPolicy="no-referrer"：B 站图片 CDN 防盗链，
+ *     带外站 Referer 直接 403（坑 6.3.19 同族），不带 Referer 才放行
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../lib/api/client";
@@ -44,8 +49,11 @@ interface FavPayload {
 }
 
 const LS_POS = "biliFloatPos";
+const LS_WIDTH = "biliFloatWidth";
 const SS_CLOSED = "biliFloatClosed";
-const CARD_WIDTH = 288;
+const CARD_WIDTH_DEFAULT = 320;
+const CARD_WIDTH_MIN = 240;
+const CARD_WIDTH_MAX = 520;
 
 /** 从收藏夹链接里解析 fid（media_id） */
 function parseFid(url: string): string | null {
@@ -74,6 +82,18 @@ function readSavedPos(): { x: number; y: number } | null {
 	return null;
 }
 
+function readSavedWidth(): number {
+	try {
+		const raw = Number(localStorage.getItem(LS_WIDTH));
+		if (Number.isFinite(raw) && raw >= CARD_WIDTH_MIN && raw <= CARD_WIDTH_MAX) {
+			return raw;
+		}
+	} catch {
+		/* ignore */
+	}
+	return CARD_WIDTH_DEFAULT;
+}
+
 export default function BiliFloatPlayer() {
 	const [phase, setPhase] = useState<"boot" | "off" | "error" | "ready">("boot");
 	const [errorMsg, setErrorMsg] = useState("");
@@ -83,6 +103,9 @@ export default function BiliFloatPlayer() {
 	const [started, setStarted] = useState(false);
 	const [minimized, setMinimized] = useState(false);
 	const [listOpen, setListOpen] = useState(false);
+	const [width, setWidth] = useState(() =>
+		typeof localStorage === "undefined" ? CARD_WIDTH_DEFAULT : readSavedWidth()
+	);
 	const [pos, setPos] = useState<{ x: number; y: number } | null>(() =>
 		typeof localStorage === "undefined" ? null : readSavedPos()
 	);
@@ -92,6 +115,7 @@ export default function BiliFloatPlayer() {
 
 	const cardRef = useRef<HTMLDivElement>(null);
 	const dragState = useRef<{ px: number; py: number; cx: number; cy: number } | null>(null);
+	const resizeState = useRef<{ sx: number; sw: number } | null>(null);
 	const lastAdvanceRef = useRef(0);
 
 	/* 配置 + 播放列表：挂载后拉一次（BFF 边缘缓存 60s/600s，开销可忽略） */
@@ -166,8 +190,10 @@ export default function BiliFloatPlayer() {
 		return () => clearTimeout(timer);
 	}, [phase, started, track?.bvid, track?.duration, advance]);
 
-	/* 拖动：头部（或小球整体）按住拖动，位置记入 localStorage */
+	/* 拖动：头部按住拖动。必须放过 button/a——setPointerCapture 会把后续
+	   click 重新定向到捕获元素，不放过的话头部里的按钮永远点不到 */
 	const onHandleDown = (e: React.PointerEvent) => {
+		if ((e.target as HTMLElement).closest("button, a")) return;
 		if (!cardRef.current) return;
 		const rect = cardRef.current.getBoundingClientRect();
 		const p = pos ?? { x: rect.left, y: rect.top };
@@ -178,7 +204,7 @@ export default function BiliFloatPlayer() {
 	const onHandleMove = (e: React.PointerEvent) => {
 		const d = dragState.current;
 		if (!d) return;
-		const w = cardRef.current?.offsetWidth ?? CARD_WIDTH;
+		const w = cardRef.current?.offsetWidth ?? width;
 		const h = cardRef.current?.offsetHeight ?? 300;
 		const nx = Math.min(Math.max(0, d.cx + e.clientX - d.px), Math.max(0, window.innerWidth - w));
 		const ny = Math.min(Math.max(0, d.cy + e.clientY - d.py), Math.max(0, window.innerHeight - 48));
@@ -193,6 +219,26 @@ export default function BiliFloatPlayer() {
 			}
 		}
 		dragState.current = null;
+	};
+
+	/* 缩放：右下角手柄，横向拖拽调宽度 */
+	const onResizeDown = (e: React.PointerEvent) => {
+		resizeState.current = { sx: e.clientX, sw: width };
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+	};
+	const onResizeMove = (e: React.PointerEvent) => {
+		const r = resizeState.current;
+		if (!r) return;
+		const w = Math.min(CARD_WIDTH_MAX, Math.max(CARD_WIDTH_MIN, r.sw + e.clientX - r.sx));
+		setWidth(w);
+	};
+	const onResizeUp = () => {
+		resizeState.current = null;
+		try {
+			localStorage.setItem(LS_WIDTH, String(width));
+		} catch {
+			/* ignore */
+		}
 	};
 
 	const playAt = (index: number) => {
@@ -214,9 +260,7 @@ export default function BiliFloatPlayer() {
 	/* 加载中：小提示条（client:only 水合后先短暂出现，取数完成即被替换） */
 	if (phase === "boot") {
 		return (
-			<div
-				className="fixed bottom-24 right-4 z-[70] rounded-full bg-[var(--card-bg)] px-4 py-2 text-xs text-50 shadow-lg"
-			>
+			<div className="fixed bottom-24 right-4 z-[70] rounded-full bg-[var(--card-bg)] px-4 py-2 text-xs text-50 shadow-lg">
 				♪ 音乐挂件加载中…
 			</div>
 		);
@@ -224,7 +268,7 @@ export default function BiliFloatPlayer() {
 
 	if (phase === "off") return null;
 
-	/* 错误态：小条提示 + 外链兜底（不打扰，可关） */
+	/* 错误态：小条提示 + 可关（不打扰） */
 	if (phase === "error") {
 		return (
 			<div
@@ -247,7 +291,7 @@ export default function BiliFloatPlayer() {
 		);
 	}
 
-	/* 最小化小球：封面 + 标题，点击恢复；整体可拖 */
+	/* 最小化小球：封面 + 标题，点击恢复；⠿ 手柄可拖 */
 	if (minimized) {
 		return (
 			<div
@@ -262,7 +306,12 @@ export default function BiliFloatPlayer() {
 					aria-label="展开播放器"
 				>
 					{track?.cover ? (
-						<img src={track.cover} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+						<img
+							src={track.cover}
+							alt=""
+							referrerPolicy="no-referrer"
+							className="h-8 w-8 shrink-0 rounded-full object-cover"
+						/>
 					) : (
 						<span className="h-8 w-8 shrink-0 rounded-full bg-[var(--btn-regular-bg)]" />
 					)}
@@ -286,10 +335,13 @@ export default function BiliFloatPlayer() {
 	return (
 		<div
 			ref={cardRef}
-			className="fixed z-[70] w-72 overflow-hidden rounded-xl bg-[var(--card-bg)] shadow-lg"
-			style={pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }}
+			className="fixed z-[70] overflow-hidden rounded-xl bg-[var(--card-bg)] shadow-lg"
+			style={{
+				width: `${width}px`,
+				...(pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }),
+			}}
 		>
-			{/* 头部：拖动手柄 + 标题 + 操作 */}
+			{/* 头部：拖动手柄 + 标题 + 操作（onHandleDown 放过 button，点击才有效） */}
 			<div
 				onPointerDown={onHandleDown}
 				onPointerMove={onHandleMove}
@@ -319,7 +371,9 @@ export default function BiliFloatPlayer() {
 				</button>
 			</div>
 
-			{/* 播放器：B 站 iframe（自带播放/暂停/进度/音量），点播前不加载 */}
+			{/* 播放器：B 站 iframe（自带播放/暂停/进度/音量/全屏），点播前不加载。
+			    提示：拖进度条时鼠标一旦拖出 iframe 边界手势就断了——把窗口拖大些更好拖；
+			    右下角 ⤡ 可把整个卡片拉到 520px 宽 */}
 			{started && track ? (
 				<iframe
 					key={track.bvid}
@@ -337,6 +391,7 @@ export default function BiliFloatPlayer() {
 						<img
 							src={track.cover}
 							alt=""
+							referrerPolicy="no-referrer"
 							className="aspect-video w-full object-cover transition group-hover:opacity-90"
 						/>
 					) : (
@@ -399,7 +454,7 @@ export default function BiliFloatPlayer() {
 				</button>
 			</div>
 
-			{/* 播放列表抽屉 */}
+			{/* 播放列表抽屉（封面必须 no-referrer，否则被 B 站防盗链 403） */}
 			{listOpen && (
 				<ul className="max-h-56 overflow-y-auto border-t border-black/5 px-1.5 py-1.5 dark:border-white/10">
 					{tracks.map((t, i) => (
@@ -416,6 +471,7 @@ export default function BiliFloatPlayer() {
 									src={t.cover}
 									alt=""
 									loading="lazy"
+									referrerPolicy="no-referrer"
 									className="h-7 w-12 shrink-0 rounded object-cover"
 								/>
 								<span className="min-w-0 flex-1 truncate" title={t.title}>
@@ -427,6 +483,21 @@ export default function BiliFloatPlayer() {
 					))}
 				</ul>
 			)}
+
+			{/* 右下角缩放手柄：横向拖拽调宽度（240–520，localStorage 记忆） */}
+			<div
+				onPointerDown={onResizeDown}
+				onPointerMove={onResizeMove}
+				onPointerUp={onResizeUp}
+				className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none"
+				style={{
+					background:
+						"linear-gradient(135deg, transparent 0 50%, var(--btn-regular-bg) 50% 62%, transparent 62% 74%, var(--btn-regular-bg) 74% 86%, transparent 86%)",
+				}}
+				role="separator"
+				aria-label="调整播放器宽度"
+				title="拖拽调整宽度"
+			/>
 		</div>
 	);
 }
