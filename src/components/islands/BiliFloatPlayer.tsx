@@ -1,270 +1,242 @@
 /**
- * B 站收藏夹悬浮播放器（NetEase 外挂播放器风格）。
+ * B 站收藏夹悬浮音乐播放器（APlayer 风格重写，2026-09-14）。
  *
- * 挂在 Layout body（Swup 容器外），全站只有一个实例，页面切换时音乐不断。
- * client:only="react" —— 纯客户端组件：配置（music_widget）和播放列表都由
- * 浏览器现场拉取，后台改配置 ≤60s 全站生效，不存在构建期把配置烤死的问题；
- * 同时也天然避开「island SSR 返回 null 会截断响应流」的坑（见 6.1.14）。
+ * 挂在 Layout body（Swup 容器外），全站一个实例，页面切换音乐不断。
+ * client:only="react"——配置与播放列表由浏览器现场拉取（后台改配置 ≤60s 生效），
+ * 也天然避开「island SSR 返回 null 截断响应流」的坑（6.1.14）。
  *
- * 数据链路：
- *   /api/site-config/music_widget  拿 enabled + url（解析出 fid）
- *   /api/bili-fav?media_id=<fid>   后端代理拉播放列表（B 站对浏览器直连/CF 出口
- *                                  均有风控，只能由 NAS 后端代拉，边缘缓存 600s）
+ * 音频源（两级，对比 2026-09-13 方案的重大升级——**不再内嵌 B 站 iframe**）：
+ *   1. 主源：GitHub 仓 neutron-star77/bilimusic 的 audio/{bvid}.mp3（gcore.jsdelivr
+ *      CDN 直拉，秒开/可拖/零风控/不占 NAS 带宽）。上传规范见 docs/站点功能与使用说明.md
+ *   2. 回退：/api/bili-audio?bvid=（NAS 后端 view→playurl→流转发，spi-buvid 版），
+ *      GitHub 上还没有该曲的音频文件时临时使用；B 站风控窗口期会失败 → 跳曲并标记
  *
- * 连播机制（跨域 iframe 拿不到 ended 事件，双保险）：
- *   1. 监听 window.message，内容含 "ended" 即切下一首（B 站播放器有此事件）
- *   2. 按曲目时长 +3s 的兜底定时器自动切换
- *   已知限制：用户在 iframe 里暂停视频时兜底定时器仍会走，到点切歌。
+ * 连播：<audio> ended 事件天然驱动（旧 iframe 方案的 message/定时器双保险全部退役）。
  *
- * 交互：
- *   - 头部按住拖动；⚠️ 指针按下时必须放过 button/a——setPointerCapture 会把
- *     后续 click 重新定向到捕获元素，不放行的话头部里的最小化/关闭按钮永远点不到
- *   - 右下角手柄拖拽调整宽度（240–520，localStorage 记忆）
- *   - 最小化成小球（iframe 不卸载，音乐不断）；关闭存 sessionStorage
- *   - 所有封面图必须 referrerPolicy="no-referrer"：B 站图片 CDN 防盗链，
- *     带外站 Referer 直接 403（坑 6.3.19 同族），不带 Referer 才放行
+ * 交互（2026-09-14 用户要求）：
+ *   - 最小化 = 封面悬浮球，**可拖动**，点击展开；**刷新/关闭后重置回默认右下角**
+ *     （位置不再写 localStorage），卡片宽度固定 320 不再缩放
+ *   - 展开卡片头部可拖动（同样是会话内有效）
+ *   - 进度条/音量条直接驱动 <audio>，无跨域 iframe 手势问题（旧坑全数消失）
+ *   - 所有封面图 referrerPolicy="no-referrer"（B 站图床防盗链，坑 6.3.19）
  */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiGet } from "../../lib/api/client";
 
-interface MusicWidgetConfig {
-	enabled?: boolean;
-	title?: string;
-	subtitle?: string;
-	url?: string;
-}
+/** gcore.jsdelivr 在大陆可达性最好（坑 6.2.10），音频仓按 bvid 命名 */
+const AUDIO_BASE =
+	"https://gcore.jsdelivr.net/gh/neutron-star77/bilimusic@main/audio";
+const LS_CLOSED = "bili-float-closed";
+const CARD_W = 320;
 
 interface Track {
 	bvid: string;
 	title: string;
 	cover: string;
 	duration: number;
-	author: string | null;
+	author?: string;
+}
+
+interface MusicWidgetConfig {
+	enabled?: boolean;
+	url?: string;
 }
 
 interface FavPayload {
-	title?: string | null;
+	title?: string;
 	mediaCount?: number;
 	tracks?: Track[];
 }
 
-const LS_POS = "biliFloatPos";
-const LS_WIDTH = "biliFloatWidth";
-const SS_CLOSED = "biliFloatClosed";
-const CARD_WIDTH_DEFAULT = 320;
-const CARD_WIDTH_MIN = 240;
-const CARD_WIDTH_MAX = 520;
-
-/** 从收藏夹链接里解析 fid（media_id） */
-function parseFid(url: string): string | null {
-	const m = /[?&]fid=(\d+)/.exec(url || "");
-	return m ? m[1] : null;
-}
-
-function formatDuration(sec: number): string {
-	if (!Number.isFinite(sec) || sec <= 0) return "--:--";
-	const h = Math.floor(sec / 3600);
-	const m = Math.floor((sec % 3600) / 60);
+const fmt = (sec: number): string => {
+	if (!Number.isFinite(sec) || sec < 0) return "0:00";
+	const m = Math.floor(sec / 60);
 	const s = Math.floor(sec % 60);
-	const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
-	return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
-}
+	return `${m}:${String(s).padStart(2, "0")}`;
+};
 
-/** fetch 没有内建超时；任何一步卡死都降级为错误态而不是永远转圈 */
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-	return Promise.race([
-		p,
-		new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
-	]);
-}
-
-function readSavedPos(): { x: number; y: number } | null {
-	try {
-		const raw = localStorage.getItem(LS_POS);
-		if (!raw) return null;
-		const p = JSON.parse(raw) as { x: number; y: number };
-		if (typeof p?.x === "number" && typeof p?.y === "number") return p;
-	} catch {
-		/* ignore */
-	}
-	return null;
-}
-
-function readSavedWidth(): number {
-	try {
-		const raw = Number(localStorage.getItem(LS_WIDTH));
-		if (Number.isFinite(raw) && raw >= CARD_WIDTH_MIN && raw <= CARD_WIDTH_MAX) {
-			return raw;
-		}
-	} catch {
-		/* ignore */
-	}
-	return CARD_WIDTH_DEFAULT;
-}
+/** 音源两级：GitHub 主源 → 后端 B 站代理回退 */
+const sources = (bvid: string): string[] => [
+	`${AUDIO_BASE}/${bvid}.mp3`,
+	`/api/bili-audio?bvid=${bvid}`,
+];
 
 export default function BiliFloatPlayer() {
 	const [phase, setPhase] = useState<"boot" | "off" | "error" | "ready">("boot");
 	const [errorMsg, setErrorMsg] = useState("");
-	const [fallbackUrl, setFallbackUrl] = useState("");
 	const [playlistTitle, setPlaylistTitle] = useState("B站收藏夹");
 	const [tracks, setTracks] = useState<Track[]>([]);
+	const [badTracks, setBadTracks] = useState<Set<number>>(new Set());
 	const [current, setCurrent] = useState(0);
-	const [started, setStarted] = useState(false);
+	const [playing, setPlaying] = useState(false);
+	const [progress, setProgress] = useState({ cur: 0, dur: 0 });
+	const [volume, setVolume] = useState(0.8);
 	const [minimized, setMinimized] = useState(false);
 	const [listOpen, setListOpen] = useState(false);
-	const [width, setWidth] = useState(() =>
-		typeof localStorage === "undefined" ? CARD_WIDTH_DEFAULT : readSavedWidth()
-	);
-	const [pos, setPos] = useState<{ x: number; y: number } | null>(() =>
-		typeof localStorage === "undefined" ? null : readSavedPos()
-	);
 	const [closed, setClosed] = useState(
-		() => typeof sessionStorage !== "undefined" && sessionStorage.getItem(SS_CLOSED) === "1"
+		() =>
+			typeof sessionStorage !== "undefined" &&
+			sessionStorage.getItem(LS_CLOSED) === "1",
 	);
+	const [loop, setLoop] = useState(true);
 
+	const audioRef = useRef<HTMLAudioElement>(null);
 	const cardRef = useRef<HTMLDivElement>(null);
-	const dragState = useRef<{ px: number; py: number; cx: number; cy: number } | null>(null);
-	const resizeState = useRef<{ sx: number; sw: number } | null>(null);
-	const lastAdvanceRef = useRef(0);
+	const ballRef = useRef<HTMLDivElement>(null);
+	const dragState = useRef<{
+		px: number;
+		py: number;
+		cx: number;
+		cy: number;
+		moved: boolean;
+	} | null>(null);
 
-	/* 配置 + 播放列表：挂载后拉一次（BFF 边缘缓存 60s/600s，开销可忽略） */
+	const track: Track | undefined = tracks[current];
+
+	/** 拉配置与播放列表（music_widget → fid → /api/bili-fav） */
 	useEffect(() => {
-		let cancelled = false;
+		let alive = true;
 		(async () => {
-			let cfg: MusicWidgetConfig | null = null;
 			try {
-				cfg = await withTimeout(
-					apiGet<MusicWidgetConfig>("/api/site-config/music_widget"),
-					8000,
+				const cfg = await apiGet<MusicWidgetConfig>(
+					"/api/site-config/music_widget",
 				);
-			} catch {
-				cfg = null;
-			}
-			const fid = cfg?.enabled && cfg.url ? parseFid(cfg.url) : null;
-			if (cancelled) return;
-			if (!fid) {
-				setPhase("off"); // 未启用或链接不是收藏夹（此时侧栏显示外链卡片）
-				return;
-			}
-			try {
-				const data = await withTimeout(
-					apiGet<FavPayload>(`/api/bili-fav?media_id=${fid}`),
-					12000,
-				);
-				if (cancelled) return;
-				const list = data?.tracks ?? [];
-				if (list.length === 0) {
-					setErrorMsg("收藏夹里暂无可播放的视频");
-					setPhase("error");
+				const url = (cfg.url || "").trim();
+				if (!alive) return;
+				if (!cfg.enabled || !/^https?:\/\//i.test(url)) {
+					setPhase("off");
 					return;
 				}
-				setPlaylistTitle(data?.title || "B站收藏夹");
+				const fid = /[?&]fid=(\d+)/.exec(url)?.[1];
+				if (!fid) {
+					setPhase("off");
+					return;
+				}
+				const fav = await apiGet<FavPayload>(`/api/bili-fav?media_id=${fid}`);
+				if (!alive) return;
+				const list = (fav.tracks || []).filter((t) => t?.bvid);
+				if (list.length === 0) {
+					setPhase("off");
+					return;
+				}
 				setTracks(list);
+				setPlaylistTitle(fav.title || "B站收藏夹");
 				setPhase("ready");
-			} catch {
-				if (cancelled) return;
-				setErrorMsg("播放列表加载失败");
-				setFallbackUrl(cfg?.url || "");
+			} catch (e) {
+				if (!alive) return;
+				setErrorMsg(String(e));
 				setPhase("error");
 			}
 		})();
 		return () => {
-			cancelled = true;
+			alive = false;
 		};
 	}, []);
 
-	const track = tracks[current];
-
-	/** 切下一首（2.5s 去抖：message 事件和兜底定时器可能先后到达） */
-	const advance = useCallback(() => {
-		const now = Date.now();
-		if (now - lastAdvanceRef.current < 2500) return;
-		lastAdvanceRef.current = now;
-		setCurrent((i) => (tracks.length ? (i + 1) % tracks.length : 0));
-	}, [tracks.length]);
-
-	/* 连播保险 1：B 站播放器的 postMessage（内容含 "ended"） */
+	/** 当前曲目变化 → 换源播放 */
 	useEffect(() => {
-		if (phase !== "ready") return;
-		const onMsg = (e: MessageEvent) => {
-			let text: string;
-			try {
-				text = typeof e.data === "string" ? e.data : JSON.stringify(e.data ?? "");
-			} catch {
-				return;
-			}
-			if (text && text.includes("ended")) advance();
-		};
-		window.addEventListener("message", onMsg);
-		return () => window.removeEventListener("message", onMsg);
-	}, [phase, advance]);
+		const a = audioRef.current;
+		if (!a || phase !== "ready" || !track) return;
+		const [main] = sources(track.bvid);
+		if (!a.src.endsWith(main)) a.src = main;
+		if (playing) a.play().catch(() => {});
+	}, [current, track, phase, playing]);
 
-	/* 连播保险 2：时长 + 3s 兜底定时器 */
+	/** 音量同步 */
 	useEffect(() => {
-		if (phase !== "ready" || !started || !track?.duration) return;
-		const timer = setTimeout(advance, track.duration * 1000 + 3000);
-		return () => clearTimeout(timer);
-	}, [phase, started, track?.bvid, track?.duration, advance]);
+		if (audioRef.current) audioRef.current.volume = volume;
+	}, [volume]);
 
-	/* 拖动：头部按住拖动。必须放过 button/a——setPointerCapture 会把后续
-	   click 重新定向到捕获元素，不放过的话头部里的按钮永远点不到 */
-	const onHandleDown = (e: React.PointerEvent) => {
-		if ((e.target as HTMLElement).closest("button, a")) return;
-		if (!cardRef.current) return;
-		const rect = cardRef.current.getBoundingClientRect();
-		const p = pos ?? { x: rect.left, y: rect.top };
-		setPos(p);
-		dragState.current = { px: e.clientX, py: e.clientY, cx: p.x, cy: p.y };
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-	};
-	const onHandleMove = (e: React.PointerEvent) => {
-		const d = dragState.current;
-		if (!d) return;
-		const w = cardRef.current?.offsetWidth ?? width;
-		const h = cardRef.current?.offsetHeight ?? 300;
-		const nx = Math.min(Math.max(0, d.cx + e.clientX - d.px), Math.max(0, window.innerWidth - w));
-		const ny = Math.min(Math.max(0, d.cy + e.clientY - d.py), Math.max(0, window.innerHeight - 48));
-		setPos({ x: nx, y: ny });
-	};
-	const onHandleUp = () => {
-		if (dragState.current && pos) {
-			try {
-				localStorage.setItem(LS_POS, JSON.stringify(pos));
-			} catch {
-				/* ignore */
-			}
+	const go = useCallback(
+		(delta: number) => {
+			setTracks((list) => {
+				if (list.length === 0) return list;
+				setCurrent((c) => {
+					let n = (c + delta + list.length) % list.length;
+					let guard = 0;
+					while (badTracks.has(n) && guard < list.length) {
+						n = (n + (delta >= 0 ? 1 : -1) + list.length) % list.length;
+						guard += 1;
+					}
+					return n;
+				});
+				return list;
+			});
+			setPlaying(true);
+		},
+		[badTracks],
+	);
+
+	const next = useCallback(() => go(1), [go]);
+	const prev = useCallback(() => go(-1), [go]);
+
+	const togglePlay = useCallback(() => {
+		const a = audioRef.current;
+		if (!a || !track) return;
+		if (a.paused) a.play().catch(() => {});
+		else a.pause();
+	}, [track]);
+
+	/** 音频加载失败：主源 → 回退源 → 标记坏曲跳下一首 */
+	const onAudioError = useCallback(() => {
+		const a = audioRef.current;
+		if (!a || !track) return;
+		const [, fallback] = sources(track.bvid);
+		if (!a.src.endsWith(fallback)) {
+			a.src = fallback;
+			a.play().catch(() => {});
+			return;
 		}
+		setBadTracks((prev) => new Set(prev).add(current));
+		setPlaying(false);
+		next();
+	}, [track, current, next]);
+
+	/** 拖动（球与卡片头部共用；会话内有效，刷新即回默认位） */
+	const onDragStart = (e: React.PointerEvent, el: HTMLElement | null) => {
+		if (!el) return;
+		const rect = el.getBoundingClientRect();
+		dragState.current = {
+			px: e.clientX,
+			py: e.clientY,
+			cx: rect.left,
+			cy: rect.top,
+			moved: false,
+		};
+		(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+	};
+	const onDragMove = (e: React.PointerEvent, el: HTMLElement | null) => {
+		const st = dragState.current;
+		if (!st || !el) return;
+		const dx = e.clientX - st.px;
+		const dy = e.clientY - st.py;
+		if (!st.moved && Math.hypot(dx, dy) < 6) return;
+		st.moved = true;
+		const w = el.offsetWidth;
+		const h = el.offsetHeight;
+		el.style.left = `${Math.min(Math.max(st.cx + dx, 8), window.innerWidth - w - 8)}px`;
+		el.style.top = `${Math.min(Math.max(st.cy + dy, 8), window.innerHeight - h - 8)}px`;
+		el.style.right = "auto";
+		el.style.bottom = "auto";
+	};
+
+	/** 球：松手时未拖动 = 点击 → 展开 */
+	const onBallPointerUp = () => {
+		if (dragState.current && !dragState.current.moved) setMinimized(false);
 		dragState.current = null;
 	};
 
-	/* 缩放：右下角手柄，横向拖拽调宽度 */
-	const onResizeDown = (e: React.PointerEvent) => {
-		resizeState.current = { sx: e.clientX, sw: width };
-		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-	};
-	const onResizeMove = (e: React.PointerEvent) => {
-		const r = resizeState.current;
-		if (!r) return;
-		const w = Math.min(CARD_WIDTH_MAX, Math.max(CARD_WIDTH_MIN, r.sw + e.clientX - r.sx));
-		setWidth(w);
-	};
-	const onResizeUp = () => {
-		resizeState.current = null;
-		try {
-			localStorage.setItem(LS_WIDTH, String(width));
-		} catch {
-			/* ignore */
-		}
-	};
-
-	const playAt = (index: number) => {
-		setCurrent((index + tracks.length) % Math.max(1, tracks.length));
-		setStarted(true);
+	/** 进度条拖动 */
+	const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const a = audioRef.current;
+		if (!a) return;
+		a.currentTime = Number(e.target.value);
 	};
 
 	const close = () => {
 		try {
-			sessionStorage.setItem(SS_CLOSED, "1");
+			sessionStorage.setItem(LS_CLOSED, "1");
 		} catch {
 			/* ignore */
 		}
@@ -290,24 +262,11 @@ export default function BiliFloatPlayer() {
 			<div
 				ref={cardRef}
 				className="fixed z-[70] w-64 rounded-xl bg-[var(--card-bg)] p-3 shadow-lg"
-				style={pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }}
+				style={{ right: "1rem", bottom: "6rem" }}
 			>
 				<div className="flex items-center justify-between gap-2">
 					<span className="min-w-0 flex-1 truncate text-xs text-75">
 						{errorMsg}
-						{fallbackUrl && (
-							<>
-								{" "}
-								<a
-									href={fallbackUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-[var(--primary)] underline underline-offset-2"
-								>
-									去 B 站听
-								</a>
-							</>
-						)}
 					</span>
 					<button
 						type="button"
@@ -322,212 +281,226 @@ export default function BiliFloatPlayer() {
 		);
 	}
 
-	/* 最小化小球：封面 + 标题，点击恢复；⠿ 手柄可拖 */
-	if (minimized) {
-		return (
-			<div
-				ref={cardRef}
-				className="fixed z-[70] flex max-w-[16rem] items-center gap-2 rounded-full bg-[var(--card-bg)] py-1.5 pl-1.5 pr-3 shadow-lg"
-				style={pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }}
-			>
-				<button
-					type="button"
-					className="flex min-w-0 flex-1 items-center gap-2"
-					onClick={() => setMinimized(false)}
-					aria-label="展开播放器"
-				>
-					{track?.cover ? (
-						<img
-							src={track.cover}
-							alt=""
-							referrerPolicy="no-referrer"
-							className="h-8 w-8 shrink-0 rounded-full object-cover"
-						/>
-					) : (
-						<span className="h-8 w-8 shrink-0 rounded-full bg-[var(--btn-regular-bg)]" />
-					)}
-					<span className="truncate text-xs text-90">{track?.title || playlistTitle}</span>
-				</button>
-				<button
-					type="button"
-					onPointerDown={onHandleDown}
-					onPointerMove={onHandleMove}
-					onPointerUp={onHandleUp}
-					className="h-6 w-6 shrink-0 cursor-move touch-none rounded-full text-center text-xs leading-6 text-50 hover:text-[var(--primary)]"
-					aria-label="拖动"
-					title="拖动"
-				>
-					⠿
-				</button>
-			</div>
-		);
-	}
+	const containerPos: React.CSSProperties = minimized
+		? {
+				position: "fixed",
+				right: "1.5rem",
+				bottom: "6rem",
+				left: "auto",
+				top: "auto",
+			}
+		: {
+				position: "fixed",
+				right: "1.5rem",
+				bottom: "1.5rem",
+				left: "auto",
+				top: "auto",
+			};
 
 	return (
 		<div
 			ref={cardRef}
-			className="fixed z-[70] overflow-hidden rounded-xl bg-[var(--card-bg)] shadow-lg"
-			style={{
-				width: `${width}px`,
-				...(pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }),
-			}}
+			id="bili-float-player"
+			className="float-panel z-40 overflow-hidden rounded-2xl shadow-2xl"
+			style={{ width: minimized ? 56 : CARD_W, ...containerPos }}
+			data-playing={String(playing)}
 		>
-			{/* 头部：拖动手柄 + 标题 + 操作（onHandleDown 放过 button，点击才有效） */}
-			<div
-				onPointerDown={onHandleDown}
-				onPointerMove={onHandleMove}
-				onPointerUp={onHandleUp}
-				className="flex cursor-move touch-none items-center gap-1.5 px-3 py-2"
-			>
-				<span className="min-w-0 flex-1 truncate text-xs font-medium text-90" title={playlistTitle}>
-					♪ {playlistTitle}
-				</span>
-				<button
-					type="button"
-					onClick={() => setMinimized(true)}
-					className="h-5 w-5 rounded text-xs leading-5 text-50 hover:text-[var(--primary)]"
-					aria-label="最小化"
-					title="最小化"
+			{minimized ? (
+				/* ── 最小化：封面悬浮球（可拖动，点击展开） ── */
+				<div
+					ref={ballRef}
+					className="relative h-14 w-14 cursor-pointer select-none"
+					onPointerDown={(e) => onDragStart(e, ballRef.current)}
+					onPointerMove={(e) => onDragMove(e, ballRef.current)}
+					onPointerUp={onBallPointerUp}
+					title="展开播放器"
 				>
-					—
-				</button>
-				<button
-					type="button"
-					onClick={close}
-					className="h-5 w-5 rounded text-xs leading-5 text-50 hover:text-[var(--error)]"
-					aria-label="关闭"
-					title="关闭（本标签页）"
-				>
-					✕
-				</button>
-			</div>
-
-			{/* 播放器：B 站 iframe（自带播放/暂停/进度/音量/全屏），点播前不加载。
-			    提示：拖进度条时鼠标一旦拖出 iframe 边界手势就断了——把窗口拖大些更好拖；
-			    右下角 ⤡ 可把整个卡片拉到 520px 宽 */}
-			{started && track ? (
-				<iframe
-					key={track.bvid}
-					src={`https://player.bilibili.com/player.html?bvid=${track.bvid}&page=1&high_quality=1&danmaku=0&autoplay=1`}
-					allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-					allowFullScreen
-					frameBorder="0"
-					loading="lazy"
-					title={track.title}
-					className="aspect-video w-full"
-				/>
-			) : (
-				<button type="button" onClick={() => setStarted(true)} className="group block w-full">
 					{track?.cover ? (
 						<img
 							src={track.cover}
 							alt=""
 							referrerPolicy="no-referrer"
-							className="aspect-video w-full object-cover transition group-hover:opacity-90"
+							className="h-14 w-14 rounded-full border-2 border-[var(--primary)] object-cover shadow-lg"
 						/>
 					) : (
-						<div className="aspect-video w-full bg-[var(--btn-regular-bg)]" />
+						<div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--primary)] text-white shadow-lg">
+							♪
+						</div>
 					)}
-					<span className="pointer-events-none relative -mt-10 mb-3 ml-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-md transition group-hover:bg-black/70">
-						<svg viewBox="0 0 24 24" className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden="true">
-							<path d="M8 5v14l11-7z" />
-						</svg>
-					</span>
-				</button>
-			)}
-
-			{/* 曲目行 */}
-			<div className="px-3 pt-2">
-				<p className="truncate text-sm text-90" title={track?.title}>
-					{track?.title || "—"}
-				</p>
-				<p className="mt-0.5 truncate text-xs text-50">
-					{track?.author || ""}
-					{track ? ` · ${formatDuration(track.duration)}` : ""}
-				</p>
-			</div>
-
-			{/* 控制行 */}
-			<div className="flex items-center gap-1 px-3 py-2">
-				<button
-					type="button"
-					onClick={() => playAt(current - 1)}
-					className="h-7 w-7 rounded-full text-center leading-7 text-75 hover:bg-[var(--btn-regular-bg)] hover:text-[var(--primary)]"
-					aria-label="上一首"
-					title="上一首"
-				>
-					<svg viewBox="0 0 24 24" className="inline h-4 w-4" fill="currentColor" aria-hidden="true">
-						<path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
-					</svg>
-				</button>
-				<button
-					type="button"
-					onClick={() => playAt(current + 1)}
-					className="h-7 w-7 rounded-full text-center leading-7 text-75 hover:bg-[var(--btn-regular-bg)] hover:text-[var(--primary)]"
-					aria-label="下一首"
-					title="下一首"
-				>
-					<svg viewBox="0 0 24 24" className="inline h-4 w-4" fill="currentColor" aria-hidden="true">
-						<path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z" />
-					</svg>
-				</button>
-				<span className="flex-1 text-center text-xs text-50">
-					{tracks.length ? current + 1 : 0} / {tracks.length}
-				</span>
-				<button
-					type="button"
-					onClick={() => setListOpen((v) => !v)}
-					className="h-7 rounded-full px-2.5 text-xs text-75 hover:bg-[var(--btn-regular-bg)] hover:text-[var(--primary)]"
-					aria-label="播放列表"
-					title="播放列表"
-				>
-					☰ 列表
-				</button>
-			</div>
-
-			{/* 播放列表抽屉（封面必须 no-referrer，否则被 B 站防盗链 403） */}
-			{listOpen && (
-				<ul className="max-h-56 overflow-y-auto border-t border-black/5 px-1.5 py-1.5 dark:border-white/10">
-					{tracks.map((t, i) => (
-						<li key={t.bvid + i}>
+					{playing && (
+						<span className="absolute inset-0 rounded-full border-2 border-[var(--primary)] opacity-60 motion-safe:animate-ping" />
+					)}
+				</div>
+			) : (
+				<div>
+					{/* 头部：按住拖动 + 最小化/关闭 */}
+					<div
+						className="flex cursor-grab items-center justify-between bg-[var(--surface-container-high)] px-3 py-1.5 active:cursor-grabbing"
+						onPointerDown={(e) => {
+							if ((e.target as HTMLElement).closest("button")) return;
+							onDragStart(e, cardRef.current);
+						}}
+						onPointerMove={(e) => onDragMove(e, cardRef.current)}
+						onPointerUp={() => (dragState.current = null)}
+					>
+						<span className="truncate text-xs font-bold text-[var(--on-surface-variant)]">
+							♪ {playlistTitle}
+						</span>
+						<div className="flex items-center gap-1">
 							<button
 								type="button"
-								onClick={() => playAt(i)}
-								className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-[var(--btn-regular-bg)] ${
-									i === current ? "text-[var(--primary)]" : "text-75"
-								}`}
+								className="rounded px-1.5 text-xs text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]"
+								title="最小化"
+								onClick={() => setMinimized(true)}
 							>
-								<span className="w-5 shrink-0 text-center text-[10px] opacity-70">{i + 1}</span>
-								<img
-									src={t.cover}
-									alt=""
-									loading="lazy"
-									referrerPolicy="no-referrer"
-									className="h-7 w-12 shrink-0 rounded object-cover"
-								/>
-								<span className="min-w-0 flex-1 truncate" title={t.title}>
-									{t.title}
-								</span>
-								<span className="shrink-0 text-[10px] opacity-70">{formatDuration(t.duration)}</span>
+								—
 							</button>
-						</li>
-					))}
-				</ul>
+							<button
+								type="button"
+								className="rounded px-1.5 text-xs text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]"
+								title="关闭"
+								onClick={close}
+							>
+								✕
+							</button>
+						</div>
+					</div>
+
+					{/* 封面 */}
+					{track?.cover && (
+						<img
+							src={track.cover}
+							alt=""
+							referrerPolicy="no-referrer"
+							className="h-40 w-full object-cover"
+						/>
+					)}
+
+					{/* 信息 + 进度 + 控制（APlayer 风格） */}
+					<div className="bg-[var(--surface-container-low)] p-3">
+						<div className="mb-1 truncate text-sm font-bold text-[var(--on-surface)]">
+							{track?.title || "…"}
+						</div>
+						<div className="mb-2 truncate text-xs text-[var(--on-surface-variant)]">
+							{track?.author || ""}
+						</div>
+
+						<input
+							type="range"
+							min={0}
+							max={progress.dur || track?.duration || 0}
+							value={progress.cur}
+							onChange={onSeek}
+							className="mb-1 w-full accent-[var(--primary)]"
+							aria-label="播放进度"
+						/>
+						<div className="mb-2 flex justify-between text-[0.7rem] tabular-nums text-[var(--on-surface-variant)]">
+							<span>{fmt(progress.cur)}</span>
+							<span>{fmt(progress.dur || track?.duration || 0)}</span>
+						</div>
+
+						<div className="flex items-center justify-center gap-4">
+							<button
+								type="button"
+								className={`text-lg ${loop ? "text-[var(--primary)]" : "text-[var(--on-surface-variant)]"}`}
+								title="列表循环"
+								onClick={() => setLoop((v) => !v)}
+							>
+								⟳
+							</button>
+							<button
+								type="button"
+								className="text-xl text-[var(--on-surface)]"
+								title="上一首"
+								onClick={prev}
+							>
+								⏮
+							</button>
+							<button
+								type="button"
+								className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-xl text-white shadow-md active:scale-95"
+								title={playing ? "暂停" : "播放"}
+								onClick={togglePlay}
+							>
+								{playing ? "⏸" : "▶"}
+							</button>
+							<button
+								type="button"
+								className="text-xl text-[var(--on-surface)]"
+								title="下一首"
+								onClick={next}
+							>
+								⏭
+							</button>
+							<button
+								type="button"
+								className={`text-lg ${listOpen ? "text-[var(--primary)]" : "text-[var(--on-surface-variant)]"}`}
+								title="播放列表"
+								onClick={() => setListOpen((v) => !v)}
+							>
+								☰
+							</button>
+						</div>
+
+						<div className="mt-2 flex items-center gap-2">
+							<span className="text-xs text-[var(--on-surface-variant)]">🔊</span>
+							<input
+								type="range"
+								min={0}
+								max={1}
+								step={0.05}
+								value={volume}
+								onChange={(e) => setVolume(Number(e.target.value))}
+								className="w-full accent-[var(--primary)]"
+								aria-label="音量"
+							/>
+						</div>
+
+						{listOpen && (
+							<div className="mt-2 max-h-40 overflow-y-auto rounded-lg bg-[var(--surface-container)] p-1">
+								{tracks.map((t, i) => (
+									<button
+										key={t.bvid + i}
+										type="button"
+										className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs ${
+											i === current
+												? "bg-[var(--primary)]/15 font-bold text-[var(--primary)]"
+												: "text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
+										} ${badTracks.has(i) ? "opacity-40" : ""}`}
+										onClick={() => {
+											setCurrent(i);
+											setPlaying(true);
+										}}
+									>
+										<span className="w-5 shrink-0 text-right opacity-60">
+											{i + 1}
+										</span>
+										<span className="truncate">{t.title}</span>
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+				</div>
 			)}
 
-			{/* 右下角缩放手柄：横向拖拽调宽度（240–520，localStorage 记忆） */}
-			<div
-				onPointerDown={onResizeDown}
-				onPointerMove={onResizeMove}
-				onPointerUp={onResizeUp}
-				className="absolute bottom-0 right-0 h-4 w-4 cursor-nwse-resize touch-none"
-				style={{
-					background:
-						"linear-gradient(135deg, transparent 0 50%, var(--btn-regular-bg) 50% 62%, transparent 62% 74%, var(--btn-regular-bg) 74% 86%, transparent 86%)",
+			{/* 音频元素：换曲重建 src；主源失败自动回退代理（onAudioError） */}
+			<audio
+				ref={audioRef}
+				hidden
+				preload="none"
+				src={track ? sources(track.bvid)[0] : undefined}
+				onPlay={() => setPlaying(true)}
+				onPause={() => setPlaying(false)}
+				onTimeUpdate={(e) => {
+					const a = e.currentTarget;
+					setProgress({ cur: a.currentTime, dur: a.duration || 0 });
 				}}
-				role="separator"
-				aria-label="调整播放器宽度"
-				title="拖拽调整宽度"
+				onEnded={() => {
+					if (loop) next();
+					else setPlaying(false);
+				}}
+				onError={onAudioError}
 			/>
 		</div>
 	);
