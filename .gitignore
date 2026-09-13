@@ -8,3 +8,8 @@ dist/
 *.log
 # 字体子集化脚本生成的字符集备查（构建产物，CI 每次重新生成）
 src/assets/fonts/.subset/
+
+# 密钥/本地环境变量绝不入库（铁律③）
+.dev.vars
+.env
+.env.*
