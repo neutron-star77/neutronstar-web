@@ -80,6 +80,7 @@ const titleLabel =
 			class="m3-blog-postcard__title"
 			href={href}
 			aria-label={titleLabel}
+			data-astro-prefetch="viewport"
 		>
 			<AccentBar size="medium" />
 			{pinned && (
@@ -129,7 +130,7 @@ const titleLabel =
 		)}
 	</div>
 	{hasCover ? (
-		<a class="m3-blog-postcard__cover" href={href} aria-label={title}>
+		<a class="m3-blog-postcard__cover" href={href} aria-label={title} data-astro-prefetch="viewport">
 			<span class="m3-blog-postcard__cover-loading" aria-hidden="true"></span>
 			<picture>
 				{imageAvifSrcset && <source type="image/avif" srcset={imageAvifSrcset} sizes={imageSizes} />}

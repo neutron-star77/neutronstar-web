@@ -204,6 +204,11 @@ export default defineConfig({
 	site: siteConfig.site,
 	base: siteConfig.base ?? "/",
 	trailingSlash: "always",
+	// 站内链接预取：swup 已覆盖 hover/touch（@swup/astro preload），这里只
+	// 让显式标注 data-astro-prefetch 的链接（文章卡=viewport）进视口即预取，
+	// 补上「访客滚动浏览时后台偷偷加载文章页」的缺口。prefetchAll 关闭，
+	// 其余无标注链接不预取，避免与 swup 重复请求。
+	prefetch: { prefetchAll: false, defaultStrategy: "hover" },
 	fonts: configuredFonts,
 	adapter: cloudflare({
 		// 构建期用 sharp 处理图片（出静态 /_astro URL，等价上游 static 站行为）；
