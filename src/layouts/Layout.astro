@@ -119,10 +119,9 @@ const hasMonoFont =
 <style is:inline>
 /* 玻璃拟态（2026-09-14）：必须 is:inline —— lightningcss 会把标准
    backdrop-filter 改写成 -webkit- 前缀，而 Chrome 146+ 已移除该别名 */
+/* fullscreen 正文容器：2026-09-14 用户拍板改全透明——壁纸直透，
+   可读性由文字投影 + 壁纸模糊滑条承担（原 30% 底 + blur(24px) 移除） */
 html[data-wallpaper-mode="fullscreen"] #swup-container {
-	background: color-mix(in oklab, var(--surface-container) 30%, transparent);
-	backdrop-filter: blur(24px) saturate(1.3);
-	-webkit-backdrop-filter: blur(24px) saturate(1.3);
 	border-radius: 1.75rem;
 	padding: 1.25rem;
 }
@@ -138,15 +137,18 @@ html[data-wallpaper-mode="fullscreen"] .float-panel {
 	backdrop-filter: blur(18px) saturate(1.3);
 	-webkit-backdrop-filter: blur(18px) saturate(1.3);
 }
-/* 正文可读性分层（issue #2）：长文阅读区比列表卡更"实"——
-   82% 底 + blur(26px)，形成"内容越核心玻璃越厚"的层级；文字加轻投影压住花壁纸。
-   必须放在上方 .card-base 通则之后（同特异性，后者胜出）；仅 fullscreen 生效，
-   banner/纯色模式正文卡维持 55% 通感 */
-html[data-wallpaper-mode="fullscreen"] .prose-host {
-	background: color-mix(in oklab, var(--surface-container) 82%, transparent);
-	backdrop-filter: blur(26px) saturate(1.3);
-	-webkit-backdrop-filter: blur(26px) saturate(1.3);
+/* fullscreen 文字卡全透明（2026-09-14 用户要求：文章+全部文字卡片可见背景图）。
+   必须放在上方 55% 通则之后（同特异性后者胜出）；.float-panel 不列入——
+   播放器/设置/搜索等浮层需要玻璃底与内容分层。正文文字由下方 text-shadow 兜底 */
+html[data-wallpaper-mode="fullscreen"] .card-base,
+html[data-wallpaper-mode="fullscreen"] .m3-card,
+html[data-wallpaper-mode="fullscreen"] .m3-blog-postcard {
+	background: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	box-shadow: none;
 }
+/* 正文文字轻投影：全透明卡下压住花壁纸（issue #2 残留有效项） */
 html[data-wallpaper-mode="fullscreen"] .prose-host .prose {
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
