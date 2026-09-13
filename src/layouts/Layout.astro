@@ -1,6 +1,7 @@
 ---
 import { Font } from "astro:assets";
 import Snackbar from "@components/atoms/overlay/Snackbar.svelte";
+import BiliFloatPlayer from "@components/islands/BiliFloatPlayer";
 import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
@@ -226,6 +227,7 @@ const hasMonoFont =
 	>
 		<ConfigCarrier></ConfigCarrier>
 		{umamiOptions && <UmamiRuntime />}
+		<BiliFloatPlayer client:only="react" />
 		{textureEnabled && (
 			<div
 				id="m3e-texture-canvas"

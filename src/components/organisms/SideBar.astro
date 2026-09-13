@@ -67,12 +67,13 @@ const MusicSidebar =
 		? (await import("virtual:shirone-music-sidebar")).default
 		: null;
 
-// 兜底：重型播放器不可用（musicConfig.enable=false，stylus 与 workerd 冲突）时，
-// 后台 music_widget 配置了 enabled + 合法外链就渲染外链卡片，否则整个 music widget 不渲染
+// 兜底：重型播放器不可用（musicConfig.enable=false，stylus 与 workerd 冲突）。
+// url 是收藏夹链接（有 fid）时由 Layout 的 BiliFloatPlayer 悬浮播放器接管，
+// 这里只对"普通外链"渲染跳转卡片；都没有则整个 music widget 不渲染
 const siteOverrides = await getSiteOverrides();
 const musicWidget = siteOverrides.musicWidget;
 const MusicFallback =
-	!MusicSidebar && musicWidget?.enabled && musicWidget.url
+	!MusicSidebar && musicWidget?.enabled && musicWidget.url && !musicWidget.fid
 		? MusicLinkCard
 		: null;
 

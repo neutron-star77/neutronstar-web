@@ -26,12 +26,14 @@ export interface UmamiOverride {
 	shareUrl: string;
 }
 
-/** 后台 music_widget：外链卡片（如跳转 B 站收藏夹顺序播放） */
+/** 后台 music_widget：悬浮播放器（url 是收藏夹链接时解析出 fid）或外链卡片 */
 export interface MusicWidgetOverride {
 	enabled: boolean;
 	title: string;
 	subtitle: string;
 	url: string;
+	/** url 为 B 站收藏夹链接时解析出的 fid（media_id）；悬浮播放器据此启用 */
+	fid: string | null;
 }
 
 export interface SiteOverrides {
@@ -132,7 +134,8 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		umami = null;
 	}
 
-	// 音乐挂件外链卡片（后台可配；url 仅接受 http(s) 外链，防 javascript: 注入）
+	// 音乐挂件（后台可配）：url 为 B 站收藏夹链接时解析 fid 给悬浮播放器；
+	// 其余 url 仅作为外链卡片。url 仅接受 http(s)，防 javascript: 注入
 	let musicWidget: MusicWidgetOverride | null = null;
 	try {
 		const raw = cfg.music_widget;
@@ -144,6 +147,7 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 				title: typeof parsed.title === "string" ? parsed.title.trim() : "",
 				subtitle: typeof parsed.subtitle === "string" ? parsed.subtitle.trim() : "",
 				url: /^https?:\/\//i.test(url) ? url : "",
+				fid: /^https?:\/\//i.test(url) ? (/[?&]fid=(\d+)/.exec(url)?.[1] ?? null) : null,
 			};
 		}
 	} catch {
