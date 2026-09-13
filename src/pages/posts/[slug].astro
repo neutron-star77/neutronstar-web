@@ -46,7 +46,8 @@ const postPath = entry.url || url(`/posts/${slug}`);
 ---
 
 <MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle headings={headings}>
-    <article class="card-base onload-animation p-6">
+    <!-- prose-host：正文专用玻璃分层钩子（Layout.astro fullscreen 规则按此选择器加厚），勿用于他处 -->
+    <article class="card-base prose-host onload-animation p-6">
         <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
         <div class="opacity-60 text-sm mb-2">
             {formatDateToYYYYMMDD(entry.data.published)}
