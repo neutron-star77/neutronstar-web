@@ -70,6 +70,14 @@ function formatDuration(sec: number): string {
 	return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
 }
 
+/** fetch 没有内建超时；任何一步卡死都降级为错误态而不是永远转圈 */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+	return Promise.race([
+		p,
+		new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+	]);
+}
+
 function readSavedPos(): { x: number; y: number } | null {
 	try {
 		const raw = localStorage.getItem(LS_POS);
@@ -97,6 +105,7 @@ function readSavedWidth(): number {
 export default function BiliFloatPlayer() {
 	const [phase, setPhase] = useState<"boot" | "off" | "error" | "ready">("boot");
 	const [errorMsg, setErrorMsg] = useState("");
+	const [fallbackUrl, setFallbackUrl] = useState("");
 	const [playlistTitle, setPlaylistTitle] = useState("B站收藏夹");
 	const [tracks, setTracks] = useState<Track[]>([]);
 	const [current, setCurrent] = useState(0);
@@ -124,7 +133,10 @@ export default function BiliFloatPlayer() {
 		(async () => {
 			let cfg: MusicWidgetConfig | null = null;
 			try {
-				cfg = await apiGet<MusicWidgetConfig>("/api/site-config/music_widget");
+				cfg = await withTimeout(
+					apiGet<MusicWidgetConfig>("/api/site-config/music_widget"),
+					8000,
+				);
 			} catch {
 				cfg = null;
 			}
@@ -135,7 +147,10 @@ export default function BiliFloatPlayer() {
 				return;
 			}
 			try {
-				const data = await apiGet<FavPayload>(`/api/bili-fav?media_id=${fid}`);
+				const data = await withTimeout(
+					apiGet<FavPayload>(`/api/bili-fav?media_id=${fid}`),
+					12000,
+				);
 				if (cancelled) return;
 				const list = data?.tracks ?? [];
 				if (list.length === 0) {
@@ -149,6 +164,7 @@ export default function BiliFloatPlayer() {
 			} catch {
 				if (cancelled) return;
 				setErrorMsg("播放列表加载失败");
+				setFallbackUrl(cfg?.url || "");
 				setPhase("error");
 			}
 		})();
@@ -277,7 +293,22 @@ export default function BiliFloatPlayer() {
 				style={pos ? { left: pos.x, top: pos.y } : { right: "1rem", bottom: "6rem" }}
 			>
 				<div className="flex items-center justify-between gap-2">
-					<span className="text-xs text-75">音乐挂件：{errorMsg}</span>
+					<span className="min-w-0 flex-1 truncate text-xs text-75">
+						{errorMsg}
+						{fallbackUrl && (
+							<>
+								{" "}
+								<a
+									href={fallbackUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-[var(--primary)] underline underline-offset-2"
+								>
+									去 B 站听
+								</a>
+							</>
+						)}
+					</span>
 					<button
 						type="button"
 						onClick={close}
