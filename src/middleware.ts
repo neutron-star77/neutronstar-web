@@ -33,24 +33,33 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { request } = context;
   if (request.method !== "GET") return next();
   const url = new URL(request.url);
-  // 带 query 的请求（调试/绕缓存）与分页不缓存
-  if (url.pathname !== "/" || url.search) return next();
+  const isHome = url.pathname === "/" && !url.search;
 
   // workerd 才有 caches；本地 node 工具链（dev/类型检查）跳过
   const cache = (globalThis as { caches?: { default: Cache } }).caches?.default;
-  if (!cache) return next();
-  const cacheKey = homeCacheKey(request);
+  const cacheKey = isHome && cache ? homeCacheKey(request) : null;
 
-  const hit = await cache.match(cacheKey);
-  if (hit) {
-    const headers = new Headers(hit.headers);
-    headers.set("Cache-Control", "no-store");
-    headers.set("X-HTML-Cache", "HIT");
-    return new Response(hit.body, { status: 200, headers });
+  if (cacheKey && cache) {
+    const hit = await cache.match(cacheKey);
+    if (hit) {
+      const headers = new Headers(hit.headers);
+      headers.set("Cache-Control", "no-store");
+      headers.set("X-HTML-Cache", "HIT");
+      return new Response(hit.body, { status: 200, headers });
+    }
   }
 
   const res = await next();
-  if (res.status !== 200) return res;
+
+  // 全站 SSR HTML 一律 no-store：SSR 响应没有 Last-Modified/ETag，浏览器
+  // 启发式缓存会拿旧页面（用户看不到刚发布/刚改的内容）。首页命中边缘缓存
+  // 时同样 no-store（X-HTML-Cache: HIT 分支已在上面设置）。静态资源
+  // （/_astro/*、pagefind 等）content-type 不是 html，不受影响。
+  if ((res.headers.get("content-type") || "").includes("text/html")) {
+    res.headers.set("Cache-Control", "no-store");
+  }
+
+  if (!(cacheKey && cache) || res.status !== 200) return res;
 
   // 完整读入后分别构造缓存与响应。不要用 body.tee()：访客侧提前关闭会
   // 截断 tee 另一支，导致边缘缓存里是缺尾部的 HTML（实测丢 footer 段）。
