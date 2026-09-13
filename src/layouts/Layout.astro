@@ -184,7 +184,7 @@ const hasMonoFont =
 				document.documentElement.classList.add('motion-reduced');
 			}
 			const storedWallpaperMode = localStorage.getItem('wallpaper-mode');
-			const wallpaperMode = storedWallpaperMode === 'banner' || storedWallpaperMode === 'none'
+			const wallpaperMode = storedWallpaperMode === 'banner' || storedWallpaperMode === 'fullscreen' || storedWallpaperMode === 'none'
 				? storedWallpaperMode
 				: defaultWallpaperMode;
 			document.documentElement.dataset.wallpaperMode = wallpaperMode;
@@ -262,11 +262,21 @@ const hasMonoFont =
 		}
 		body[data-banner-layout="banner"] #main-layout { top: var(--banner-content-top); }
 		body[data-banner-layout="banner"] #top-row { height: calc(var(--banner-stage-height) - 4.5rem); }
+		/* fullscreen：内容主区垫毛玻璃面板（正文页多为裸列表，直接叠壁纸上不可读） */
+		html[data-wallpaper-mode="fullscreen"] #swup-container {
+			background: color-mix(in oklab, var(--surface-container) 86%, transparent);
+			backdrop-filter: blur(14px);
+			-webkit-backdrop-filter: blur(14px);
+			border-radius: 1.75rem;
+			padding: 1.25rem;
+		}
 		.navbar-hidden { opacity: 0; transform: translateY(-4rem); }
 	}
 	@media (min-width: 1024px) {
 		html[data-wallpaper-mode="banner"] body[data-banner-has-desktop="true"] #main-layout { top: var(--banner-content-top); }
 		html[data-wallpaper-mode="banner"] body[data-banner-has-desktop="true"] #top-row { height: calc(var(--banner-stage-height) - 4.5rem); }
+		/* fullscreen 首页：内容下移给壁纸上的站名/副标题让位（文案块由 BannerStage 抬高） */
+		html[data-wallpaper-mode="fullscreen"] body[data-current-page="home"] #main-layout { top: 62vh; }
 	}
 	@media (max-width: 1023.98px) {
 		:root { --banner-stage-height: max(70vh, 28rem); }
@@ -274,6 +284,7 @@ const hasMonoFont =
 		@media (min-width: 480px) and (max-width: 767.98px) { :root { --banner-panel-overlap: var(--m3e-space-2); } }
 		html[data-wallpaper-mode="banner"] body[data-current-page="home"][data-banner-has-mobile="true"] #main-layout { top: var(--banner-content-top); }
 		html[data-wallpaper-mode="banner"] body[data-current-page="home"][data-banner-has-mobile="true"] #top-row { height: calc(var(--banner-stage-height) - 4.5rem); }
+		html[data-wallpaper-mode="fullscreen"] body[data-current-page="home"] #main-layout { top: 58vh; }
 		body[data-banner-layout="compact"] #top-row { height: auto; }
 	}
 	@media (min-width: 480px) and (max-width: 767.98px) { :root { --banner-stage-height: max(75vh, 31.25rem); } }

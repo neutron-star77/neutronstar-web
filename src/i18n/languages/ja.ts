@@ -288,7 +288,7 @@ export const ja: Translation = {
 	[Key.wallpaperMode]: "ページ背景",
 	[Key.wallpaperModeBanner]: "バナー",
 	[Key.wallpaperModeNone]: "単色",
-	[Key.texturePreset]: "背景テクスチャ",
+	[Key.wallpaperModeFullscreen]: "全画面",	[Key.texturePreset]: "背景テクスチャ",
 	[Key.texturePresetNone]: "なし",
 	[Key.texturePresetStarlight]: "星空・キラキラ",
 	[Key.texturePresetCyberDots]: "サイバー・ドット",

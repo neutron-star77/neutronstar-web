@@ -287,7 +287,7 @@ export const en: Translation = {
 	[Key.wallpaperMode]: "Page background",
 	[Key.wallpaperModeBanner]: "Banner",
 	[Key.wallpaperModeNone]: "Solid",
-	[Key.texturePreset]: "Background Texture",
+	[Key.wallpaperModeFullscreen]: "Immersive",	[Key.texturePreset]: "Background Texture",
 	[Key.texturePresetNone]: "None",
 	[Key.texturePresetStarlight]: "Starlight",
 	[Key.texturePresetCyberDots]: "Cyber Dots",

@@ -286,7 +286,7 @@ export const ko: Translation = {
 	[Key.wallpaperMode]: "페이지 배경",
 	[Key.wallpaperModeBanner]: "배너",
 	[Key.wallpaperModeNone]: "단색",
-	[Key.texturePreset]: "배경 텍스처",
+	[Key.wallpaperModeFullscreen]: "전체 화면",	[Key.texturePreset]: "배경 텍스처",
 	[Key.texturePresetNone]: "없음",
 	[Key.texturePresetStarlight]: "별빛・빛무리",
 	[Key.texturePresetCyberDots]: "사이버 도트",

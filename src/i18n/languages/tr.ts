@@ -290,7 +290,7 @@ export const tr: Translation = {
 	[Key.wallpaperMode]: "Sayfa arka planı",
 	[Key.wallpaperModeBanner]: "Afiş",
 	[Key.wallpaperModeNone]: "Düz renk",
-	[Key.texturePreset]: "Arka Plan Dokusu",
+	[Key.wallpaperModeFullscreen]: "Tam ekran",	[Key.texturePreset]: "Arka Plan Dokusu",
 	[Key.texturePresetNone]: "Yok",
 	[Key.texturePresetStarlight]: "Yıldız Işığı",
 	[Key.texturePresetCyberDots]: "Siber Noktalar",

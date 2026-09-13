@@ -291,7 +291,7 @@ export const id: Translation = {
 	[Key.wallpaperMode]: "Latar halaman",
 	[Key.wallpaperModeBanner]: "Banner",
 	[Key.wallpaperModeNone]: "Warna solid",
-	[Key.layoutMode]: "Tata letak",
+	[Key.wallpaperModeFullscreen]: "Layar penuh",	[Key.layoutMode]: "Tata letak",
 	[Key.layoutList]: "Daftar",
 	[Key.layoutGrid]: "Kisi",
 	[Key.texturePreset]: "Tekstur latar belakang",

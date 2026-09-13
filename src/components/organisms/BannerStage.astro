@@ -817,12 +817,19 @@ const initialMobileBanner = page === "home";
 	function syncBanner(pageOverride?: SidebarPage, contextOverride?: BannerContext) {
 		if (!stage) return;
 		const viewport = currentViewport();
-		const images = runtime.images[viewport];
+		const wallpaperMode = getStoredWallpaperMode();
+		// fullscreen 模式下若当前视口图组为空，回退另一组（object-fit 居中裁切兜底）
+		let assetViewport: BannerViewport = viewport;
+		let images = runtime.images[viewport];
+		if (wallpaperMode === "fullscreen" && images.length === 0) {
+			assetViewport = viewport === "desktop" ? "mobile" : "desktop";
+			images = runtime.images[assetViewport];
+		}
 		const page = pageOverride ?? currentPage();
 		const state = resolveBannerState({
-			mode: getStoredWallpaperMode(),
+			mode: wallpaperMode,
 			page,
-			viewport,
+			viewport: assetViewport,
 			imageCount: images.length,
 			carouselEnabled: stage.dataset.carouselEnabled === "true",
 			reducedMotion: prefersReducedMotion(),
@@ -1065,8 +1072,20 @@ const initialMobileBanner = page === "home";
 	:global(html[data-wallpaper-mode="none"]) .banner-stage
 		display: none
 
+	/* fullscreen 模式：横幅变身全屏固定背景层，轮播/运镜/文案运行时原样复用，
+	内容卡片浮于其上；仅属于 banner 模式的内容偏移（#main-layout top）不会命中 */
+	:global(html[data-wallpaper-mode="fullscreen"]) .banner-stage
+		position: fixed
+		inset: 0
+		height: 100dvh
+		z-index: -1
+	/* 全屏首页文案整体上移，与下移的内容区留出空隙 */
+	:global(html[data-wallpaper-mode="fullscreen"]) .banner-stage__copy
+		padding-bottom: 12vh
+
 	@media (max-width: 1023.98px)
-		:global(body:not([data-current-page="home"])) .banner-stage
+		/* fullscreen 是全屏背景：移动端非首页也要显示（banner 模式维持原“仅首页”规则） */
+		:global(html:not([data-wallpaper-mode="fullscreen"]) body:not([data-current-page="home"])) .banner-stage
 			display: none
 
 		.banner-stage

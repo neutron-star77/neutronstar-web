@@ -3,7 +3,13 @@ export type { PermalinkConfig } from "./permalinkConfig.ts";
 import type { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 import type { TextureConfig } from "./textureConfig";
 
-export type WallpaperMode = "banner" | "none";
+/**
+ * 页面壁纸模式（访客可在“显示设置”面板实时切换，偏好存 localStorage）：
+ * - banner：顶部横幅壁纸（首页大标题/水波/打字机）
+ * - fullscreen：壁纸固定铺满全屏作背景（所有页面），内容卡片浮于其上
+ * - none：无壁纸纯色背景
+ */
+export type WallpaperMode = "banner" | "fullscreen" | "none";
 
 export type TopAppBarContentAlign = "left" | "center";
 

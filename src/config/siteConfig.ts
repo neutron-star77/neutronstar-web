@@ -39,7 +39,7 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 		// 差异仅在调色板派生（库的 colorSpec 静态为 2025 委托）
 		spec: "2025",
 	},
-	// 默认页面背景模式："banner" 使用壁纸横幅，"none" 使用主题纯色。
+	// 默认页面背景模式："banner" 壁纸横幅 / "fullscreen" 壁纸全屏沉浸背景 / "none" 主题纯色。
 	// 访客在“显示设置”中的选择会保存在浏览器中，并覆盖这里的默认值。
 	wallpaperMode: {
 		defaultMode: "banner",
