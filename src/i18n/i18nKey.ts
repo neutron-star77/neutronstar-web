@@ -238,6 +238,7 @@ enum I18nKey {
 	wallpaperModeNone = "wallpaperModeNone",
 	wallpaperModeFullscreen = "wallpaperModeFullscreen",
 	translatePage = "translatePage",
+	wallpaperBlur = "wallpaperBlur",
 
 	texturePreset = "texturePreset",
 	texturePresetNone = "texturePresetNone",

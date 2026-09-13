@@ -110,6 +110,21 @@ export function setWallpaperMode(mode: WallpaperMode): void {
 	);
 }
 
+/** 全屏沉浸壁纸的背景模糊度（px，0-20）：localStorage 记忆 + CSS 变量直驱 */
+const WALLPAPER_BLUR_KEY = "wallpaper-blur";
+
+export function getStoredWallpaperBlur(): number {
+	const v = Number.parseInt(localStorage.getItem(WALLPAPER_BLUR_KEY) || "0", 10);
+	return Number.isFinite(v) ? Math.min(Math.max(v, 0), 20) : 0;
+}
+
+export function setWallpaperBlur(px: number): void {
+	const v = Math.min(Math.max(Math.round(px), 0), 20);
+	localStorage.setItem(WALLPAPER_BLUR_KEY, String(v));
+	document.documentElement.style.setProperty("--wallpaper-blur", `${v}px`);
+	window.dispatchEvent(new CustomEvent("wallpaper-blur:change", { detail: { blur: v } }));
+}
+
 export function getDefaultHue(): number {
 	const fallback = "250";
 	const configCarrier = document.getElementById("config-carrier");

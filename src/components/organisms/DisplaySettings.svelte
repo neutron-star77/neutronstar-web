@@ -29,11 +29,13 @@ import {
 	getMotionPreference,
 	getStoredTextureOpacity,
 	getStoredTexturePreset,
+	getStoredWallpaperBlur,
 	getStoredWallpaperMode,
 	setHue,
 	setMotionPreference,
 	setTextureOpacity,
 	setTexturePreset,
+	setWallpaperBlur,
 	setWallpaperMode,
 } from "@utils/setting-utils";
 import { getSpec, getStyle, setSpec, setStyle } from "@utils/theme-utils";
@@ -72,6 +74,8 @@ let lastAppliedMode = postListMode;
 const defaultWallpaperMode = siteConfig.wallpaperMode.defaultMode;
 let wallpaperMode = $state<WallpaperMode>(getStoredWallpaperMode());
 let lastAppliedWallpaperMode = wallpaperMode;
+// 全屏沉浸背景模糊度（px）：滑条仅在全屏沉浸模式下出现
+let wallpaperBlur = $state(0);
 
 // 背景纹理预设与浓度
 const defaultTexturePreset = getDefaultTexturePreset();
@@ -119,6 +123,31 @@ const textureOptions: {
 
 // 明暗切换时重算色卡（LightDarkSwitch 改 <html> 的 class）
 onMount(() => {
+	wallpaperBlur = getStoredWallpaperBlur();
+	// Twilight 式 hover 交互（桌面）：悬停顶栏图标立即展开面板，离开
+	// 图标+面板区域后收回。面板是 client:only 水合产物，绑定必须放在
+	// 组件内（TopAppBar 静态脚本执行时面板尚不存在）。
+	const trigger = document.getElementById("display-settings-switch");
+	const panel = document.getElementById("display-setting");
+	if (trigger && panel && window.matchMedia("(min-width: 1024px)").matches) {
+		let hoverCloseTimer: number | null = null;
+		const openNow = () => {
+			if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
+			hoverCloseTimer = null;
+			panel.classList.remove("float-panel-closed");
+		};
+		const scheduleClose = () => {
+			if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
+			hoverCloseTimer = window.setTimeout(
+				() => panel.classList.add("float-panel-closed"),
+				260,
+			);
+		};
+		trigger.addEventListener("mouseenter", openNow);
+		trigger.addEventListener("mouseleave", scheduleClose);
+		panel.addEventListener("mouseenter", openNow);
+		panel.addEventListener("mouseleave", scheduleClose);
+	}
 	const observer = new MutationObserver(() => {
 		dark = document.documentElement.classList.contains("dark");
 	});
@@ -168,6 +197,9 @@ $effect(() => {
 	if (wallpaperMode === lastAppliedWallpaperMode) return;
 	lastAppliedWallpaperMode = wallpaperMode;
 	setWallpaperMode(wallpaperMode);
+});
+$effect(() => {
+	setWallpaperBlur(wallpaperBlur);
 });
 $effect(() => {
 	if (texturePreset === lastAppliedTexturePreset) return;
@@ -323,6 +355,12 @@ const stylePreviews = $derived(
                             label={i18n(I18nKey.wallpaperMode)}
                         />
                     </div>
+                    {#if wallpaperMode === "fullscreen"}
+                        <div class="flex flex-col gap-1.5">
+                            <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.wallpaperBlur)}</span>
+                            <Slider bind:value={wallpaperBlur} min={0} max={20} step={1} label={i18n(I18nKey.wallpaperBlur)} />
+                        </div>
+                    {/if}
                 {/if}
 
                 {#if displayConfig.layoutMode}

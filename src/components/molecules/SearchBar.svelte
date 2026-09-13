@@ -47,15 +47,26 @@ const handleFocus = (): void => {
 	clearTimeout(blurTimer);
 	onfocus();
 };
+
+// Twilight 式：桌面悬停即展开胶囊、移出收回（点击/聚焦行为保留）
+function onMouseEnter(): void {
+	expand();
+}
+function onMouseLeave(): void {
+	if (!window.matchMedia("(min-width: 1024px)").matches) return;
+	expanded = false;
+	oncollapse();
+}
 </script>
 
-<div class="hidden lg:block relative w-10 h-10 shrink-0">
+<div class="hidden lg:block relative w-10 h-10 shrink-0" onmouseenter={onMouseEnter}>
     <div
         class="m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 h-10 top-app-bar__search-shell
                {expanded ? 'top-app-bar__search-shell--expanded w-48 bg-(--surface-container-high)' : 'w-10 bg-transparent'}"
         onclick={() => {
             if (!expanded) expand();
         }}
+        onmouseleave={onMouseLeave}
     >
         <Icon
             icon="material-symbols:search"

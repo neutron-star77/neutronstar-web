@@ -278,6 +278,7 @@ export const th: Translation = {
 	[Key.wallpaperModeNone]: "สีพื้น",
 	[Key.wallpaperModeFullscreen]: "เต็มจอ",
 	[Key.translatePage]: "แปลหน้านี้",
+	[Key.wallpaperBlur]: "ความเบลอพื้นหลัง",
 	[Key.texturePreset]: "พื้นผิวพื้นหลัง",
 	[Key.texturePresetNone]: "ไม่มี",
 	[Key.texturePresetStarlight]: "ประกายดาว",

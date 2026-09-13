@@ -74,7 +74,8 @@ function onMainButtonClick() {
     <button aria-label="Light/Dark Mode" aria-haspopup="menu" aria-expanded={menuOpen}
             class="m3-state-layer relative inline-flex items-center justify-center rounded-full h-10 w-10 border-none cursor-pointer select-none text-[var(--on-surface)]"
             style="font-size: 1.25rem; line-height: 1; --m3e-state-color: var(--on-surface); --m3e-focus-outline: var(--on-surface);"
-            id="scheme-switch" onclick={onMainButtonClick}>
+			id="scheme-switch" onclick={onMainButtonClick}
+			onmouseenter={() => { if (isDesktop) menuOpen = true; }}>
         <div class="absolute" class:opacity-0={mode !== LIGHT_MODE}>
             <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem]"></Icon>
         </div>
@@ -86,7 +87,9 @@ function onMainButtonClick() {
         </div>
     </button>
 
-    <Menu bind:open={menuOpen} label="Light/Dark Mode" class="absolute top-11 right-0 hidden lg:block">
+    <Menu bind:open={menuOpen} label="Light/Dark Mode" class="absolute top-11 right-0 hidden lg:block"
+          onmouseenter={() => { if (isDesktop) menuOpen = true; }}
+          onmouseleave={() => { if (isDesktop) menuOpen = false; }}>
         <button class="m3-menu-item" class:selected={mode === LIGHT_MODE}
                 onclick={() => switchScheme(LIGHT_MODE)}>
             <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem]"></Icon>

@@ -1,12 +1,25 @@
 ---
+import { getSiteOverrides } from "@utils/site-overrides";
 import { resolveTextureOptions, siteConfig } from "@/config";
 
-const textureOptions = resolveTextureOptions();
+const overrides = await getSiteOverrides();
+const display = overrides.display;
+const textureOptions = resolveTextureOptions(
+	display?.texturePreset || display?.textureOpacity !== undefined
+		? {
+				...siteConfig.texture,
+				defaultPreset: display?.texturePreset ?? siteConfig.texture.defaultPreset,
+				defaultOpacity:
+					display?.textureOpacity ?? siteConfig.texture.defaultOpacity,
+			}
+		: siteConfig.texture,
+);
+const hue = display?.hue ?? siteConfig.themeColor.hue;
 ---
 
 <div
 	id="config-carrier"
-	data-hue={siteConfig.themeColor.hue}
+	data-hue={hue}
 	data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
 	{...(textureOptions.enable
 		? {

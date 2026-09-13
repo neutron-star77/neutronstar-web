@@ -292,6 +292,7 @@ export const tr: Translation = {
 	[Key.wallpaperModeNone]: "Düz renk",
 	[Key.wallpaperModeFullscreen]: "Tam ekran",
 	[Key.translatePage]: "Sayfayı çevir",
+	[Key.wallpaperBlur]: "Arka plan bulanıklığı",
 	[Key.texturePreset]: "Arka Plan Dokusu",
 	[Key.texturePresetNone]: "Yok",
 	[Key.texturePresetStarlight]: "Yıldız Işığı",

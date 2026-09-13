@@ -293,6 +293,7 @@ export const id: Translation = {
 	[Key.wallpaperModeNone]: "Warna solid",
 	[Key.wallpaperModeFullscreen]: "Layar penuh",
 	[Key.translatePage]: "Terjemahkan halaman",
+	[Key.wallpaperBlur]: "Buram latar belakang",
 	[Key.layoutMode]: "Tata letak",
 	[Key.layoutList]: "Daftar",
 	[Key.layoutGrid]: "Kisi",

@@ -1079,6 +1079,11 @@ const initialMobileBanner = page === "home";
 		inset: 0
 		height: 100dvh
 		z-index: -1
+
+	/* 背景模糊度（显示设置滑条 → --wallpaper-blur），放大 1.12 补偿模糊露边 */
+	:global(html[data-wallpaper-mode="fullscreen"]) .banner-stage__media
+		filter: blur(var(--wallpaper-blur, 0px))
+		transform: scale(1.12)
 	/* 全屏首页文案整体上移，与下移的内容区留出空隙 */
 	:global(html[data-wallpaper-mode="fullscreen"]) .banner-stage__copy
 		padding-bottom: 12vh

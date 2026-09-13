@@ -45,6 +45,14 @@ export interface SiteOverrides {
 	musicWidget: MusicWidgetOverride | null;
 }
 
+/** 后台 display 键：显示面板瘦身后移出的站点级视觉配置（配色/布局/纹理） */
+export interface DisplayOverride {
+	hue?: number;
+	layoutMode?: "list" | "grid";
+	texturePreset?: string;
+	textureOpacity?: number;
+}
+
 const EMPTY: SiteOverrides = {
 	title: null,
 	description: null,
@@ -52,6 +60,7 @@ const EMPTY: SiteOverrides = {
 	sidebar: null,
 	umami: null,
 	musicWidget: null,
+	display: null,
 };
 
 let cache: { expires: number; data: SiteOverrides } | null = null;
@@ -77,6 +86,8 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		cache = { expires: Date.now() + 15_000, data: EMPTY };
 		return EMPTY;
 	}
+
+	let display: DisplayOverride | null;
 
 	let images: SiteImages = {};
 	try {
@@ -115,6 +126,34 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		}
 	} catch {
 		sidebar = null;
+	}
+
+	// 显示视觉站点级配置（后台可配，显示面板瘦身后移入后台）：hue/布局/纹理
+	display = null;
+	try {
+		const raw = cfg.display;
+		const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+		if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+			const displayOverride: DisplayOverride = {};
+			if (Number.isFinite(Number(parsed.hue))) {
+				displayOverride.hue = Math.min(Math.max(Number(parsed.hue), 0), 360);
+			}
+			if (parsed.layoutMode === "list" || parsed.layoutMode === "grid") {
+				displayOverride.layoutMode = parsed.layoutMode;
+			}
+			if (typeof parsed.texturePreset === "string" && parsed.texturePreset.trim()) {
+				displayOverride.texturePreset = parsed.texturePreset.trim();
+			}
+			if (Number.isFinite(Number(parsed.textureOpacity))) {
+				displayOverride.textureOpacity = Math.min(
+					Math.max(Number(parsed.textureOpacity), 0),
+					1,
+				);
+			}
+			if (Object.keys(displayOverride).length > 0) display = displayOverride;
+		}
+	} catch {
+		display = null;
 	}
 
 	// Umami 统计配置（后台可配，覆盖静态 umamiConfig）
@@ -167,6 +206,7 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		sidebar,
 		umami,
 		musicWidget,
+		display,
 	};
 	cache = { expires: Date.now() + 30_000, data };
 	return data;

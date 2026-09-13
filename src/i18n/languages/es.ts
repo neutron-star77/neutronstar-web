@@ -291,6 +291,7 @@ export const es: Translation = {
 	[Key.wallpaperModeNone]: "Color sólido",
 	[Key.wallpaperModeFullscreen]: "Inmersivo",
 	[Key.translatePage]: "Traducir página",
+	[Key.wallpaperBlur]: "Desenfoque de fondo",
 	[Key.texturePreset]: "Textura de fondo",
 	[Key.texturePresetNone]: "Ninguno",
 	[Key.texturePresetStarlight]: "Luz estelar",
