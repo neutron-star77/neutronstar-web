@@ -29,13 +29,23 @@ const { code: html } = await renderer.render(entry.body ?? "", {
 	frontmatter: entry.data as unknown as Record<string, unknown>,
 });
 
+// TOC 数据：从渲染后的 HTML 提取 h2-h4（rehype-slug 已给标题写好 id）。
+// 此前该 prop 从未传入导致侧栏文章目录一直为空（P2 数据换血时断线）。
+const headings = [...html.matchAll(/<h([2-4])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g)].map(
+	(m) => ({
+		depth: Number(m[1]),
+		slug: m[2],
+		text: m[3].replace(/<[^>]+>/g, "").trim(),
+	}),
+);
+
 // P6 ⑧：分享海报
 const shareOptions = resolveArticleShareOptions(articleConfig);
 const { title: siteTitle } = await getSiteIdentity();
 const postPath = entry.url || url(`/posts/${slug}`);
 ---
 
-<MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle>
+<MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle headings={headings}>
     <article class="card-base onload-animation p-6">
         <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
         <div class="opacity-60 text-sm mb-2">
