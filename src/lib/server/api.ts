@@ -6,7 +6,11 @@
  * 把一次渲染里的多次取数压成 1 次回源。
  */
 
-const API_BASE = (import.meta.env.PUBLIC_API_BASE as string | undefined) ?? "https://bff.neutronstar.fun";
+// ⚠️ Vite 会把未设置的 import.meta.env.PUBLIC_* 替换为空字符串，
+// `?? 默认值` 会被短路成空（SSR bundle 实测无 bff 域名），必须 || 兜底。
+const API_BASE =
+  ((import.meta.env.PUBLIC_API_BASE as string | undefined) ?? "").trim() ||
+  "https://bff.neutronstar.fun";
 
 const MEM_TTL_MS = 15_000;
 

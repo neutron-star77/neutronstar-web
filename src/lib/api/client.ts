@@ -7,8 +7,12 @@
  * 路径统一以 `/api` 或 `/bff` 开头。
  */
 
+// ⚠️ Vite 会把未设置的 import.meta.env.PUBLIC_* 替换为空字符串，
+// 因此 `?? 默认值` 会被 `"" ?? 默认值` 短路成空 → apiGet 退化为同域 /api。
+// 主 worker 不代理 /api，必须用 || 空串兜底到 BFF。
 const API_BASE =
-  import.meta.env.PUBLIC_API_BASE ?? "https://bff.neutronstar.fun";
+  (import.meta.env.PUBLIC_API_BASE ?? "").trim() ||
+  "https://bff.neutronstar.fun";
 
 export const API_BASE_URL = API_BASE;
 
