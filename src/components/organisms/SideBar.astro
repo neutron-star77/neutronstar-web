@@ -100,7 +100,8 @@ const widgets = sidebarConfig.enable
 			(widget) =>
 				(sidebarOverrides?.[widget.type] ?? widget.enable) &&
 				(widget.column ?? "primary") === column &&
-				(widget.type !== "music" || componentMap.music != null),
+				(widget.type !== "music" || componentMap.music != null) &&
+				(widget.type !== "toc" || headings.length > 0) /* 无标题文章不编排目录 */,
 		)
 	: [];
 const topWidgets = widgets.filter((widget) => widget.slot === "top");

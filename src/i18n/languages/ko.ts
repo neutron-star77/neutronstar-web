@@ -288,6 +288,7 @@ export const ko: Translation = {
 	[Key.wallpaperModeNone]: "단색",
 	[Key.wallpaperModeFullscreen]: "전체 화면",
 	[Key.translatePage]: "페이지 번역",
+	[Key.selectLanguage]: "언어 선택",
 	[Key.wallpaperBlur]: "배경 흐림",
 	[Key.texturePreset]: "배경 텍스처",
 	[Key.texturePresetNone]: "없음",

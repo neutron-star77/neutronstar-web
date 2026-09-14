@@ -289,6 +289,7 @@ export const en: Translation = {
 	[Key.wallpaperModeNone]: "Solid",
 	[Key.wallpaperModeFullscreen]: "Immersive",
 	[Key.translatePage]: "Translate page",
+	[Key.selectLanguage]: "Select language",
 	[Key.wallpaperBlur]: "Background blur",
 	[Key.texturePreset]: "Background Texture",
 	[Key.texturePresetNone]: "None",

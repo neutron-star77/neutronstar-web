@@ -15,6 +15,10 @@ interface Props {
 
 const { headings = [], class: className, style } = Astro.props;
 
+// 2026-09-15：文章无任何标题（headings 为空）时不渲染目录栏，
+// 避免出现空壳「文章目录」卡片；SideBar 编排层也已按此过滤。
+if (headings.length === 0) return;
+
 const removeTailingHash = (text: string) => {
 	const lastIndexOfHash = text.lastIndexOf("#");
 	if (lastIndexOfHash !== text.length - 1) {

@@ -53,8 +53,8 @@ const isHomeItemVisible = homeItem
 	data-banner-height={BANNER_HEIGHT}
 	style={`--fab-bottom: ${fabConfig.offset?.bottom ?? "var(--m3e-space-8)"}; --fab-inline-offset: ${fabConfig.offset?.right ?? "var(--m3e-space-6)"}`}
 >
-	<!-- 1. TOC 悬浮目录项与弹窗 -->
-	{tocItem && (
+	<!-- 1. TOC 悬浮目录项与弹窗（2026-09-15：文章无任何标题时不渲染按钮） -->
+	{tocItem && headings.length > 0 && (
 		<div
 			data-fab-slot
 			class:list={[

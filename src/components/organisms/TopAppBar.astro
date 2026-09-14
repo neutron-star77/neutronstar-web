@@ -9,12 +9,13 @@ import IconButton from "@components/atoms/action/IconButton.svelte";
 import { resolveNavBarLinks, resolvePageKey } from "@utils/nav-utils";
 import { url } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
-import { siteConfig } from "@/config";
+import { resolveTextureOptions, siteConfig } from "@/config";
 import { getSiteIdentity } from "@utils/site-overrides";
 import { getNavigation } from "@utils/navigation-api";
 import DisplaySettings from "./DisplaySettings.svelte";
 import LightDarkSwitch from "./LightDarkSwitch.svelte";
 import WallpaperSwitch from "./WallpaperSwitch.svelte";
+import TextureSwitch from "./TextureSwitch.svelte";
 import TranslateSwitch from "./TranslateSwitch.svelte";
 import Search from "./Search.svelte";
 
@@ -23,6 +24,9 @@ const { title: siteTitle } = await getSiteIdentity();
 // P6 ⑥：导航从后台 site_config 拉取，失败回退静态配置
 const links = resolveNavBarLinks(await getNavigation());
 const currentPageKey = resolvePageKey(Astro.url);
+// 背景纹理：显示面板纹理段已提取为顶栏独立图标（TextureSwitch），
+// 纹理系统整体关闭（enable=false 且默认 none 且面板不可调）时不渲染图标
+const textureEnabled = resolveTextureOptions().enable;
 
 function hrefFor(path?: string) {
 	return path ? url(path) : undefined;
@@ -49,10 +53,11 @@ function isActive(link: (typeof links)[number]): boolean {
 		</IconButton>
 		<a
 			href={url("/")}
+			aria-label={siteTitle || siteConfig.title}
+			title={siteTitle || siteConfig.title}
 			class="group flex h-10 items-center gap-2 px-2 text-[var(--on-surface)] transition whitespace-nowrap"
 		>
 			<span class="h-5 w-1 rounded-full bg-[var(--primary)] transition-all group-hover:h-7"></span>
-			<span class="text-lg font-bold group-hover:text-[var(--primary)]">{siteTitle || siteConfig.title}</span>
 		</a>
 		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-1 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-4"]} aria-label="Main navigation">
 			{links.map((link) => {
@@ -97,6 +102,7 @@ function isActive(link: (typeof links)[number]): boolean {
 			</IconButton>
 		)}
 		<WallpaperSwitch client:only="svelte"></WallpaperSwitch>
+		{textureEnabled && <TextureSwitch client:only="svelte"></TextureSwitch>}
 		<TranslateSwitch client:only="svelte"></TranslateSwitch>
 		<LightDarkSwitch client:only="svelte"></LightDarkSwitch>
 		<DisplaySettings client:only="svelte" class="top-full right-4 max-w-[calc(100vw-2rem)] md:right-0"></DisplaySettings>

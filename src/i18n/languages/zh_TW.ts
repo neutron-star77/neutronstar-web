@@ -279,6 +279,7 @@ export const zh_TW: Translation = {
 	[Key.wallpaperModeNone]: "純色",
 	[Key.wallpaperModeFullscreen]: "全螢幕沉浸",
 	[Key.translatePage]: "翻譯頁面",
+	[Key.selectLanguage]: "選擇語言",
 	[Key.wallpaperBlur]: "背景模糊",
 	[Key.texturePreset]: "背景紋理",
 	[Key.texturePresetNone]: "無紋理",

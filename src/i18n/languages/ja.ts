@@ -290,6 +290,7 @@ export const ja: Translation = {
 	[Key.wallpaperModeNone]: "単色",
 	[Key.wallpaperModeFullscreen]: "全画面",
 	[Key.translatePage]: "ページを翻訳",
+	[Key.selectLanguage]: "言語を選択",
 	[Key.wallpaperBlur]: "背景のぼかし",
 	[Key.texturePreset]: "背景テクスチャ",
 	[Key.texturePresetNone]: "なし",

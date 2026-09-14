@@ -83,15 +83,16 @@ const hasDesktopBanner = siteConfig.banner.src.desktop.length > 0;
 const hasMobileBanner = siteConfig.banner.src.mobile.length > 0;
 
 // P2：站名/副标题以后台 site_config 为准（site_title / site_description）
+// 后台显式置空（""）时保持为空，不再回退默认；仅未配置（null）时用前端默认。
 const identity = await getSiteIdentity();
-const siteTitle = identity.title || siteConfig.title;
-const siteSubtitle = identity.description || siteConfig.subtitle;
+const siteTitle = identity.title ?? siteConfig.title;
+const siteSubtitle = identity.description ?? siteConfig.subtitle;
 
 let pageTitle: string;
 if (title) {
-	pageTitle = `${title} - ${siteTitle}`;
+	pageTitle = siteTitle ? `${title} - ${siteTitle}` : title;
 } else {
-	pageTitle = `${siteTitle} - ${siteSubtitle}`;
+	pageTitle = siteSubtitle ? `${siteTitle} - ${siteSubtitle}` : siteTitle;
 }
 
 const favicons: Favicon[] =
@@ -139,19 +140,47 @@ html[data-wallpaper-mode="fullscreen"] .float-panel {
 }
 /* fullscreen 文字卡轻玻璃（2026-09-14 追加：从 4.14.3 的全透明改轻玻璃——
    壁纸透出但卡片有磨砂底面，参考主流毛玻璃主题；比上方 55% 通则更通透）。
+   2026-09-15 用户要求「文章和目录要有玻璃拟态质感、字要清楚」：不透明度
+   30% → 48%、blur 14 → 16，并追加 .prose-host / 目录 / 悬浮目录的专属玻璃。
    必须放在上方 55% 通则之后（同特异性后者胜出）；.float-panel 不列入——
    播放器/设置/搜索浮层仍需更强分层。正文文字由下方 text-shadow 兜底 */
 html[data-wallpaper-mode="fullscreen"] .card-base,
 html[data-wallpaper-mode="fullscreen"] .m3-card,
 html[data-wallpaper-mode="fullscreen"] .m3-blog-postcard {
-	background: color-mix(in oklab, var(--surface-container) 30%, transparent);
-	backdrop-filter: blur(14px) saturate(1.3);
-	-webkit-backdrop-filter: blur(14px) saturate(1.3);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0, 0, 0, 0.1);
+	background: color-mix(in oklab, var(--surface-container) 48%, transparent);
+	backdrop-filter: blur(16px) saturate(1.35);
+	-webkit-backdrop-filter: blur(16px) saturate(1.35);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+		0 8px 32px rgba(0, 0, 0, 0.12);
 }
-/* 正文文字轻投影：全透明卡下压住花壁纸（issue #2 残留有效项） */
-html[data-wallpaper-mode="fullscreen"] .prose-host .prose {
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+/* 文章正文容器（.prose-host 同时也是 .card-base）：玻璃质感再强一档，
+   保证全屏沉浸下正文底色足够、字清楚 */
+html[data-wallpaper-mode="fullscreen"] .prose-host {
+	background: color-mix(in oklab, var(--surface-container) 55%, transparent);
+	backdrop-filter: blur(18px) saturate(1.4);
+	-webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+/* 正文 / 侧栏目录 / 悬浮目录文字投影：花壁纸上保证清晰（暗色用深投影） */
+html[data-wallpaper-mode="fullscreen"] .prose-host .prose,
+html[data-wallpaper-mode="fullscreen"] #toc a,
+html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel a {
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 8px rgba(0, 0, 0, 0.15);
+}
+/* 亮色模式：黑字在浅色磨砂玻璃上已清晰，投影改为极淡白光避免弄脏 */
+html[data-wallpaper-mode="fullscreen"]:not(.dark) .prose-host .prose,
+html[data-wallpaper-mode="fullscreen"]:not(.dark) #toc a,
+html[data-wallpaper-mode="fullscreen"]:not(.dark) .m3-floating-toc-panel a {
+	text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+/* 移动端悬浮目录面板（FloatingTOCPanel）同样玻璃化，与文章卡片观感一致 */
+html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel {
+	background: color-mix(
+		in oklab,
+		var(--surface-container-high) 55%,
+		transparent
+	);
+	backdrop-filter: blur(18px) saturate(1.4);
+	-webkit-backdrop-filter: blur(18px) saturate(1.4);
 }
 </style>
 
@@ -161,7 +190,7 @@ html[data-wallpaper-mode="fullscreen"] .prose-host .prose {
 		<meta name="description" content={description || pageTitle}>
 		<meta name="author" content={profileConfig.name}>
 
-		<meta property="og:site_name" content={siteTitle}>
+		{siteTitle && <meta property="og:site_name" content={siteTitle}>}
 		<meta property="og:url" content={canonicalUrl}>
 		<meta property="og:title" content={pageTitle}>
 		<meta property="og:description" content={description || pageTitle}>
