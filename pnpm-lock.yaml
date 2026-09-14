@@ -92,6 +92,9 @@ importers:
       hast-util-from-html:
         specifier: 2.0.3
         version: 2.0.3
+      hast-util-to-html:
+        specifier: ^9.0.5
+        version: 9.0.5
       hastscript:
         specifier: ^9.0.1
         version: 9.0.1
@@ -119,6 +122,9 @@ importers:
       pagefind:
         specifier: ^1.5.2
         version: 1.5.2
+      pinyin-pro:
+        specifier: ^3.29.4
+        version: 3.29.4
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -4696,6 +4702,9 @@ packages:
   pify@5.0.0:
     resolution: {integrity: sha512-eW/gHNMlxdSP6dmG6uJip6FXN0EQBwm2clYYd8Wul42Cwu/DK8HEftzsapcNdYe2MfLiIwZqsDk2RDEsTE79hA==}
     engines: {node: '>=10'}
+
+  pinyin-pro@3.29.4:
+    resolution: {integrity: sha512-SPXpDT2cHEy+d26V1RXYMlVzXN42hotFAak1fzyWPi4o2dKXb61UqD4pzxDJHwk6gbv8vQ6EfErd+hYX0Qhzug==}
 
   pkg-dir@4.2.0:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
@@ -11233,6 +11242,8 @@ snapshots:
   picomatch@4.0.7: {}
 
   pify@5.0.0: {}
+
+  pinyin-pro@3.29.4: {}
 
   pkg-dir@4.2.0:
     dependencies:

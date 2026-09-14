@@ -25,19 +25,26 @@ if (!entry) {
 let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
 rendererPromise ??= siteMarkdownProcessor.createRenderer({});
 const renderer = await rendererPromise;
-const { code: html } = await renderer.render(entry.body ?? "", {
+const { code: renderedHtml } = await renderer.render(entry.body ?? "", {
 	frontmatter: entry.data as unknown as Record<string, unknown>,
 });
 
 // TOC 数据：从渲染后的 HTML 提取 h2-h4（rehype-slug 已给标题写好 id）。
 // 此前该 prop 从未传入导致侧栏文章目录一直为空（P2 数据换血时断线）。
-const headings = [...html.matchAll(/<h([2-4])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g)].map(
+// 注意：必须在阅读版增强（ruby 注音）之前提取，TOC 文字才是干净的。
+const headings = [...renderedHtml.matchAll(/<h([2-4])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g)].map(
 	(m) => ({
 		depth: Number(m[1]),
 		slug: m[2],
 		text: m[3].replace(/<[^>]+>/g, "").trim(),
 	}),
 );
+
+// 纯文字阅读版（剥内嵌装饰 + 每字 ruby 注音）：slug 命中配置才启用，其余文章零影响
+const pinyinReading = articleConfig.pinyinReading.slugs.includes(slug);
+const html = pinyinReading
+	? (await import("@utils/pinyin-reading")).enhancePinyinReading(renderedHtml)
+	: renderedHtml;
 
 // P6 ⑧：分享海报
 const shareOptions = resolveArticleShareOptions(articleConfig);
@@ -47,7 +54,7 @@ const postPath = entry.url || url(`/posts/${slug}`);
 
 <MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle headings={headings}>
     <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿用于他处 -->
-    <article class="card-base prose-host onload-animation p-6">
+    <article class:list={["card-base prose-host onload-animation p-6", { "pinyin-reading": pinyinReading }]}>
         <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
         <div class="opacity-60 text-sm mb-2">
             {formatDateToYYYYMMDD(entry.data.published)}
@@ -81,3 +88,42 @@ const postPath = entry.url || url(`/posts/${slug}`);
     </article>
 </MainGridLayout>
 <LiveRefreshBanner client:load />
+
+<style is:global>
+/* 纯文字阅读版（pinyin-reading，2026-09-14）：窄栏居中 + 衬线 + 宽行距容纳注音。
+   仅命中 articleConfig.pinyinReading.slugs 的文章挂 .pinyin-reading，其余文章零影响 */
+.pinyin-reading .prose {
+	max-width: 42rem;
+	margin-inline: auto;
+	font-family: "Noto Serif SC", "Source Han Serif SC", KaiTi, STKaiti, "楷体", serif;
+	font-size: 1.0625rem;
+	line-height: 2.5;
+	letter-spacing: 0.03em;
+}
+.pinyin-reading .prose p {
+	margin-block: 1.5em;
+	text-indent: 2em;
+}
+/* 文末题注（原作者写在内容里的 .lsf-note，装饰样式已随 <style> 剥除，这里补极简样式） */
+.pinyin-reading .lsf-note {
+	text-indent: 0 !important;
+	text-align: center;
+	color: var(--on-surface-variant);
+	opacity: 0.8;
+	font-size: 0.85rem;
+	margin-top: 1.6rem;
+}
+.pinyin-reading ruby {
+	ruby-align: center;
+}
+.pinyin-reading rt {
+	font-size: 0.42em;
+	font-weight: 400;
+	color: var(--primary);
+	opacity: 0.8;
+	letter-spacing: 0;
+	padding-inline: 0.12em;
+	user-select: none;
+	pointer-events: none;
+}
+</style>

@@ -31,6 +31,11 @@ export const articleConfig: ArticleConfig = withUserConfig("article", {
 		// 生成海报时是否默认包含文章封面（封面不可用时自动降级为无封面排版）。
 		includeCover: true,
 	},
+	pinyinReading: {
+		// 命中 slug 的文章渲染为纯文字阅读版（剥内嵌装饰 + 每字 ruby 注音）。
+		// 首个使用：《洛神赋》（2026-09-14 用户要求）；未命中的文章零影响。
+		slugs: ["luoshenfu"],
+	},
 });
 
 const MAX_DISCOVERY_COUNT = 6;

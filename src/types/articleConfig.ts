@@ -28,4 +28,9 @@ export interface ArticleConfig {
 		/** 分享海报是否默认包含文章封面（封面不可用时自动降级为无封面排版）。 */
 		includeCover: boolean;
 	};
+	/** 纯文字阅读版（剥内容装饰 + 逐字 ruby 注音），见 utils/pinyin-reading.ts。 */
+	pinyinReading: {
+		/** 命中这些 slug 的文章启用阅读版增强。 */
+		slugs: string[];
+	};
 }
