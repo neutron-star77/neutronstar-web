@@ -5,6 +5,7 @@ import CommentsThread from "@components/islands/CommentsThread";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
 import { getPostBySlug } from "@utils/content-utils";
+import { apiUrl } from "@/lib/server/api";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
 import { url } from "@utils/url-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
@@ -46,6 +47,15 @@ const html = pinyinReading
 	? (await import("@utils/pinyin-reading")).enhancePinyinReading(renderedHtml)
 	: renderedHtml;
 
+// 文章级字体（后台可选；未选为空 → 保持站点默认 Yozai，零影响）
+// 字体二进制由后端 font_asset 表存储，经 BFF /api/fonts/{id}/file 下发；
+// family 已带引号场景由 CSS 侧处理，这里只透传原始 family 名。
+const postFont = entry.font?.family ? entry.font : null;
+const fontFaceUrl = postFont ? apiUrl(`/api/fonts/${postFont.id}/file`) : null;
+const postFontFamily = postFont ? `"${postFont.family}", var(--m3e-font-sans)` : "";
+const postFontName = postFont?.name ?? "";
+const articleStyle = postFont ? { "--post-font": postFontFamily } : undefined;
+
 // P6 ⑧：分享海报
 const shareOptions = resolveArticleShareOptions(articleConfig);
 const { title: siteTitle } = await getSiteIdentity();
@@ -54,7 +64,7 @@ const postPath = entry.url || url(`/posts/${slug}`);
 
 <MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle headings={headings}>
     <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿用于他处 -->
-    <article class:list={["card-base prose-host onload-animation p-6", { "pinyin-reading": pinyinReading }]}>
+    <article class:list={["card-base prose-host onload-animation p-6", { "pinyin-reading": pinyinReading, "post-font-custom": Boolean(postFont) }]} style={articleStyle}>
         <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
         <div class="opacity-60 text-sm mb-2">
             {formatDateToYYYYMMDD(entry.data.published)}
@@ -88,8 +98,33 @@ const postPath = entry.url || url(`/posts/${slug}`);
     </article>
 </MainGridLayout>
 <LiveRefreshBanner client:load />
+{
+	postFont && fontFaceUrl && (
+		<Fragment
+			set:html={`<style>@font-face{font-family:"${postFont.family}";src:url("${fontFaceUrl}") format("woff2");font-display:swap;font-weight:400;}</style>`}
+		/>
+	)
+}
 
 <style is:global>
+/* 文章级字体（后台 font_asset 选择）：挂 .post-font-custom 时正文用所选字体。
+   @font-face 按文章动态注入（fontFaceUrl），字体文件经 BFF 下发并长缓存。
+   未选字体（entry.font 为空)时整段 CSS 不生效，站点保持默认 Yozai，零影响。 */
+.post-font-custom .prose {
+	font-family: var(--post-font, var(--m3e-font-sans));
+}
+/* 正文标题/列表也应随文章字体，仅代码块保持 mono 角色不变 */
+.post-font-custom .prose h1,
+.post-font-custom .prose h2,
+.post-font-custom .prose h3,
+.post-font-custom .prose h4,
+.post-font-custom .prose h5,
+.post-font-custom .prose h6,
+.post-font-custom .prose li,
+.post-font-custom .prose p,
+.post-font-custom .prose blockquote {
+	font-family: inherit;
+}
 /* 纯文字阅读版（pinyin-reading，2026-09-14）：窄栏居中 + 衬线 + 宽行距容纳注音。
    仅命中 articleConfig.pinyinReading.slugs 的文章挂 .pinyin-reading，其余文章零影响 */
 .pinyin-reading .prose {

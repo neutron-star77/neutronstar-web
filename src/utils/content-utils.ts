@@ -27,6 +27,9 @@ export interface ApiPost {
 	likes: number;
 	word_count: number;
 	reading_time: number;
+	font_id: number | null;
+	font_name: string;
+	font_family: string;
 	published_at: string | null;
 	created_at: string;
 	updated_at: string;
@@ -69,6 +72,8 @@ export interface PostEntry {
 	/** 后端统计字段（原版来自 remark frontmatter，这里直接透传） */
 	wordCount: number;
 	readingTime: number;
+	/** 文章级字体（后台可选，未选为空 → 前端走站点默认 Yozai，零影响） */
+	font?: { id: number; name: string; family: string };
 }
 
 export function apiPostToEntry(p: ApiPost): PostEntry {
@@ -98,6 +103,9 @@ export function apiPostToEntry(p: ApiPost): PostEntry {
 		},
 		wordCount: p.word_count || 0,
 		readingTime: p.reading_time || 0,
+		font: p.font_id
+			? { id: p.font_id, name: p.font_name || "", family: p.font_family || "" }
+			: undefined,
 	};
 }
 
