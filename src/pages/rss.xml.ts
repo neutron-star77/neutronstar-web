@@ -10,7 +10,7 @@ export async function GET(context: APIContext): Promise<Response> {
 	const site = context.site ?? new URL(siteConfig.site);
 	const posts = await getFeedPosts(site);
 	const identity = await getSiteIdentity();
-	const title = identity.title ?? siteConfig.title;
+	const title = identity.title || siteConfig.title;
 	const description = identity.description ?? siteConfig.subtitle ?? "No description";
 
 	return rss({

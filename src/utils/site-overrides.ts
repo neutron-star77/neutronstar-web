@@ -154,15 +154,12 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		musicWidget = null;
 	}
 
+	// 语义区分：后台未配置该 key（null）→ 调用方回退前端默认；
+	// 后台显式置空（""）→ 站点标题/描述真为空，不再回退默认。
 	const data: SiteOverrides = {
-		title:
-			typeof cfg.site_title === "string" && cfg.site_title.trim()
-				? cfg.site_title.trim()
-				: null,
+		title: typeof cfg.site_title === "string" ? cfg.site_title.trim() : null,
 		description:
-			typeof cfg.site_description === "string" && cfg.site_description.trim()
-				? cfg.site_description.trim()
-				: null,
+			typeof cfg.site_description === "string" ? cfg.site_description.trim() : null,
 		images,
 		sidebar,
 		umami,

@@ -35,7 +35,7 @@ export const GET: APIRoute = async (context: APIContext) => {
 	});
 
 	const identity = await getSiteIdentity();
-	const siteTitle = identity.title ?? siteConfig.title;
+	const siteTitle = identity.title || siteConfig.title;
 	const siteSummary =
 		llmsConfig.siteSummary ||
 		identity.description ||
