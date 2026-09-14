@@ -155,6 +155,13 @@ export default function BiliFloatPlayer() {
 	const extIdxRef = useRef<Map<string, number>>(new Map());
 	/** 最新 onAudioError 引用（供 hls 致命错误回调逃生用，避免闭包陈旧） */
 	const onAudioErrorRef = useRef<() => void>(() => {});
+	/** 最新 handleEnded 引用（供 hls MEDIA_ENDED 回调用，避免闭包陈旧） */
+	const handleEndedRef = useRef<() => void>(() => {});
+	/**
+	 * 上次触发切歌的时间戳。hls.js（MSE）路径下流结束时可能先后触发
+	 * 原生 audio ended + hls MEDIA_ENDED 两个事件，不加防抖会一次跳两首。
+	 */
+	const lastEndedAtRef = useRef(0);
 
 	const track: Track | undefined = tracks[current];
 
@@ -189,6 +196,12 @@ export default function BiliFloatPlayer() {
 						// 致命错误（网络/4xx 等）→ 顺序降级到 m4a/mp3
 						if (data.fatal) onAudioErrorRef.current();
 					});
+					/**
+					 * hls.js（MSE）播完点播流的可靠结束信号。原生 <audio> ended
+					 * 在前端缓冲较大/MSE 下可能不触发（hls.js#2788 等），
+					 * 必须监听 hls 自己的 MEDIA_ENDED 才能稳定自动切下一首。
+					 */
+					hls.on(Hls.Events.MEDIA_ENDED, () => handleEndedRef.current());
 					hls.loadSource(url);
 					hls.attachMedia(a);
 					return;
@@ -246,13 +259,17 @@ export default function BiliFloatPlayer() {
 		};
 	}, []);
 
-	/** 当前曲目变化 → 换源播放 */
+	/** 当前曲目变化 → 换源播放（playing 只经 ref 读取，避免暂停/播放状态变化重建音源丢进度） */
+	const playingRef = useRef(playing);
+	useEffect(() => {
+		playingRef.current = playing;
+	});
 	useEffect(() => {
 		const a = audioRef.current;
 		if (!a || phase !== "ready" || !track) return;
 		applySource(a, track.bvid, extIdxRef.current.get(track.bvid) ?? 0);
-		if (playing) a.play().catch(() => {});
-	}, [current, track, phase, playing, applySource]);
+		if (playingRef.current) a.play().catch(() => {});
+	}, [current, track, phase, applySource]);
 
 	/** 音量同步 */
 	useEffect(() => {
@@ -312,6 +329,35 @@ export default function BiliFloatPlayer() {
 
 	useEffect(() => {
 		onAudioErrorRef.current = onAudioError;
+	});
+
+	/**
+	 * 一首播完的统一处理（原生 <audio> ended 与 hls.js MEDIA_ENDED 共用）。
+	 * 带 500ms 防抖：同一首的结束事件（原生+hls 双触发）只切一次歌。
+	 */
+	const handleEnded = useCallback(() => {
+		const now = Date.now();
+		if (now - lastEndedAtRef.current < 500) return;
+		lastEndedAtRef.current = now;
+
+		if (!loop) {
+			setPlaying(false);
+			return;
+		}
+		// 单曲列表：没有下一首可切，原地重播
+		if (tracks.length <= 1) {
+			const a = audioRef.current;
+			if (a) {
+				a.currentTime = 0;
+				void a.play().catch(() => {});
+			}
+			return;
+		}
+		next();
+	}, [loop, next, tracks.length]);
+
+	useEffect(() => {
+		handleEndedRef.current = handleEnded;
 	});
 
 	/** 进度条拖动 */
@@ -591,22 +637,7 @@ export default function BiliFloatPlayer() {
 					const a = e.currentTarget;
 					setProgress({ cur: a.currentTime, dur: a.duration || 0 });
 				}}
-				onEnded={() => {
-					if (!loop) {
-						setPlaying(false);
-						return;
-					}
-					// 单曲列表：没有下一首可切，原地重播
-					if (tracks.length <= 1) {
-						const a = audioRef.current;
-						if (a) {
-							a.currentTime = 0;
-							void a.play().catch(() => {});
-						}
-						return;
-					}
-					next();
-				}}
+				onEnded={handleEnded}
 				onError={onAudioError}
 			/>
 		</div>
