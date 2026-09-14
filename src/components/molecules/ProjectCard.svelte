@@ -96,7 +96,7 @@ const showCover = $derived(Boolean(project.cover) && !coverFailed);
 		<div class="project-card__header">
 			{#if !showCover}
 				<span class="project-card__icon" aria-hidden="true">
-					<Icon icon={project.icon ?? "material-symbols:deployed-code-outline-rounded"} />
+					<Icon icon={project.icon ?? "material-symbols:deployed-code"} />
 				</span>
 			{/if}
 

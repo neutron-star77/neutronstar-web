@@ -7,6 +7,7 @@ import Switch from "@components/atoms/selection/Switch.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import Icon from "@iconify/svelte";
+import "@/utils/register-local-icons";
 import {
 	defaultMode,
 	flipToMode,
@@ -23,12 +24,18 @@ import {
 } from "@utils/mc-utils";
 import {
 	getDefaultHue,
+	getDefaultTextureOpacity,
+	getDefaultTexturePreset,
 	getHue,
 	getMotionPreference,
+	getStoredTextureOpacity,
+	getStoredTexturePreset,
 	getStoredWallpaperBlur,
 	getStoredWallpaperMode,
 	setHue,
 	setMotionPreference,
+	setTextureOpacity,
+	setTexturePreset,
 	setWallpaperBlur,
 	setWallpaperMode,
 } from "@utils/setting-utils";
@@ -42,6 +49,7 @@ import {
 } from "@/config";
 import type { WallpaperMode } from "@/types/config";
 import type { PostListMode } from "@/types/postListConfig";
+import type { TexturePreset } from "@/types/textureConfig";
 
 let { class: className = "" }: { class?: string } = $props();
 
@@ -69,6 +77,50 @@ let wallpaperMode = $state<WallpaperMode>(getStoredWallpaperMode());
 let lastAppliedWallpaperMode = wallpaperMode;
 // 全屏沉浸背景模糊度（px）：滑条仅在全屏沉浸模式下出现
 let wallpaperBlur = $state(0);
+
+// 背景纹理预设与浓度
+const defaultTexturePreset = getDefaultTexturePreset();
+const defaultTextureOpacity = getDefaultTextureOpacity();
+let texturePreset = $state<TexturePreset>(getStoredTexturePreset());
+let lastAppliedTexturePreset = texturePreset;
+let textureOpacity = $state<number>(getStoredTextureOpacity());
+
+const textureOptions: {
+	value: TexturePreset;
+	labelKey: I18nKey;
+	icon: string;
+}[] = [
+	{
+		value: "none",
+		labelKey: I18nKey.texturePresetNone,
+		icon: "material-symbols:block",
+	},
+	{
+		value: "starlight",
+		labelKey: I18nKey.texturePresetStarlight,
+		icon: "material-symbols:auto-awesome-outline-rounded",
+	},
+	{
+		value: "cyber-dots",
+		labelKey: I18nKey.texturePresetCyberDots,
+		icon: "material-symbols:grid-view-rounded",
+	},
+	{
+		value: "topography",
+		labelKey: I18nKey.texturePresetTopography,
+		icon: "material-symbols:waves-rounded",
+	},
+	{
+		value: "geometric",
+		labelKey: I18nKey.texturePresetGeometric,
+		icon: "material-symbols:category-outline-rounded",
+	},
+	{
+		value: "sakura",
+		labelKey: I18nKey.texturePresetSakura,
+		icon: "material-symbols:local-florist-outline-rounded",
+	},
+];
 
 // 明暗切换时重算色卡（LightDarkSwitch 改 <html> 的 class）
 onMount(() => {
@@ -115,6 +167,8 @@ function confirmReset() {
 	spec = defaultSpec;
 	postListMode = defaultLayoutMode;
 	wallpaperMode = defaultWallpaperMode;
+	texturePreset = defaultTexturePreset;
+	textureOpacity = defaultTextureOpacity;
 }
 
 /** 是否有可重置的偏离（控制 Reset 按钮可见性） */
@@ -123,7 +177,9 @@ const isDirty = $derived(
 		style !== defaultStyle ||
 		spec !== defaultSpec ||
 		postListMode !== defaultLayoutMode ||
-		wallpaperMode !== defaultWallpaperMode,
+		wallpaperMode !== defaultWallpaperMode ||
+		texturePreset !== defaultTexturePreset ||
+		textureOpacity !== defaultTextureOpacity,
 );
 
 $effect(() => {
@@ -145,6 +201,14 @@ $effect(() => {
 });
 $effect(() => {
 	setWallpaperBlur(wallpaperBlur);
+});
+$effect(() => {
+	if (texturePreset === lastAppliedTexturePreset) return;
+	lastAppliedTexturePreset = texturePreset;
+	setTexturePreset(texturePreset);
+});
+$effect(() => {
+	setTextureOpacity(textureOpacity);
 });
 $effect(() => {
 	if (postListMode === lastAppliedMode) return;
@@ -276,9 +340,8 @@ const stylePreviews = $derived(
             {/if}
         </div>
 
-        <!-- 段二：界面布局（壁纸模式 + 列表布局）——背景纹理已提取为顶栏
-             独立图标（TextureSwitch.svelte），面板不再重复提供 -->
-        {#if displayConfig.wallpaperMode || displayConfig.layoutMode}
+        <!-- 段二：界面布局（页面背景 + 列表布局 + 背景纹理） -->
+        {#if displayConfig.wallpaperMode || displayConfig.layoutMode || displayConfig.texture}
             <div class="p-4 flex flex-col gap-3">
                 {#if displayConfig.wallpaperMode}
                     <div class="flex flex-col gap-1.5">
@@ -301,6 +364,29 @@ const stylePreviews = $derived(
                     {/if}
                 {/if}
 
+                {#if displayConfig.texture}
+                    <div class="flex flex-col gap-2 pt-1">
+                        <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.texturePreset)}</span>
+                        <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label={i18n(I18nKey.texturePreset)}>
+                            {#each textureOptions as opt (opt.value)}
+                                <button
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={texturePreset === opt.value}
+                                    title={i18n(opt.labelKey)}
+                                    aria-label={i18n(opt.labelKey)}
+                                    class="m3-style-cell"
+                                    class:selected={texturePreset === opt.value}
+                                    onclick={() => (texturePreset = opt.value)}
+                                >
+                                    <Icon icon={opt.icon} class="text-lg" />
+                                    <span class="m3-style-cell__name">{i18n(opt.labelKey)}</span>
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
+
                 {#if displayConfig.layoutMode}
                     <div class="flex flex-col gap-1.5">
                         <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">{i18n(I18nKey.layoutMode)}</span>
@@ -321,7 +407,7 @@ const stylePreviews = $derived(
         {#if displayConfig.reduceMotion}
             <div class="p-4 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <Icon icon="material-symbols:motion-photos-off" class="text-lg text-[var(--primary)]" />
+                    <Icon icon="material-symbols:motion-photos-paused-rounded" class="text-lg text-[var(--primary)]" />
                     <span class="text-sm font-bold text-[var(--on-surface)]">{i18n(I18nKey.reduceMotion)}</span>
                 </div>
                 <Switch bind:checked={motionReduced} label={i18n(I18nKey.reduceMotion)} icons />

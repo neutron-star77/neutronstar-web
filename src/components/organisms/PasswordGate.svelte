@@ -154,7 +154,7 @@ async function unlock() {
 					oninput={clearError}
 					class="password-gate__input"
 				>
-					<Icon slot="leading" icon="material-symbols:lock-rounded" aria-hidden="true" />
+					<Icon slot="leading" icon="material-symbols:lock" aria-hidden="true" />
 					<IconButton
 						slot="trailing"
 						icon={passwordVisible

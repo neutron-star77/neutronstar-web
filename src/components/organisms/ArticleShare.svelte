@@ -215,7 +215,7 @@ function downloadPoster() {
 				aria-hidden="true"
 			>
 				<Icon
-					icon="material-symbols:share-outline-rounded"
+					icon="material-symbols:share"
 					class="text-2xl"
 				/>
 			</div>
@@ -233,7 +233,7 @@ function downloadPoster() {
 			<Button
 				variant="filled"
 				size="small"
-				icon="material-symbols:share-outline-rounded"
+				icon="material-symbols:share"
 				label={i18n(I18nKey.shareArticle)}
 				onclick={openShareDialog}
 			/>
@@ -241,7 +241,7 @@ function downloadPoster() {
 	</div>
 
 	<span class="article-share__watermark" aria-hidden="true">
-		<Icon icon="material-symbols:share-rounded" />
+		<Icon icon="material-symbols:share" />
 	</span>
 
 	<!-- Share Dialog -->

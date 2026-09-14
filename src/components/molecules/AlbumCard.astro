@@ -34,7 +34,7 @@ const albumUrl = url(`/albums/${album.id}/`);
 					</span>
 					{album.protected && (
 						<span class="album-card__protected" title={i18n(I18nKey.albumPasswordTitle)}>
-							<Icon name="material-symbols:lock-rounded" aria-hidden="true" />
+							<Icon name="material-symbols:lock" aria-hidden="true" />
 							<span class="sr-only">{i18n(I18nKey.albumPasswordTitle)}</span>
 						</span>
 					)}

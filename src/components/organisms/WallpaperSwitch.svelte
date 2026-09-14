@@ -9,6 +9,7 @@
 import Icon from "@iconify/svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
+import "@/utils/register-local-icons";
 import { getStoredWallpaperMode, setWallpaperMode } from "@utils/setting-utils";
 import { onMount } from "svelte";
 import type { WallpaperMode } from "@/types/config";

@@ -182,7 +182,7 @@ onMount(() => {
 		{/key}
 	{:else}
 		<div class="compass-section__empty">
-			<Icon icon="material-symbols:search-off-outline-rounded" aria-hidden="true" />
+			<Icon icon="material-symbols:search-off-rounded" aria-hidden="true" />
 			<span>{i18n(I18nKey.compassNoResults)}</span>
 		</div>
 	{/if}

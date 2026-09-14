@@ -156,7 +156,7 @@ onMount(() => {
 		{/key}
 	{:else}
 		<div class="friend-section__empty">
-			<Icon icon="material-symbols:search-off-outline-rounded" aria-hidden="true" />
+			<Icon icon="material-symbols:search-off-rounded" aria-hidden="true" />
 			<span>{i18n(I18nKey.friendsNoResults)}</span>
 		</div>
 	{/if}

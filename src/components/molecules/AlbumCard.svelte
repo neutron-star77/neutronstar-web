@@ -24,7 +24,7 @@ let { album }: { album: AlbumIndexItem } = $props();
 			{#if album.protected}
 				<div class="album-card__badges">
 					<span class="album-card__protected" title={i18n(I18nKey.albumPasswordTitle)}>
-						<Icon icon="material-symbols:lock-rounded" aria-hidden="true" />
+						<Icon icon="material-symbols:lock" aria-hidden="true" />
 						<span class="sr-only">{i18n(I18nKey.albumPasswordTitle)}</span>
 					</span>
 				</div>
