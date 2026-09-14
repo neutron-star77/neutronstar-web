@@ -1,5 +1,8 @@
 ---
 // 文章列表并入归档页（/archive/），旧链接永久重定向
+// prerender=false：此路由必须走 SSR 返回真 301，否则 static 构建会落成
+// 一个 HTTP 200 的 meta-refresh 占位页（"Redirecting from /posts/ ..."闪现，SEO 也差）
+export const prerender = false;
 import { url } from "@utils/url-utils";
-return Astro.redirect(url("/archive/"));
+return Astro.redirect(url("/archive/"), 301);
 ---
