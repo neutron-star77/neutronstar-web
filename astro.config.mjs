@@ -225,7 +225,11 @@ export default defineConfig({
 			animationClass: "transition-swup-",
 			containers: ["main", "#toc"],
 			smoothScrolling: true,
-			cache: true,
+			// 关闭 swup 页面持久缓存：@swup/astro 的 cache:true 会把每个页面的
+			// HTML 以 cache-first 持久存进浏览器，旧版 /posts（曾=归档）一旦被缓存，
+			// 之后点「文章」永远命中旧缓存、不再发网络 —— 这就是"刷新后仍跳归档"的根因。
+			// 改 cache:false 后每次导航都走网络拿最新，杜绝 stale-forever。
+			cache: false,
 			preload: true,
 			accessibility: true,
 			updateHead: {
