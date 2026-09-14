@@ -1,28 +1,37 @@
 /**
- * B 站收藏夹悬浮音乐播放器（Dribbble Glassmorphism 视觉，2026-09-14 重设计）。
+ * B 站收藏夹悬浮音乐播放器（Twilight 精简风格，2026-09-15 改造）。
  *
  * 挂在 Layout body（Swup 容器外），全站一个实例，页面切换音乐不断。
  * client:only="react"——配置与播放列表由浏览器现场拉取（后台改配置 ≤60s 生效），
  * 也天然避开「island SSR 返回 null 截断响应流」的坑（6.1.14）。
  *
- * 视觉（issue #1，参考 Dribbble 21918633/25219286/27573863）：
- *   - 固定暗玻璃卡（不随主题翻转，浮在任何壁纸/背景上都成立）：
- *     半透明暗底 + backdrop-blur + 1px 高光描边（顶边亮、底边暗）+ 大圆角
- *   - 封面光晕：封面自体 blur 溢出层垫底（无 canvas 取色，纯 CSS 同图复用）
- *   - 进度/音量：细轨道圆头填充（.bili-range，组件内 <style> 注入，绕开
- *     lightningcss 对 backdrop-filter 的改写坑 6.1.22——不用 tailwind 的 blur 类）
- *   - 主播放按钮：白底圆形 + hover 放大 + 微光
+ * 视觉（参考 https://github.com/Spr-Aachen/Twilight 的 musicPlayer）：
+ *   - 折叠态 = 主色小圆球（56px，var(--primary) 底 + 白音符；播放中切声波条），
+ *     点击一下即展开，无拖动、无封面、无光晕——保持精简单点即达
+ *   - 展开态 = 固定右下角小卡片：封面圆图 + 标题/艺人 + 细进度条 + 时间 +
+ *     控制行（循环/上首/播放/下首/列表）+ 底部音量 + 头部折叠/关闭
+ *   - 去掉旧版封面大图 blur 光晕、背板高光描边、拖动交互等重装饰
  *
- * 音频源（issue #4 定稿）：bilimusic 仓 audio/{bvid}.m4a（yt-dlp 无损 copy 主源）
- *   → 加载失败回退 {bvid}.mp3（兼容手动上传的旧命名），仍失败才标记坏曲跳过。
- *   gcore.jsdelivr CDN 直拉，秒开/可拖/零风控/不占 NAS 带宽。
+ * 音频源（issue #4 定稿 + 2026-09-15 大文件修复）：
+ *   bilimusic 仓 audio/ 下按 bvid 命名，候选按序自动降级：
+ *     1. `{bvid}/index.m3u8`  —— HLS 分片流（hls.js 播放；仅大文件存在：
+ *        sync 脚本对 >18MB 音轨用 ffmpeg -c copy 无损切分，绕过 jsdelivr
+ *        单文件 20MB 硬限制——超过会 403，见 6.3.20 补充）
+ *     2. `{bvid}.m4a`         —— 常规主源（≤18MB）
+ *     3. `{bvid}.mp3`         —— 手动上传兼容旧命名
+ *   仍全部失败才标记坏曲跳过（B 站失效视频如 BV1TJ411K7nz 属此类）。
+ *   gcore.jsdelivr CDN 直拉，秒开/可拖/零风控/不占 NAS 带宽；新文件 push 后
+ *   即时回源（12h 缓存延迟仅影响同名文件更新）。
+ *
+ * 如何添加/修改歌曲：歌曲 = B 站收藏夹（media_id 由 /api/site-config/music_widget
+ *   的 url 参数给出，当前 3631802308）。往收藏夹加/删视频 → 跑
+ *   scripts/bilimusic-sync.ps1（每日 09:30 定时）自动下载/剔除并 push 音源仓。
  *
  * 连播：<audio> ended 事件天然驱动。
- * 交互：最小化 = 封面悬浮球（可拖动、点击展开）；刷新/关闭后重置右下角默认位；
- *       展开卡片头部可拖动（会话内有效）；封面图 referrerPolicy="no-referrer"（防盗链）。
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
 import { apiGet } from "../../lib/api/client";
 
 /** gcore.jsdelivr 在大陆可达性最好（坑 6.2.10），音频仓按 bvid 命名 */
@@ -31,8 +40,13 @@ const AUDIO_BASE =
 const LS_CLOSED = "bili-float-closed";
 const CARD_W = 320;
 
-/** 音源扩展名候选：m4a=脚本无损主源；mp3=手动上传兼容。失败按序降级 */
-const AUDIO_EXTS = [".m4a", ".mp3"];
+/**
+ * 音源候选（按序降级）：
+ * - "hls"    = {bvid}/index.m3u8 分片流（hls.js；仅大文件有）
+ * - ".m4a"   = 脚本无损主源
+ * - ".mp3"   = 手动上传兼容
+ */
+const AUDIO_CANDIDATES = ["hls", ".m4a", ".mp3"] as const;
 
 interface Track {
 	bvid: string;
@@ -60,17 +74,21 @@ const fmt = (sec: number): string => {
 	return `${m}:${String(s).padStart(2, "0")}`;
 };
 
-/** 暗玻璃卡通用样式（inline 写死 backdrop-filter，绕开 lightningcss 改写坑） */
+/** 精简暗玻璃卡（比旧版更轻：小 blur、无双高光描边） */
 const GLASS: React.CSSProperties = {
-	background: "rgba(17, 18, 26, 0.58)",
-	backdropFilter: "blur(24px) saturate(1.4)",
-	WebkitBackdropFilter: "blur(24px) saturate(1.4)",
-	border: "1px solid rgba(255, 255, 255, 0.14)",
-	borderTopColor: "rgba(255, 255, 255, 0.3)",
-	boxShadow: "0 18px 50px rgba(0, 0, 0, 0.45)",
+	background: "rgba(17, 18, 26, 0.62)",
+	backdropFilter: "blur(14px)",
+	WebkitBackdropFilter: "blur(14px)",
+	border: "1px solid rgba(255, 255, 255, 0.12)",
+	boxShadow: "0 12px 32px rgba(0, 0, 0, 0.35)",
 };
 
-/* 线性控制图标（MDI 实心 path，白色系） */
+/** 线性图标（MDI 实心 path） */
+const IcNote = () => (
+	<svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden>
+		<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+	</svg>
+);
 const IcPlay = () => (
 	<svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden>
 		<path d="M8 5v14l11-7z" />
@@ -102,6 +120,16 @@ const RANGE_CSS = `
 .bili-range::-moz-range-thumb{width:12px;height:12px;border:none;border-radius:50%;background:#fff;}
 `;
 
+/** 折叠球上的三格声波条动画（播放中） */
+const EQ_CSS = `
+.bili-eq{display:flex;align-items:flex-end;gap:2.5px;height:14px}
+.bili-eq span{width:3px;border-radius:9999px;background:currentColor;animation:bili-eq-b 1s ease-in-out infinite}
+.bili-eq span:nth-child(1){animation-delay:-.4s}
+.bili-eq span:nth-child(2){animation-delay:-.2s}
+.bili-eq span:nth-child(3){animation-delay:0s}
+@keyframes bili-eq-b{0%,100%{height:4px}50%{height:14px}}
+`;
+
 export default function BiliFloatPlayer() {
 	const [phase, setPhase] = useState<"boot" | "off" | "error" | "ready">("boot");
 	const [errorMsg, setErrorMsg] = useState("");
@@ -122,24 +150,61 @@ export default function BiliFloatPlayer() {
 	const [loop, setLoop] = useState(true);
 
 	const audioRef = useRef<HTMLAudioElement>(null);
-	const cardRef = useRef<HTMLDivElement>(null);
-	const ballRef = useRef<HTMLDivElement>(null);
-	/** 每 bvid 当前音源候选下标（回退记忆：切走再切回不重复试错） */
+	const hlsRef = useRef<Hls | null>(null);
+	/** 每 bvid 当前音源候选下标（降级记忆：切走再切回不重复试错） */
 	const extIdxRef = useRef<Map<string, number>>(new Map());
-	const dragState = useRef<{
-		px: number;
-		py: number;
-		cx: number;
-		cy: number;
-		moved: boolean;
-	} | null>(null);
+	/** 最新 onAudioError 引用（供 hls 致命错误回调逃生用，避免闭包陈旧） */
+	const onAudioErrorRef = useRef<() => void>(() => {});
 
 	const track: Track | undefined = tracks[current];
 
-	const audioSrc = useCallback((bvid: string): string => {
-		const ext = AUDIO_EXTS[extIdxRef.current.get(bvid) ?? 0];
-		return `${AUDIO_BASE}/${bvid}${ext}`;
+	const srcUrl = useCallback((bvid: string, cand: string): string => {
+		return cand === "hls"
+			? `${AUDIO_BASE}/${bvid}/index.m3u8`
+			: `${AUDIO_BASE}/${bvid}${cand}`;
 	}, []);
+
+	const audioSrc = useCallback(
+		(bvid: string): string => {
+			const cand = AUDIO_CANDIDATES[extIdxRef.current.get(bvid) ?? 0];
+			return srcUrl(bvid, cand);
+		},
+		[srcUrl],
+	);
+
+	/** 把候选音源挂到 <audio>：hls 走 hls.js（MSE），否则直接当 src */
+	const applySource = useCallback(
+		(a: HTMLAudioElement, bvid: string, idx: number) => {
+			if (hlsRef.current) {
+				hlsRef.current.destroy();
+				hlsRef.current = null;
+			}
+			const cand = AUDIO_CANDIDATES[idx];
+			const url = srcUrl(bvid, cand);
+			if (cand === "hls") {
+				if (Hls.isSupported()) {
+					const hls = new Hls({ maxBufferLength: 60, maxMaxBufferLength: 180 });
+					hlsRef.current = hls;
+					hls.on(Hls.Events.ERROR, (_evt, data) => {
+						// 致命错误（网络/4xx 等）→ 顺序降级到 m4a/mp3
+						if (data.fatal) onAudioErrorRef.current();
+					});
+					hls.loadSource(url);
+					hls.attachMedia(a);
+					return;
+				}
+				// Safari 等原生支持 HLS 的浏览器直挂 m3u8
+				if (a.canPlayType("application/vnd.apple.mpegurl")) {
+					a.src = url;
+					return;
+				}
+				onAudioErrorRef.current(); // 无 HLS 能力 → 直接降级
+				return;
+			}
+			a.src = url;
+		},
+		[srcUrl],
+	);
 
 	/** 拉配置与播放列表（music_widget → fid → /api/bili-fav） */
 	useEffect(() => {
@@ -185,10 +250,9 @@ export default function BiliFloatPlayer() {
 	useEffect(() => {
 		const a = audioRef.current;
 		if (!a || phase !== "ready" || !track) return;
-		const src = audioSrc(track.bvid);
-		if (!a.src.endsWith(src)) a.src = src;
+		applySource(a, track.bvid, extIdxRef.current.get(track.bvid) ?? 0);
 		if (playing) a.play().catch(() => {});
-	}, [current, track, phase, playing, audioSrc]);
+	}, [current, track, phase, playing, applySource]);
 
 	/** 音量同步 */
 	useEffect(() => {
@@ -226,58 +290,29 @@ export default function BiliFloatPlayer() {
 	}, [track]);
 
 	/**
-	 * 音频加载失败：先按候选序降级扩展名（m4a→mp3），候选耗尽才标记坏曲跳过。
-	 * （issue #4：仓内主源为 m4a，mp3 兼容手动上传旧文件）
+	 * 音频加载失败：先按候选序降级（hls→m4a→mp3），候选耗尽才标记坏曲跳过。
+	 * （2026-09-15：hls 分片 4xx/断流同样走这里；jsdelivr 对新文件即时回源，
+	 *   同名更新才有 12h 缓存延迟）
 	 */
 	const onAudioError = useCallback(() => {
 		const a = audioRef.current;
 		const t = tracks[current];
 		if (!a || !t) return;
 		const idx = extIdxRef.current.get(t.bvid) ?? 0;
-		if (idx + 1 < AUDIO_EXTS.length) {
+		if (idx + 1 < AUDIO_CANDIDATES.length) {
 			extIdxRef.current.set(t.bvid, idx + 1);
-			a.src = audioSrc(t.bvid);
+			applySource(a, t.bvid, idx + 1);
 			a.play().catch(() => {});
 			return;
 		}
 		setBadTracks((prev) => new Set(prev).add(current));
 		setPlaying(false);
 		next();
-	}, [current, next, tracks, audioSrc]);
+	}, [current, next, tracks, applySource]);
 
-	/** 拖动（球与卡片头部共用；会话内有效，刷新即回默认位） */
-	const onDragStart = (e: React.PointerEvent, el: HTMLElement | null) => {
-		if (!el) return;
-		const rect = el.getBoundingClientRect();
-		dragState.current = {
-			px: e.clientX,
-			py: e.clientY,
-			cx: rect.left,
-			cy: rect.top,
-			moved: false,
-		};
-		(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-	};
-	const onDragMove = (e: React.PointerEvent, el: HTMLElement | null) => {
-		const st = dragState.current;
-		if (!st || !el) return;
-		const dx = e.clientX - st.px;
-		const dy = e.clientY - st.py;
-		if (!st.moved && Math.hypot(dx, dy) < 6) return;
-		st.moved = true;
-		const w = el.offsetWidth;
-		const h = el.offsetHeight;
-		el.style.left = `${Math.min(Math.max(st.cx + dx, 8), window.innerWidth - w - 8)}px`;
-		el.style.top = `${Math.min(Math.max(st.cy + dy, 8), window.innerHeight - h - 8)}px`;
-		el.style.right = "auto";
-		el.style.bottom = "auto";
-	};
-
-	/** 球：松手时未拖动 = 点击 → 展开 */
-	const onBallPointerUp = () => {
-		if (dragState.current && !dragState.current.moved) setMinimized(false);
-		dragState.current = null;
-	};
+	useEffect(() => {
+		onAudioErrorRef.current = onAudioError;
+	});
 
 	/** 进度条拖动 */
 	const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,7 +336,7 @@ export default function BiliFloatPlayer() {
 	if (phase === "boot") {
 		return (
 			<div
-				className="fixed bottom-24 right-4 z-[70] rounded-full px-4 py-2 text-xs text-white/80"
+				className="fixed bottom-6 right-4 z-[70] rounded-full px-4 py-2 text-xs text-white/80"
 				style={GLASS}
 			>
 				♪ 音乐挂件加载中…
@@ -315,7 +350,6 @@ export default function BiliFloatPlayer() {
 	if (phase === "error") {
 		return (
 			<div
-				ref={cardRef}
 				className="fixed z-[70] w-64 rounded-2xl p-3"
 				style={{ right: "1rem", bottom: "6rem", ...GLASS }}
 			>
@@ -336,199 +370,168 @@ export default function BiliFloatPlayer() {
 		);
 	}
 
-	const containerPos: React.CSSProperties = minimized
-		? {
-				position: "fixed",
-				right: "1.5rem",
-				bottom: "6rem",
-				left: "auto",
-				top: "auto",
-			}
-		: {
-				position: "fixed",
-				right: "1.5rem",
-				bottom: "1.5rem",
-				left: "auto",
-				top: "auto",
-			};
-
 	const dur = progress.dur || track?.duration || 0;
 	const pct = dur > 0 ? Math.min(100, (progress.cur / dur) * 100) : 0;
 
 	return (
 		<div
-			ref={cardRef}
 			id="bili-float-player"
-			className="z-40 overflow-hidden rounded-3xl"
-			style={{ width: minimized ? 56 : CARD_W, ...containerPos, ...GLASS }}
-			data-playing={String(playing)}
+			className="fixed z-[60]"
+			style={{
+				right: minimized ? "1.5rem" : "1.25rem",
+				bottom: minimized ? "1.5rem" : "1.25rem",
+			}}
 		>
-			{/* 细轨道滑条样式（进度/音量共用；组件内注入不经构建管线） */}
 			<style>{RANGE_CSS}</style>
-			{minimized ? (
-				/* ── 最小化：封面悬浮球（可拖动，点击展开） ── */
-				<div
-					ref={ballRef}
-					className="relative h-14 w-14 cursor-pointer select-none"
-					onPointerDown={(e) => onDragStart(e, ballRef.current)}
-					onPointerMove={(e) => onDragMove(e, ballRef.current)}
-					onPointerUp={onBallPointerUp}
-					title="展开播放器"
-				>
-					{track?.cover ? (
-						<img
-							src={track.cover}
-							alt=""
-							referrerPolicy="no-referrer"
-							className="h-14 w-14 rounded-full border border-white/40 object-cover shadow-[0_8px_24px_rgba(0,0,0,.5)]"
-						/>
-					) : (
-						<div
-							className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/10 text-lg text-white"
-							style={{
-								backdropFilter: "blur(12px)",
-								WebkitBackdropFilter: "blur(12px)",
-							}}
-						>
-							♪
-						</div>
-					)}
-					{playing && (
-						<span className="absolute inset-0 rounded-full border border-white/60 opacity-60 motion-safe:animate-ping" />
-					)}
-				</div>
-			) : (
-				<div>
-					{/* 头部：按住拖动 + 最小化/关闭 */}
-					<div
-						className="flex cursor-grab items-center justify-between px-3 py-2 active:cursor-grabbing"
-						onPointerDown={(e) => {
-							if ((e.target as HTMLElement).closest("button")) return;
-							onDragStart(e, cardRef.current);
-						}}
-						onPointerMove={(e) => onDragMove(e, cardRef.current)}
-						onPointerUp={() => (dragState.current = null)}
-					>
-						<span className="truncate text-[0.7rem] font-medium uppercase tracking-wider text-white/60">
-							♪ {playlistTitle}
-						</span>
-						<div className="flex items-center gap-1">
-							<button
-								type="button"
-								className="rounded px-1.5 text-xs text-white/50 hover:text-white"
-								title="最小化"
-								onClick={() => setMinimized(true)}
-							>
-								—
-							</button>
-							<button
-								type="button"
-								className="rounded px-1.5 text-xs text-white/50 hover:text-white"
-								title="关闭"
-								onClick={close}
-							>
-								✕
-							</button>
-						</div>
-					</div>
+			<style>{EQ_CSS}</style>
 
-					{/* 封面 + 自体光晕（同图 blur 溢出层，Dribbble 封面突出范式） */}
-					{track?.cover && (
-						<div className="relative mx-3 mb-3">
+			{minimized ? (
+				/* ── 折叠态：主色小圆球，点击一下即展开（Twilight 风格） ── */
+				<button
+					type="button"
+					onClick={() => setMinimized(false)}
+					title="展开播放器"
+					aria-label="展开播放器"
+					className="flex h-14 w-14 items-center justify-center rounded-full text-[#10121a] shadow-[0_10px_28px_rgba(0,0,0,.4)] transition-transform hover:scale-105 active:scale-95"
+					style={{
+						background: "var(--primary)",
+						color: "var(--primary-contrast, #10121a)",
+					}}
+				>
+					{playing ? (
+						<div className="bili-eq">
+							<span />
+							<span />
+							<span />
+						</div>
+					) : (
+						<IcNote />
+					)}
+				</button>
+			) : (
+				/* ── 展开态：精简卡片 ── */
+				<div
+					className="overflow-hidden rounded-2xl"
+					style={{ width: CARD_W, ...GLASS }}
+					data-playing={String(playing)}
+				>
+					{/* 头部：封面圆图 + 标题/艺人 + 折叠/关闭 */}
+					<div className="flex items-center gap-3 px-3 pb-0 pt-3">
+						{track?.cover ? (
 							<img
 								src={track.cover}
 								alt=""
-								aria-hidden
 								referrerPolicy="no-referrer"
-								className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 scale-[1.35] rounded-3xl object-cover opacity-70 blur-2xl saturate-150"
+								className="h-12 w-12 shrink-0 rounded-full border border-white/20 object-cover"
 							/>
-							<img
-								src={track.cover}
-								alt={track.title}
-								referrerPolicy="no-referrer"
-								className="relative aspect-[16/9] w-full rounded-2xl border border-white/20 object-cover shadow-lg"
-							/>
+						) : (
+							<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white">
+								<IcNote />
+							</div>
+						)}
+						<div className="min-w-0 flex-1">
+							<div className="truncate text-[0.85rem] font-semibold leading-tight text-white">
+								{track?.title || "…"}
+							</div>
+							<div className="mt-0.5 truncate text-xs leading-tight text-white/50">
+								{track?.author || playlistTitle}
+							</div>
 						</div>
-					)}
+						<button
+							type="button"
+							className="rounded p-1 text-base leading-none text-white/50 hover:text-white"
+							title="最小化"
+							aria-label="最小化"
+							onClick={() => setMinimized(true)}
+						>
+							▾
+						</button>
+						<button
+							type="button"
+							className="rounded p-1 text-xs leading-none text-white/50 hover:text-white"
+							title="关闭"
+							aria-label="关闭"
+							onClick={close}
+						>
+							✕
+						</button>
+					</div>
 
-					{/* 信息 + 进度 + 控制 */}
-					<div className="px-4 pb-4">
-						<div className="mb-0.5 truncate text-sm font-bold text-white">
-							{track?.title || "…"}
-						</div>
-						<div className="mb-3 truncate text-xs text-white/55">
-							{track?.author || ""}
-						</div>
-
+					{/* 进度条 + 时间 */}
+					<div className="px-3 pt-2">
 						<input
 							type="range"
 							min={0}
 							max={dur}
 							value={progress.cur}
 							onChange={onSeek}
-							className="bili-range mb-1"
+							className="bili-range"
 							style={{
 								"--bili-fill": `${pct}%`,
 								"--bili-accent": "var(--primary)",
 							}}
 							aria-label="播放进度"
 						/>
-						<div className="mb-3 flex justify-between text-[0.7rem] tabular-nums text-white/50">
+						<div className="mt-1 flex justify-between text-[0.68rem] tabular-nums text-white/45">
 							<span>{fmt(progress.cur)}</span>
 							<span>{fmt(dur)}</span>
 						</div>
+					</div>
 
-						<div className="flex items-center justify-center gap-5">
-							<button
-								type="button"
-								className={`text-base transition-colors ${
-									loop ? "text-[var(--primary)]" : "text-white/60 hover:text-white"
-								}`}
-								title="列表循环"
-								onClick={() => setLoop((v) => !v)}
-							>
-								⟳
-							</button>
-							<button
-								type="button"
-								className="text-white/85 transition-colors hover:text-white"
-								title="上一首"
-								onClick={prev}
-							>
-								<IcPrev />
-							</button>
-							<button
-								type="button"
-								className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#15161c] shadow-[0_8px_28px_rgba(255,255,255,.28)] transition-transform hover:scale-105 active:scale-95"
-								title={playing ? "暂停" : "播放"}
-								onClick={togglePlay}
-							>
-								{playing ? <IcPause /> : <IcPlay />}
-							</button>
-							<button
-								type="button"
-								className="text-white/85 transition-colors hover:text-white"
-								title="下一首"
-								onClick={next}
-							>
-								<IcNext />
-							</button>
-							<button
-								type="button"
-								className={`text-base transition-colors ${
-									listOpen
-										? "text-[var(--primary)]"
-										: "text-white/60 hover:text-white"
-								}`}
-								title="播放列表"
-								onClick={() => setListOpen((v) => !v)}
-							>
-								☰
-							</button>
-						</div>
+					{/* 控制行：循环/上首/播放/下首/列表 */}
+					<div className="flex items-center justify-center gap-4 px-3 pt-1.5">
+						<button
+							type="button"
+							className={`text-base leading-none transition-colors ${
+								loop ? "text-[var(--primary)]" : "text-white/60 hover:text-white"
+							}`}
+							title="列表循环"
+							onClick={() => setLoop((v) => !v)}
+						>
+							⟳
+						</button>
+						<button
+							type="button"
+							className="text-white/85 transition-colors hover:text-white"
+							title="上一首"
+							onClick={prev}
+						>
+							<IcPrev />
+						</button>
+						<button
+							type="button"
+							className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#15161c] shadow-[0_6px_20px_rgba(255,255,255,.22)] transition-transform hover:scale-105 active:scale-95"
+							title={playing ? "暂停" : "播放"}
+							onClick={togglePlay}
+						>
+							{playing ? <IcPause /> : <IcPlay />}
+						</button>
+						<button
+							type="button"
+							className="text-white/85 transition-colors hover:text-white"
+							title="下一首"
+							onClick={next}
+						>
+							<IcNext />
+						</button>
+						<button
+							type="button"
+							className={`text-base leading-none transition-colors ${
+								listOpen
+									? "text-[var(--primary)]"
+									: "text-white/60 hover:text-white"
+							}`}
+							title="播放列表"
+							onClick={() => setListOpen((v) => !v)}
+						>
+							☰
+						</button>
+					</div>
 
-						<div className="mt-3 flex items-center gap-2">
-							<span className="text-xs text-white/50">🔊</span>
+					{/* 底部：音量 + 列表 */}
+					<div className="px-3 pb-3 pt-2">
+						<div className="flex items-center gap-2">
+							<span className="text-xs leading-none text-white/50">🔊</span>
 							<input
 								type="range"
 								min={0}
@@ -543,7 +546,7 @@ export default function BiliFloatPlayer() {
 						</div>
 
 						{listOpen && (
-							<div className="mt-3 max-h-44 overflow-y-auto rounded-xl bg-white/5 p-1">
+							<div className="mt-2 max-h-44 overflow-y-auto rounded-xl bg-white/8 p-1">
 								{tracks.map((t, i) => (
 									<button
 										key={t.bvid + i}
@@ -577,12 +580,11 @@ export default function BiliFloatPlayer() {
 				</div>
 			)}
 
-			{/* 音频元素：换曲重建 src；主源失败降级扩展名（onAudioError） */}
+			{/* 音频元素：换曲重建源；主源失败按候选序降级（onAudioError） */}
 			<audio
 				ref={audioRef}
 				hidden
 				preload="none"
-				src={track ? audioSrc(track.bvid) : undefined}
 				onPlay={() => setPlaying(true)}
 				onPause={() => setPlaying(false)}
 				onTimeUpdate={(e) => {
