@@ -44,6 +44,7 @@ export type SidebarPage =
 	| "tags" // 标签索引
 	| "rss" // RSS 订阅指南
 	| "atom" // Atom 订阅指南
+	| "posts" // 文章列表页（/posts，卡片网格，区别于归档）
 	| "post"; // 文章详情页
 
 /** 资料卡（内容来自 profileConfig，无 WidgetLayout 标题外壳） */

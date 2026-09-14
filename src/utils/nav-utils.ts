@@ -36,6 +36,7 @@ export function resolvePageKey(
 	if (url.searchParams.has("category")) return "categories";
 	if (url.searchParams.has("tag")) return "tags";
 	if (pathname === "/archive") return "archive";
+	if (pathname === "/posts") return "posts";
 	if (pathname === "/friends") return "friends";
 	if (pathname === "/moments") return "moments";
 	if (pathname === "/anime") return "anime";

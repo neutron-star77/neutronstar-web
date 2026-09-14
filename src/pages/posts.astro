@@ -1,8 +1,58 @@
 ---
-// 文章列表并入归档页（/archive/），旧链接永久重定向
-// prerender=false：此路由必须走 SSR 返回真 301，否则 static 构建会落成
-// 一个 HTTP 200 的 meta-refresh 占位页（"Redirecting from /posts/ ..."闪现，SEO 也差）
-export const prerender = false;
+// 文章列表页（/posts）：卡片网格 + 分页，区别于按年份分组的 /archive。
+// 导航「文章」直达本页，不再 301 → /archive（消除 swup/缓存对 3xx 的处理问题，
+// 也满足「点文章进入真正列表」的预期）。prerender=false：需实时取数 + 分页。
+import PagePagination from "@components/atoms/blog/PagePagination.astro";
+import PostPage from "@components/organisms/PostPage.astro";
+import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import { postListConfig } from "@/config/postListConfig";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { getArchivePage } from "@utils/content-utils";
+import { getSiteOverrides } from "@utils/site-overrides";
 import { url } from "@utils/url-utils";
-return Astro.redirect(url("/archive/"), 301);
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
+export const prerender = false;
+
+const rawPage = Astro.url.searchParams.get("page");
+const pageNum = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
+const archive = await getArchivePage(pageNum, postListConfig.pageSize);
+const page = {
+	...archive,
+	data: archive.posts,
+	currentPage: archive.page,
+	lastPage: archive.lastPage,
+};
+const len = page.posts.length;
+
+const labels = {
+	prev: i18n(I18nKey.paginationPrev),
+	next: i18n(I18nKey.paginationNext),
+	page: i18n(I18nKey.paginationPage),
+	jump: i18n(I18nKey.paginationJump),
+};
+// 查询参数分页（/posts/?page=2），不占 /posts/N/ 路径（会被 [slug] 捕获）
+const buildPagerUrl = (p: number) => url(p === 1 ? "/posts/" : `/posts/?page=${p}`);
 ---
+
+<MainGridLayout title="文章" page="posts">
+	<PostPage
+		page={page}
+		layoutMode={(await getSiteOverrides()).display?.layoutMode}
+	></PostPage>
+	{page.lastPage > 1 && (
+		<div
+			class="mx-auto onload-animation mt-4"
+			style={`animation-delay: calc(var(--content-delay) + ${len * 50}ms)`}
+		>
+			<PagePagination
+				currentPage={page.currentPage}
+				totalPages={page.lastPage}
+				buildUrl={buildPagerUrl}
+				{labels}
+			/>
+		</div>
+	)}
+</MainGridLayout>
+<LiveRefreshBanner client:load />
