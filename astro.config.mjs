@@ -1,4 +1,5 @@
 // @ts-check
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -318,6 +319,22 @@ export default defineConfig({
 		processor: siteMarkdownProcessor,
 	},
 	vite: {
+		// 构建版本指纹：注入 git short SHA，middleware 设为 X-Build-Id 响应头，
+		// 用于确认线上是否最新部署（对比 push 的 commit）。取不到 git 时回退时间戳。
+		define: {
+			__BUILD_ID__: JSON.stringify(
+				(() => {
+					try {
+						return execSync("git rev-parse --short HEAD", {
+							encoding: "utf8",
+							stdio: ["ignore", "pipe", "ignore"],
+						}).trim();
+					} catch {
+						return new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+					}
+				})(),
+			),
+		},
 		resolve: {
 			alias: [
 				{

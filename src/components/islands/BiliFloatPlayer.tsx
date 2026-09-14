@@ -261,22 +261,22 @@ export default function BiliFloatPlayer() {
 
 	const go = useCallback(
 		(delta: number) => {
-			setTracks((list) => {
-				if (list.length === 0) return list;
-				setCurrent((c) => {
-					let n = (c + delta + list.length) % list.length;
-					let guard = 0;
-					while (badTracks.has(n) && guard < list.length) {
-						n = (n + (delta >= 0 ? 1 : -1) + list.length) % list.length;
-						guard += 1;
-					}
-					return n;
-				});
-				return list;
+			const len = tracks.length;
+			if (len === 0) return;
+			// React 状态 updater 必须纯函数——setCurrent 单独调用，
+			// 不能嵌在 setTracks 的 updater 里（副作用会被 React 丢弃，导致不切歌）
+			setCurrent((c) => {
+				let n = (c + delta + len) % len;
+				let guard = 0;
+				while (badTracks.has(n) && guard < len) {
+					n = (n + (delta >= 0 ? 1 : -1) + len) % len;
+					guard += 1;
+				}
+				return n;
 			});
 			setPlaying(true);
 		},
-		[badTracks],
+		[badTracks, tracks.length],
 	);
 
 	const next = useCallback(() => go(1), [go]);
@@ -592,8 +592,20 @@ export default function BiliFloatPlayer() {
 					setProgress({ cur: a.currentTime, dur: a.duration || 0 });
 				}}
 				onEnded={() => {
-					if (loop) next();
-					else setPlaying(false);
+					if (!loop) {
+						setPlaying(false);
+						return;
+					}
+					// 单曲列表：没有下一首可切，原地重播
+					if (tracks.length <= 1) {
+						const a = audioRef.current;
+						if (a) {
+							a.currentTime = 0;
+							void a.play().catch(() => {});
+						}
+						return;
+					}
+					next();
 				}}
 				onError={onAudioError}
 			/>

@@ -13,6 +13,9 @@
  */
 import { defineMiddleware } from "astro:middleware";
 
+// 构建期由 astro.config.mjs 的 vite.define 注入（git short SHA 或时间戳回退）
+declare const __BUILD_ID__: string;
+
 const HOME_CACHE_TTL = 180;
 
 /**
@@ -45,6 +48,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const headers = new Headers(hit.headers);
       headers.set("Cache-Control", "no-store");
       headers.set("X-HTML-Cache", "HIT");
+      headers.set("X-Build-Id", __BUILD_ID__);
       return new Response(hit.body, { status: 200, headers });
     }
   }
@@ -57,6 +61,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // （/_astro/*、pagefind 等）content-type 不是 html，不受影响。
   if ((res.headers.get("content-type") || "").includes("text/html")) {
     res.headers.set("Cache-Control", "no-store");
+    res.headers.set("X-Build-Id", __BUILD_ID__);
   }
 
   if (!(cacheKey && cache) || res.status !== 200) return res;
@@ -71,6 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const clientHeaders = new Headers(res.headers);
   clientHeaders.set("Cache-Control", "no-store");
   clientHeaders.set("X-HTML-Cache", "MISS");
+  clientHeaders.set("X-Build-Id", __BUILD_ID__);
 
   const store = cache
     .put(cacheKey, new Response(html.slice(0), { status: 200, headers: cacheHeaders }))
