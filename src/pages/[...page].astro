@@ -1,7 +1,6 @@
 ---
 import Pagination from "@components/molecules/Pagination.astro";
 import PostPage from "@components/organisms/PostPage.astro";
-import { getSiteOverrides } from "@utils/site-overrides";
 import { postListConfig } from "@/config/postListConfig";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { getArchivePage } from "@utils/content-utils";
@@ -29,7 +28,7 @@ const len = page.posts.length;
 ---
 
 <MainGridLayout page="home">
-    <PostPage page={page} layoutMode={(await getSiteOverrides()).display?.layoutMode}></PostPage>
+    <PostPage page={page}></PostPage>
     <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
 </MainGridLayout>
 <LiveRefreshBanner client:load />

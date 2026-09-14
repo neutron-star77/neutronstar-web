@@ -8,7 +8,6 @@ import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import { postListConfig } from "@/config/postListConfig";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { getArchivePage } from "@utils/content-utils";
-import { getSiteOverrides } from "@utils/site-overrides";
 import { url } from "@utils/url-utils";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
@@ -37,10 +36,7 @@ const buildPagerUrl = (p: number) => url(p === 1 ? "/posts/" : `/posts/?page=${p
 ---
 
 <MainGridLayout title="文章" page="posts">
-	<PostPage
-		page={page}
-		layoutMode={(await getSiteOverrides()).display?.layoutMode}
-	></PostPage>
+	<PostPage page={page}></PostPage>
 	{page.lastPage > 1 && (
 		<div
 			class="mx-auto onload-animation mt-4"

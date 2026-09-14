@@ -19,16 +19,16 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 		contentAlign: "center",
 	},
 	// 显示设置面板控制：配置各项前端切换项的可见性（默认全部开启）。
-	// 显示设置面板瘦身（2026-09-14 用户反馈）：配色风格/规范/纹理/布局移出访客
-	// 面板（改由后台 site_config 的 display 键做站点级配置），面板只保留
-	// 页面背景三选 + 背景模糊滑条 + 减少动效，避免面板过大遮挡侧栏。
+	// 2026-09-14 曾瘦身：配色风格/规范/纹理/布局四项移出访客面板改由后台
+	// display 键站点级配置；2026-09-15 用户要求移回前台——四项恢复访客可调，
+	// 后台 display 解析链（site-overrides/ConfigCarrier/PostPage）已移除。
 	displaySettings: {
-		colorStyle: false, // 配色风格 9 宫格：后台可配（siteConfig.themeColor.style）
-		colorSpec: false, // Color Spec 切换：同上（themeColor.spec）
-		wallpaperMode: true, // 页面背景（横幅/全屏沉浸/纯色）
-		layoutMode: false, // 文章列表布局：后台可配（display.layoutMode）
-		reduceMotion: true, // 减少动效
-		texture: false, // 背景纹理选择：后台可配（display.texturePreset/Opacity）
+		colorStyle: true, // 是否展示配色风格 9 宫格
+		colorSpec: true, // 是否展示 Color Spec 调色规范切换
+		wallpaperMode: true, // 是否展示页面背景（纯色/横幅）切换
+		layoutMode: true, // 是否展示文章列表布局（列表/网格）切换
+		reduceMotion: true, // 是否展示减少动效切换
+		texture: true, // 是否展示背景纹理选择
 	},
 	lang: "zh_CN", // 简体中文（i18n 词典 src/i18n/languages/zh_CN.ts）, e.g. 'en', 'zh_CN', 'ja', etc.
 	// IANA time zone for precise post and moment timestamps. It is independent of lang.

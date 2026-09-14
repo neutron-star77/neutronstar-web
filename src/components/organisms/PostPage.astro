@@ -9,11 +9,7 @@ const { page } = Astro.props;
 let delay = 0;
 const interval = 50;
 
-const { layoutMode } = Astro.props as { layoutMode?: "list" | "grid" };
-const { mode, cover, cardWidth } = {
-	...postListConfig.layout,
-	mode: layoutMode ?? postListConfig.layout.mode,
-};
+const { mode, cover, cardWidth } = postListConfig.layout;
 ---
 
 <!-- 卡片间留白分隔（gap = --m3e-space-4，无容器底色 / 无虚线）。
