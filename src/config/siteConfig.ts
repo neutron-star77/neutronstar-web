@@ -15,8 +15,9 @@ export const siteConfig: SiteConfig = withUserConfig("site", {
 	title: "Neutronstar",
 	subtitle: "A Material 3 anime blog",
 	// 电脑端顶栏标题与导航内容区域："left" 左对齐，"center" 居中。
+	// Mizuki 对齐：默认左对齐，logo+标题后紧跟导航链接。
 	topAppBar: {
-		contentAlign: "center",
+		contentAlign: "left",
 	},
 	// 显示设置面板控制：配置各项前端切换项的可见性（默认全部开启）。
 	// 2026-09-14 曾瘦身：配色风格/规范/纹理/布局四项移出访客面板改由后台

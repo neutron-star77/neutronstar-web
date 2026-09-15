@@ -27,7 +27,7 @@ export class ApiError extends Error {
 }
 
 /** GitHub OAuth 登录态在 localStorage 里的键（P5） */
-export const AUTH_TOKEN_KEY = "kirameku_github_token";
+export const AUTH_TOKEN_KEY = "neutronstar_github_token";
 
 /**
  * 登录态请求头（浏览器侧）。

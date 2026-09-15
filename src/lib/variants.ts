@@ -43,7 +43,7 @@ export const collapse: Variants = {
 
 /**
  * 拍立得随机倾斜角（由 id 派生的确定性伪随机，±2.4°）
- * 与 Kirameku 的 PhotoCard 保持一致。
+ * 与 Neutronstar 的 PhotoCard 保持一致。
  */
 export function tiltFromId(id: string, max = 2.4): number {
   const seed = id.charCodeAt(0) + id.charCodeAt(id.length - 1);

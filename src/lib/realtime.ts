@@ -85,7 +85,7 @@ interface Hub {
   closeTimer: ReturnType<typeof setTimeout> | null;
 }
 
-const HUB_KEY = "__kiramekuRealtimeHub";
+const HUB_KEY = "__neutronstarRealtimeHub";
 
 function getHub(): Hub | null {
   if (typeof window === "undefined") return null;

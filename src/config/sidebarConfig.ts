@@ -3,12 +3,12 @@
  *
  * 【核心概念】
  * 1. arrangement（侧栏编排模式）：
- *    - "single"（单栏，当前使用）：所有 widget 放入主侧栏一列（页框 85rem）；
- *    - "dual"（双栏）：column: "secondary" 的 widget 放入副侧栏（视口 ≥ 1280px 展开三列，页框 96rem），
+ *    - "single"（单栏）：所有 widget 放入主侧栏一列（页框 85rem）；
+ *    - "dual"（双栏，Mizuki 布局）：column: "secondary" 的 widget 放入副侧栏（视口 ≥ 1280px 展开三列，页框 90rem），
  *      在 1024px~1279px 之间会自动优雅退化为单栏，无需手动适配。
  * 2. side（主栏物理位置）：
- *    - "left"：主侧栏在左侧，dual 模式下副栏自动落右侧；
- *    - "right"：主侧栏在右侧（当前使用，内容列居左更聚焦，Twilight 式单右栏），
+ *    - "left"（Mizuki 布局）：主侧栏在左侧，dual 模式下副栏自动落右侧；
+ *    - "right"：主侧栏在右侧（内容列居左更聚焦，Twilight 式单右栏），
  *      dual 模式下副栏落左侧。
  * 3. widget 属性：
  *    - type：组件类型（"profile" | "music" | "announcement" | "categories" | "tags" | "stats" | "calendar" | "toc"）；
@@ -18,9 +18,9 @@
  *    - pages：仅在指定页面展示（如 ["home", "post"]，省略时默认全页面展示）；
  *    - collapseAfter：折叠阈值（适用于 categories/tags，超出条数显示展开按钮）。
  *
- * 【当前编排（2026-09-14 统一右列，issue #3）】单右栏自上而下：
- * 作者卡 → 公告(首页) → 音乐兜底卡 → [吸顶组] TOC(文章页) → 统计 → 日历 → 分类 → 标签。
- * TOC 置于吸顶组首位，滚动时与后续 widget 一起吸顶保持可视。
+ * 【当前编排（对齐 Mizuki 主题 1:1）】
+ * 左栏（primary）：作者卡 → 公告(全页) → 标签 → [吸顶] 目录(文章页)。
+ * 右栏（secondary，≥1280px 显示）：统计(全页) → 日历 → [吸顶] 分类 → 音乐。
  *
  * 类型定义见 src/types/sidebarConfig.ts。
  */
@@ -29,65 +29,24 @@ import { withUserConfig } from "../utils/config-overlay.ts";
 
 export const sidebarConfig: SidebarConfig = withUserConfig("sidebar", {
 	enable: true,
-	arrangement: "single",
-	side: "right",
+	arrangement: "dual",
+	side: "left",
 	components: [
+		// ── 左栏（primary）——Mizuki：作者卡 → 公告 → 标签 → [吸顶] 目录
 		{ type: "profile", enable: true, slot: "top" },
-		{ type: "announcement", enable: true, slot: "top", pages: ["home"] },
-		{ type: "music", enable: true, slot: "top" },
+		{ type: "announcement", enable: true, slot: "top" },
+		{ type: "tags", enable: true, slot: "top", collapseAfter: 20 },
 		{ type: "toc", enable: true, slot: "sticky", pages: ["post"] },
-		{
-			type: "stats",
-			enable: true,
-			slot: "sticky",
-			pages: ["home", "archive", "categories", "tags"],
-		},
-		{ type: "calendar", enable: true, slot: "sticky" },
+		// ── 右栏（secondary）——Mizuki：统计 → 日历 → [吸顶] 分类 → 音乐
+		{ type: "stats", enable: true, slot: "top", column: "secondary" },
+		{ type: "calendar", enable: true, slot: "top", column: "secondary" },
 		{
 			type: "categories",
 			enable: true,
 			slot: "sticky",
+			column: "secondary",
 			collapseAfter: 5,
-			pages: [
-				"home",
-				"archive",
-				"friends",
-				"moments",
-				"anime",
-				"compass",
-				"skills",
-				"projects",
-				"devices",
-				"timeline",
-				"albums",
-				"about",
-				"post",
-				"categories",
-				"tags",
-			],
 		},
-		{
-			type: "tags",
-			enable: true,
-			slot: "sticky",
-			collapseAfter: 6,
-			pages: [
-				"home",
-				"archive",
-				"friends",
-				"moments",
-				"anime",
-				"compass",
-				"skills",
-				"projects",
-				"devices",
-				"timeline",
-				"albums",
-				"about",
-				"post",
-				"categories",
-				"tags",
-			],
-		},
+		{ type: "music", enable: true, slot: "sticky", column: "secondary" },
 	],
 });

@@ -1,7 +1,7 @@
 /**
  * AlbumGrid —— 相册列表，React island（albums.astro 中 client:visible 水合）。
  *
- * 视觉/交互对齐原版 Xinghongia/Kirameku 的 /photowall：
+ * 视觉/交互对齐原版 Xinghongia/Neutronstar 的 /photowall：
  *  - AlbumCard：封面 3 张堆叠 → 悬停扇形展开（STACK_ANGLES → FAN_ANGLES）→ 点击内联高度展开照片墙
  *  - 展开后内部是拍立得风格 PhotoCard（白边 + 胶带 + 确定性倾斜 tiltFromId），点图进 Lightbox
  *  - 展开卡片占满整行（sm:col-span-2 lg:col-span-3），照片墙才够宽

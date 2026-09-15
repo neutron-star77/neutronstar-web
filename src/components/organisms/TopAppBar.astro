@@ -1,8 +1,8 @@
 ---
 /**
- * M3 Top App Bar — 全站顶栏（替代 Fuwari 卡片式 Navbar）。
- * fixed 全宽、surface 底色 + 底部细分隔线；左侧菜单按钮（开全端导航抽屉）、
- * 站点标题（回首页）、右侧搜索/显示设置/主题切换。
+ * M3 Top App Bar — 全站顶栏（Mizuki 式布局：徽标+标题置左、导航链接紧跟、
+ * 右侧搜索/显示设置/翻译切换/移动端菜单按钮）。
+ * fixed 全宽、surface 底色 + 底部细分隔线；徽标点击回首页，
  * 菜单按钮点击派发 site-drawer:toggle 事件，由 SiteNavigationDrawer 监听开合。
  */
 import IconButton from "@components/atoms/action/IconButton.svelte";
@@ -41,11 +41,17 @@ function isActive(link: (typeof links)[number]): boolean {
 		className,
 	]}
 >
-	<div class="relative max-w-[var(--page-width)] mx-auto h-16 px-3 md:px-5 flex items-center gap-1">
-		<IconButton id="nav-drawer-switch" label="Menu" class="shrink-0 lg:!hidden">
-			<Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
-		</IconButton>
-		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-1 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-4"]} aria-label="Main navigation">
+	<div class="relative max-w-[var(--page-width)] mx-auto h-[4.5rem] px-3 md:px-5 flex items-center gap-1">
+		{/* Mizuki 式站点徽标：图标 + 标题，点击回首页（置左，导航链接紧跟其后） */}
+		<a
+			href={url("/")}
+			class="m3-state-layer relative flex h-10 shrink-0 items-center gap-2 rounded-lg px-2 font-bold text-[var(--on-surface)] transition-colors hover:text-[var(--primary)]"
+			aria-label={siteTitle}
+		>
+			<img src={url("/logo/icon.webp")} alt="" class="h-7 w-7 rounded-lg object-contain" loading="lazy" />
+			<span class="hidden sm:block">{siteTitle}</span>
+		</a>
+		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-1 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-2"]} aria-label="Main navigation">
 			{links.map((link) => {
 				const href = link.external ? link.url : hrefFor(link.url);
 				const active = isActive(link);
@@ -89,6 +95,9 @@ function isActive(link: (typeof links)[number]): boolean {
 				</IconButton>
 			)}
 			<TranslateSwitch client:only="svelte"></TranslateSwitch>
+			<IconButton id="nav-drawer-switch" label="Menu" class="shrink-0 lg:!hidden">
+				<Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
+			</IconButton>
 		</div>
 		<DisplaySettings client:only="svelte" class="top-full right-4 max-w-[calc(100vw-2rem)] md:right-0"></DisplaySettings>
 	</div>

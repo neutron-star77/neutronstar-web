@@ -42,7 +42,7 @@ const ok = Boolean(token);
 		{ok && (
 			<script is:inline define:vars={{ token }}>
 				try {
-					localStorage.setItem("kirameku_github_token", token);
+					localStorage.setItem("neutronstar_github_token", token);
 				} catch (error) {
 					// 隐私模式等场景写不进去，用户回首页后仍是未登录态
 				}
