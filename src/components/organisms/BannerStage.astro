@@ -1089,8 +1089,9 @@ const initialMobileBanner = page === "home";
 	/* 全屏首页文案整体上移，与下移的内容区留出空隙 */
 	:global(html[data-wallpaper-mode="fullscreen"]) .banner-stage__copy
 		padding-bottom: 12vh
-	/* 全屏沉浸模式：banner 退化为纯背景层，底部装饰波浪不再出现，避免遮挡内容卡片 */
-	:global(html[data-wallpaper-mode="fullscreen"]) .banner-waves
+	/* 全屏沉浸模式：banner 退化为纯背景层，底部装饰波浪不再出现，避免遮挡内容卡片。
+	   .banner-waves 是 BannerWaves 独立组件渲染的，必须 :global() 否则 scoped cid 不匹配 */
+	:global(html[data-wallpaper-mode="fullscreen"]) :global(.banner-waves)
 		display: none
 
 	@media (max-width: 1023.98px)
