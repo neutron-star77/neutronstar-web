@@ -38,7 +38,14 @@ import { apiGet } from "../../lib/api/client";
 const AUDIO_BASE =
 	"https://gcore.jsdelivr.net/gh/neutron-star77/bilimusic@main/audio";
 const LS_CLOSED = "bili-float-closed";
+/** 拖动位置记忆（viewport 坐标 left/top）；null = 默认右下角 */
+const LS_POS = "bili-float-pos";
 const CARD_W = 320;
+const FAB_SIZE = 56;
+/** 默认右下角偏移 */
+const DEFAULT_INSET = 24;
+/** 小于该位移视为点击而非拖动（px） */
+const DRAG_THRESHOLD = 5;
 
 /**
  * 音源候选（按序降级）：
@@ -148,6 +155,44 @@ export default function BiliFloatPlayer() {
 			sessionStorage.getItem(LS_CLOSED) === "1",
 	);
 	const [loop, setLoop] = useState(true);
+
+	/**
+	 * 悬浮位置（viewport 坐标 left/top）。null = 未拖动过，走默认右下角。
+	 * 折叠球与展开卡片共用同一锚点，拖动任一形态都会更新同一组坐标。
+	 */
+	const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
+		try {
+			const raw = localStorage.getItem(LS_POS);
+			if (raw) {
+				const p = JSON.parse(raw);
+				if (
+					typeof p?.x === "number" &&
+					typeof p?.y === "number" &&
+					Number.isFinite(p.x) &&
+					Number.isFinite(p.y)
+				) {
+					return p;
+				}
+			}
+		} catch {
+			/* ignore */
+		}
+		return null;
+	});
+
+	const rootRef = useRef<HTMLDivElement>(null);
+	const dragState = useRef({
+		/** 指针按下时的视口坐标 */
+		pointerX: 0,
+		pointerY: 0,
+		/** 按下时的容器位置（pos 或默认右下角换算值） */
+		originX: 0,
+		originY: 0,
+		/** 本次指针是否已越过拖动阈值 */
+		moved: false,
+		/** 鼠标松开刚结束一次拖动——下次 click 应被忽略 */
+		justDragged: false,
+	});
 
 	const audioRef = useRef<HTMLAudioElement>(null);
 	const hlsRef = useRef<Hls | null>(null);
@@ -376,6 +421,91 @@ export default function BiliFloatPlayer() {
 		setClosed(true);
 	};
 
+	/** 当前锚点宽高：折叠态 = FAB_SIZE，展开态 = CARD_W × 卡片实际高 */
+	const rootW = minimized ? FAB_SIZE : CARD_W;
+	const rootH = minimized
+		? FAB_SIZE
+		: rootRef.current?.offsetHeight ?? 300;
+
+	/** 把 viewport 坐标夹回视口内（留 8px 边距） */
+	const clampPos = (x: number, y: number) => {
+		const w = rootRef.current?.offsetWidth ?? rootW;
+		const h = rootRef.current?.offsetHeight ?? rootH;
+		return {
+			x: Math.min(Math.max(8, x), Math.max(8, window.innerWidth - w - 8)),
+			y: Math.min(Math.max(8, y), Math.max(8, window.innerHeight - h - 8)),
+		};
+	};
+
+	/** 默认右下角坐标（未拖动过时的落点） */
+	const defaultPos = () => ({
+		x: window.innerWidth - (rootRef.current?.offsetWidth ?? rootW) - DEFAULT_INSET,
+		y: window.innerHeight - (rootRef.current?.offsetHeight ?? rootH) - DEFAULT_INSET,
+	});
+
+	/** 指针按下：记录起点（折叠球/卡片头部都可拖；进度条/链接等原生交互区除外） */
+	const onPointerDown = (e: React.PointerEvent) => {
+		// 进度条/音量条/链接等需要原生拖动/跳转的元素不接管，让其正常工作
+		const target = e.target as HTMLElement;
+		if (target.closest("input, a, [data-no-drag]")) return;
+		const current = pos ?? defaultPos();
+		dragState.current.pointerX = e.clientX;
+		dragState.current.pointerY = e.clientY;
+		dragState.current.originX = current.x;
+		dragState.current.originY = current.y;
+		dragState.current.moved = false;
+		rootRef.current?.setPointerCapture?.(e.pointerId);
+	};
+
+	useEffect(() => {
+		const onMove = (e: PointerEvent) => {
+			const d = dragState.current;
+			// 未按下（无 capture）不动
+			if (rootRef.current?.hasPointerCapture?.(e.pointerId) !== true) return;
+			const dx = e.clientX - d.pointerX;
+			const dy = e.clientY - d.pointerY;
+			if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+			d.moved = true;
+			setPos(clampPos(d.originX + dx, d.originY + dy));
+		};
+		const onUp = (e: PointerEvent) => {
+			const d = dragState.current;
+			if (rootRef.current?.hasPointerCapture?.(e.pointerId) !== true) return;
+			rootRef.current?.releasePointerCapture?.(e.pointerId);
+			if (d.moved) {
+				d.justDragged = true;
+				// 拖动结束后持久化
+				setPos((p) => {
+					const final = clampPos(d.originX + (e.clientX - d.pointerX), d.originY + (e.clientY - d.pointerY));
+					try {
+						localStorage.setItem(LS_POS, JSON.stringify(final));
+					} catch {
+						/* ignore */
+					}
+					return final;
+				});
+				// 下次 click 被忽略后重置标志
+				window.setTimeout(() => (d.justDragged = false), 0);
+			}
+		};
+		window.addEventListener("pointermove", onMove);
+		window.addEventListener("pointerup", onUp);
+		return () => {
+			window.removeEventListener("pointermove", onMove);
+			window.removeEventListener("pointerup", onUp);
+		};
+	}, []);
+
+	/** 重置位置：清除记忆，回到右下角 */
+	const resetPosition = () => {
+		try {
+			localStorage.removeItem(LS_POS);
+		} catch {
+			/* ignore */
+		}
+		setPos(null);
+	};
+
 	if (closed) return null;
 
 	/* 加载中：玻璃小提示条（client:only 水合后先短暂出现，取数完成即被替换） */
@@ -419,14 +549,30 @@ export default function BiliFloatPlayer() {
 	const dur = progress.dur || track?.duration || 0;
 	const pct = dur > 0 ? Math.min(100, (progress.cur / dur) * 100) : 0;
 
+	// 未拖动过时锚定右下角；拖动后用记忆坐标。展开/折叠共用同一 left/top 锚点。
+	const anchor = pos ?? {
+		x:
+			typeof window !== "undefined"
+				? window.innerWidth - (minimized ? FAB_SIZE : CARD_W) - DEFAULT_INSET
+				: 0,
+		y:
+			typeof window !== "undefined"
+				? window.innerHeight - (rootRef.current?.offsetHeight ?? (minimized ? FAB_SIZE : 300)) - DEFAULT_INSET
+				: 0,
+	};
+
 	return (
 		<div
 			id="bili-float-player"
-			className="fixed z-[60]"
+			ref={rootRef}
+			className="fixed z-[60 select-none]"
 			style={{
-				right: minimized ? "1.5rem" : "1.25rem",
-				bottom: minimized ? "1.5rem" : "1.25rem",
+				left: anchor.x,
+				top: anchor.y,
+				cursor: "grab",
+				touchAction: "none",
 			}}
+			onPointerDown={onPointerDown}
 		>
 			<style>{RANGE_CSS}</style>
 			<style>{EQ_CSS}</style>
@@ -435,13 +581,18 @@ export default function BiliFloatPlayer() {
 				/* ── 折叠态：主色小圆球，点击一下即展开（Twilight 风格） ── */
 				<button
 					type="button"
-					onClick={() => setMinimized(false)}
-					title="展开播放器"
+					onClick={() => {
+						// 刚结束拖动时吞掉误触发的展开
+						if (dragState.current.justDragged) return;
+						setMinimized(false);
+					}}
+					title="展开播放器（可拖动）"
 					aria-label="展开播放器"
 					className="flex h-14 w-14 items-center justify-center rounded-full text-[#10121a] shadow-[0_10px_28px_rgba(0,0,0,.4)] transition-transform hover:scale-105 active:scale-95"
 					style={{
 						background: "var(--primary)",
 						color: "var(--primary-contrast, #10121a)",
+						cursor: "grab",
 					}}
 				>
 					{playing ? (
@@ -483,6 +634,18 @@ export default function BiliFloatPlayer() {
 								{track?.author || playlistTitle}
 							</div>
 						</div>
+						<button
+							type="button"
+							className="rounded p-1 text-base leading-none text-white/50 hover:text-white"
+							title="重置位置（回到右下角）"
+							aria-label="重置位置"
+							onClick={resetPosition}
+						>
+							<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+								<circle cx="12" cy="12" r="3"></circle>
+								<path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round"></path>
+							</svg>
+						</button>
 						<button
 							type="button"
 							className="rounded p-1 text-base leading-none text-white/50 hover:text-white"

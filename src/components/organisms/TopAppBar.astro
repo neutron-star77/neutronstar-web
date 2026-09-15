@@ -47,14 +47,6 @@ function isActive(link: (typeof links)[number]): boolean {
 		<IconButton id="nav-drawer-switch" label="Menu" class="shrink-0 lg:!hidden">
 			<Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
 		</IconButton>
-		<a
-			href={url("/")}
-			aria-label={siteTitle || siteConfig.title}
-			title={siteTitle || siteConfig.title}
-			class="group flex h-10 items-center gap-2 px-2 text-[var(--on-surface)] transition whitespace-nowrap"
-		>
-			<span class="h-5 w-1 rounded-full bg-[var(--primary)] transition-all group-hover:h-7"></span>
-		</a>
 		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-1 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-4"]} aria-label="Main navigation">
 			{links.map((link) => {
 				const href = link.external ? link.url : hrefFor(link.url);
@@ -91,15 +83,17 @@ function isActive(link: (typeof links)[number]): boolean {
 			})}
 		</nav>
 		<div class="flex-1"></div>
-		<Search client:only="svelte"></Search>
-		{!siteConfig.themeColor.fixed && (
-			<IconButton id="display-settings-switch" label="Display Settings" class="shrink-0">
-				<Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
-			</IconButton>
-		)}
-		<WallpaperSwitch client:only="svelte"></WallpaperSwitch>
-		<TranslateSwitch client:only="svelte"></TranslateSwitch>
-		<LightDarkSwitch client:only="svelte"></LightDarkSwitch>
+		<div class="flex items-center gap-1.5 md:gap-2 shrink-0">
+			<Search client:only="svelte"></Search>
+			{!siteConfig.themeColor.fixed && (
+				<IconButton id="display-settings-switch" label="Display Settings" class="shrink-0">
+					<Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
+				</IconButton>
+			)}
+			<WallpaperSwitch client:only="svelte"></WallpaperSwitch>
+			<TranslateSwitch client:only="svelte"></TranslateSwitch>
+			<LightDarkSwitch client:only="svelte"></LightDarkSwitch>
+		</div>
 		<DisplaySettings client:only="svelte" class="top-full right-4 max-w-[calc(100vw-2rem)] md:right-0"></DisplaySettings>
 	</div>
 </div>
@@ -303,20 +297,26 @@ document.addEventListener('swup:content:replace', bindSearchTriggers);
 		position: relative;
 	}
 
+	/* Twilight 式即时悬停：鼠标移入立刻展开、移出立刻收回，不留可见延迟。
+	   - visibility 不参与 transition（离散属性，立即切换）；
+	   - opacity 仅 80ms 淡入，离开时同步隐藏；
+	   - 用透明 padding-top 桥接 trigger 与面板之间的视觉间隙，鼠标斜向移入面板不会断 hover。 */
 	.top-app-bar__submenu {
 		position: absolute;
-		top: calc(100% - 0.25rem);
+		top: 100%;
 		left: 0;
 		min-width: 12rem;
-		padding: 0.375rem;
+		padding: 0.5rem 0.375rem 0.375rem;
+		margin-top: -0.5rem;
 		border-radius: var(--shape-corner-l);
 		background: var(--surface-container);
 		box-shadow: var(--m3e-elevation-2);
 		opacity: 0;
 		visibility: hidden;
-		transform: translateY(-0.25rem) scale(0.98);
+		transform: translateY(-0.125rem);
 		transform-origin: top left;
-		transition: opacity var(--m3e-duration-short), transform var(--m3e-duration-short), visibility var(--m3e-duration-short);
+		transition: opacity 80ms linear, transform 80ms linear;
+		pointer-events: none;
 	}
 
 	.top-app-bar__nav-group:hover > .top-app-bar__submenu,
@@ -324,7 +324,8 @@ document.addEventListener('swup:content:replace', bindSearchTriggers);
 	.top-app-bar__nav-group--open > .top-app-bar__submenu {
 		opacity: 1;
 		visibility: visible;
-		transform: translateY(0) scale(1);
+		transform: translateY(0);
+		pointer-events: auto;
 	}
 
 	.top-app-bar__submenu-item {

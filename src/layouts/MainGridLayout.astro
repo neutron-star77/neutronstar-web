@@ -1,6 +1,5 @@
 ---
 import BannerStage from "@components/organisms/BannerStage.astro";
-import CategoryBar from "@components/organisms/CategoryBar.astro";
 import ContextMenu from "@components/organisms/ContextMenu.svelte";
 import FloatingControls from "@components/organisms/FloatingControls.astro";
 import Footer from "@components/organisms/Footer.astro";
@@ -86,10 +85,8 @@ const mainContentClasses = generateMainContentClasses(sidebarResponsive);
 				<SideBar id="sidebar-secondary" column="secondary" class={secondarySidebarClasses} currentPage={page} headings={headings}></SideBar>
 			)}
 
-            <!-- 主内容列：分类导航栏静态渲染（位于 Swup 容器外），
-                 页面切换时保持固定不重渲染；仅内容区随导航替换 -->
+            <!-- 主内容列（位于 Swup 容器外），页面切换时保持固定不重渲染 -->
             <div id="main-content-column" class={mainContentClasses.replace("transition-swup-fade", "").trim()}>
-                <CategoryBar currentPostCategory={postCategory}></CategoryBar>
                 <main
                     id="swup-container"
                     data-current-post-category={postCategory || ""}
