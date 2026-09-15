@@ -286,7 +286,7 @@ const stylePreviews = $derived(
 );
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 {className}">
+<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 max-h-[80vh] overflow-y-auto overscroll-contain {className}">
     <PanelStack>
         <!-- 段一：主题配色（色相 + 风格九宫格 + Color Spec） -->
         <div class="p-4 flex flex-col gap-3">
