@@ -13,8 +13,6 @@ import { resolveTextureOptions, siteConfig } from "@/config";
 import { getSiteIdentity } from "@utils/site-overrides";
 import { getNavigation } from "@utils/navigation-api";
 import DisplaySettings from "./DisplaySettings.svelte";
-import LightDarkSwitch from "./LightDarkSwitch.svelte";
-import WallpaperSwitch from "./WallpaperSwitch.svelte";
 import TranslateSwitch from "./TranslateSwitch.svelte";
 import Search from "./Search.svelte";
 
@@ -90,9 +88,7 @@ function isActive(link: (typeof links)[number]): boolean {
 					<Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
 				</IconButton>
 			)}
-			<WallpaperSwitch client:only="svelte"></WallpaperSwitch>
 			<TranslateSwitch client:only="svelte"></TranslateSwitch>
-			<LightDarkSwitch client:only="svelte"></LightDarkSwitch>
 		</div>
 		<DisplaySettings client:only="svelte" class="top-full right-4 max-w-[calc(100vw-2rem)] md:right-0"></DisplaySettings>
 	</div>

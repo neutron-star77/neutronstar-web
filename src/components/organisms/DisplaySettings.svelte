@@ -23,6 +23,11 @@ import {
 	resolveScheme,
 } from "@utils/mc-utils";
 import {
+	AUTO_MODE,
+	DARK_MODE,
+	LIGHT_MODE,
+} from "@constants/constants.ts";
+import {
 	getDefaultHue,
 	getDefaultTextureOpacity,
 	getDefaultTexturePreset,
@@ -32,10 +37,12 @@ import {
 	getStoredTexturePreset,
 	getStoredWallpaperBlur,
 	getStoredWallpaperMode,
+	getStoredTheme,
 	setHue,
 	setMotionPreference,
 	setTextureOpacity,
 	setTexturePreset,
+	setTheme,
 	setWallpaperBlur,
 	setWallpaperMode,
 } from "@utils/setting-utils";
@@ -47,7 +54,7 @@ import {
 	resolveDisplaySettings,
 	siteConfig,
 } from "@/config";
-import type { WallpaperMode } from "@/types/config";
+import type { LIGHT_DARK_MODE, WallpaperMode } from "@/types/config";
 import type { PostListMode } from "@/types/postListConfig";
 import type { TexturePreset } from "@/types/textureConfig";
 
@@ -84,6 +91,9 @@ const defaultTextureOpacity = getDefaultTextureOpacity();
 let texturePreset = $state<TexturePreset>(getStoredTexturePreset());
 let lastAppliedTexturePreset = texturePreset;
 let textureOpacity = $state<number>(getStoredTextureOpacity());
+// 外观模式（浅色/深色/跟随系统）：从顶栏 LightDarkSwitch 迁入面板
+let themeMode = $state<LIGHT_DARK_MODE>(getStoredTheme());
+let lastAppliedThemeMode = themeMode;
 
 const textureOptions: {
 	value: TexturePreset;
@@ -201,6 +211,11 @@ $effect(() => {
 });
 $effect(() => {
 	setWallpaperBlur(wallpaperBlur);
+});
+$effect(() => {
+	if (themeMode === lastAppliedThemeMode) return;
+	lastAppliedThemeMode = themeMode;
+	setTheme(themeMode);
 });
 $effect(() => {
 	if (texturePreset === lastAppliedTexturePreset) return;
@@ -403,7 +418,21 @@ const stylePreviews = $derived(
             </div>
         {/if}
 
-        <!-- 段三：动效与体验 -->
+        <!-- 段三：外观模式（浅色/深色/跟随系统，从顶栏 LightDarkSwitch 迁入） -->
+        <div class="p-4 flex flex-col gap-1.5">
+            <span class="text-sm font-bold text-[var(--on-surface-variant)] ml-1">外观模式</span>
+            <SegmentedButton
+                options={[
+                    { value: LIGHT_MODE, label: i18n(I18nKey.lightMode) },
+                    { value: DARK_MODE, label: i18n(I18nKey.darkMode) },
+                    { value: AUTO_MODE, label: i18n(I18nKey.systemMode) },
+                ]}
+                bind:value={themeMode}
+                label="外观模式"
+            />
+        </div>
+
+        <!-- 段四：动效与体验 -->
         {#if displayConfig.reduceMotion}
             <div class="p-4 flex items-center justify-between">
                 <div class="flex items-center gap-2">
