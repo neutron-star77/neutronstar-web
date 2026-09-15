@@ -1,13 +1,13 @@
 /**
  * MomentsList —— 说说（动态）列表，React island（在 moments.astro 中以 client:visible 水合）。
  *
- * 视觉/交互对齐原版 Xinghongia/Neutronstar（f:/AI/projects/Kirameku-ref）的 /moments 页：
+ * 视觉/交互对齐原版 Xinghongia/Neutronstar（f:/AI/projects/Neutronstar-ref）的 /moments 页：
  *  - 按「日期」分组展示（同一天的多条动态聚在一起）
  *  - 同一天多条时：绝对定位堆叠 + 确定性倾斜（stackRotations），模拟实体卡片随手摆的质感
  *  - 点击任意卡片：layout 弹簧展开（spring 300/25），显示全文 + 图片网格 + 点赞 + 「只看这条」
  *  - 悬停未展开卡片：回正角度并轻微上浮（whileHover）
  *
- * 数据来源：useChatters() → bff.neutronstar.fun（Hono Worker）→ 回源真实后端 kirameku-api。
+ * 数据来源：useChatters() → bff.neutronstar.fun（Hono Worker）→ 回源真实后端 neutronstar-api。
  * 后端若没有 chatters 数据，页面显示「还没有动态」（动画只在有内容时可见）。
  *
  * 二次开发提示：

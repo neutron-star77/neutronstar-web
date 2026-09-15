@@ -3,7 +3,7 @@
  *
  * base 优先级：构建期环境变量 PUBLIC_API_BASE > 真实后端（兜底）。
  * 目标态：前端走中间层 `/api`（同源 CF Worker），由中间层负责缓存/聚合/CORS；
- * 过渡态（中间层未上线）：直连真实后端 kirameku-api.neutronstar.fun（已配 CORS）。
+ * 过渡态（中间层未上线）：直连真实后端 neutronstar-api.neutronstar.fun（已配 CORS）。
  * 路径统一以 `/api` 或 `/bff` 开头。
  */
 

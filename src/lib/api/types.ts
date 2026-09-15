@@ -1,4 +1,4 @@
-/** 后端真实字段契约（与 kirameku-api 对齐，见 T0/T1 探查样本） */
+/** 后端真实字段契约（与 neutronstar-api 对齐，见 T0/T1 探查样本） */
 
 export interface PostSummary {
   id: number;
