@@ -15,7 +15,7 @@ const { mode, cover, cardWidth } = postListConfig.layout;
 <!-- 卡片间留白分隔（gap = --m3e-space-4，无容器底色 / 无虚线）。
      容器承载布局模式：m3e-post-list--list / --grid（PostCard 原子经
      :global 祖先钩子联动形态），--cover-left 仅 list 模式生效。 -->
-<div class:list={["m3e-post-list-shell", `m3e-post-list-shell--${cardWidth}`]}>
+<div class:list={["m3e-post-list-shell", `m3e-post-list-shell--${cardWidth}`, "mx-auto w-full max-w-[46rem]"]}>
     <div
         id="post-list"
         class:list={[
