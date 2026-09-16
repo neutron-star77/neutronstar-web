@@ -7,11 +7,6 @@
  *   具体文件导入（`@/config/siteConfig`），禁止走本 barrel，避免循环依赖。
  */
 
-export {
-	animeConfig,
-	resolveAnimeOptions,
-	resolvedAnimeOptions,
-} from "./animeConfig";
 export { announcementConfig } from "./announcementConfig";
 export {
 	type ArticleDiscoveryOptions,
@@ -28,7 +23,6 @@ export {
 	resolveCommentOptions,
 } from "./commentConfig";
 export { contextMenuConfig } from "./contextMenuConfig";
-export { devicesConfig } from "./devicesConfig";
 export { expressiveCodeConfig } from "./expressiveCodeConfig";
 export { fabConfig } from "./fabConfig";
 export {
@@ -62,7 +56,6 @@ export {
 	resolveTextureOptions,
 	siteConfig,
 } from "./siteConfig";
-export { skillsConfig } from "./skillsConfig";
 export { timelineConfig } from "./timelineConfig";
 export {
 	type ResolvedUmamiOptions,

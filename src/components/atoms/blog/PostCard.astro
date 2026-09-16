@@ -169,9 +169,13 @@ const titleLabel =
 	/* 站点卡片色（浅色 = surface-container-lowest 近白），与侧栏等其它卡片一致 */
 	background: var(--card-bg)
 	color: var(--on-surface)
+	/* Mizuki 对齐：默认 8% 淡边框 + 微阴影；hover 抬升阴影覆盖 */
+	border: 1px solid var(--card-border-color)
+	box-shadow: var(--card-shadow)
 	transition:
 		box-shadow var(--m3e-duration-medium) var(--m3e-easing-emphasized-decelerate),
-		background-color var(--m3e-duration-medium) var(--m3e-easing-standard)
+		background-color var(--m3e-duration-medium) var(--m3e-easing-standard),
+		border-color var(--m3e-duration-medium) var(--m3e-easing-standard)
 	&:hover
 		box-shadow: var(--m3e-elevation-2)
 		background: unquote("color-mix(in oklab, var(--on-surface) 3%, var(--card-bg))")

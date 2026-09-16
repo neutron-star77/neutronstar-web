@@ -46,6 +46,16 @@
     .link {
         @apply transition rounded-md p-1 -m-1;
     }
+    /* Mizuki 卡片基元：近白底 + 8% 淡边框 + 微阴影。novel/about/archive/post
+       正文容器（此前 .card-base 仅被引用未定义，卡片底/边框/阴影全部缺失） */
+    .card-base {
+        border-radius: var(--radius-large);
+        overflow: hidden;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border-color);
+        box-shadow: var(--card-shadow);
+    }
+
     .float-panel {
         @apply top-[5.25rem] rounded-[var(--radius-large)] overflow-hidden bg-[var(--float-panel-bg)] transition shadow-xl dark:shadow-none
     }

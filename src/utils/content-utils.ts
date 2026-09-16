@@ -72,7 +72,7 @@ export interface PostEntry {
 	/** 后端统计字段（原版来自 remark frontmatter，这里直接透传） */
 	wordCount: number;
 	readingTime: number;
-	/** 文章级字体（后台可选，未选为空 → 前端走站点默认 Yozai，零影响） */
+	/** 文章级字体（后台可选，未选为空 → 前端走站点默认字体，零影响） */
 	font?: { id: number; name: string; family: string };
 }
 

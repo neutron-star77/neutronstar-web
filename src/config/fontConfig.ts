@@ -50,27 +50,17 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 	 */
 	fontFamilies: [
 		// ---------------------------------------------------------------------
-		// 1. 正文字体（现代几何圆润西文字体 Outfit，与 M3E 大圆角及悠哉圆体绝配）
+		// 1. 正文字体（ZenMaruGothic-Medium，Mizuki 西文字体：圆润几何、近丸ゴシック）
 		// ---------------------------------------------------------------------
 		{
-			id: "outfit-body",
-			family: "Outfit",
+			id: "zenmaru-body",
+			family: "ZenMaruGothic-Medium",
 			role: "body",
-			source: "fontsource",
+			source: "local",
 			variants: [
 				{
-					file: "@fontsource/outfit/400.css",
-					weight: 400,
-					style: "normal",
-				},
-				{
-					file: "@fontsource/outfit/500.css",
+					file: "src/assets/fonts/ZenMaruGothic-Medium.woff2",
 					weight: 500,
-					style: "normal",
-				},
-				{
-					file: "@fontsource/outfit/700.css",
-					weight: 700,
 					style: "normal",
 				},
 			],
@@ -80,17 +70,17 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 		},
 
 		// ---------------------------------------------------------------------
-		// 2. 中文 / 日文 CJK 字体（悠哉圆体 Yozai Medium，全量简繁中日韩 100% 覆盖）
+		// 2. 中文 / 日文 CJK 字体（Loli，Mizuki 全量 CJK 字体）
 		// ---------------------------------------------------------------------
 		{
-			id: "yozai-cjk",
-			family: "Yozai Medium",
+			id: "loli-cjk",
+			family: "Loli",
 			role: "cjk",
 			source: "local",
 			variants: [
 				{
-					file: "src/assets/fonts/Yozai-Medium.subset.woff2",
-					weight: 500,
+					file: "src/assets/fonts/loli.woff2",
+					weight: 400,
 					style: "normal",
 				},
 			],
@@ -147,11 +137,11 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 	},
 
 	/**
-	 * 字体打包体积预算限制（子集化后通常仅 300KB ~ 1MB）
+	 * 字体打包体积预算限制（对齐 Mizuki 全量字体：loli 4.86MB + ZenMaruGothic 1.5MB）
 	 */
 	budget: {
-		maxTotalBytes: 6 * 1024 * 1024, // 全站引用自定义字体总大小上限：6MB
-		maxFamilyBytes: 4 * 1024 * 1024, // 单个字体族文件大小上限：4MB
+		maxTotalBytes: 8 * 1024 * 1024, // 全站引用自定义字体总大小上限：8MB
+		maxFamilyBytes: 6 * 1024 * 1024, // 单个字体族文件大小上限：6MB（loli.woff2 ≈ 4.86MB）
 	},
 });
 

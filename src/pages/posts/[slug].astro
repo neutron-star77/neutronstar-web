@@ -47,7 +47,7 @@ const html = pinyinReading
 	? (await import("@utils/pinyin-reading")).enhancePinyinReading(renderedHtml)
 	: renderedHtml;
 
-// 文章级字体（后台可选；未选为空 → 保持站点默认 Yozai，零影响）
+// 文章级字体（后台可选；未选为空 → 保持站点默认字体，零影响）
 // 字体二进制由后端 font_asset 表存储，经 BFF /api/fonts/{id}/file 下发；
 // family 已带引号场景由 CSS 侧处理，这里只透传原始 family 名。
 const postFont = entry.font?.family ? entry.font : null;
@@ -109,7 +109,7 @@ const postPath = entry.url || url(`/posts/${slug}`);
 <style is:global>
 /* 文章级字体（后台 font_asset 选择）：挂 .post-font-custom 时正文用所选字体。
    @font-face 按文章动态注入（fontFaceUrl），字体文件经 BFF 下发并长缓存。
-   未选字体（entry.font 为空)时整段 CSS 不生效，站点保持默认 Yozai，零影响。 */
+   未选字体（entry.font 为空)时整段 CSS 不生效，站点保持默认字体，零影响。 */
 .post-font-custom .prose {
 	font-family: var(--post-font, var(--m3e-font-sans));
 }

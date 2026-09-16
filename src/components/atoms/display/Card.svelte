@@ -110,6 +110,11 @@ const styleVars = [
         border-color var(--m3e-duration-medium) var(--m3e-easing-emphasized-decelerate),
         background-color var(--m3e-duration-medium) var(--m3e-easing-emphasized-decelerate)
 
+    /* 已填充卡片（Mizuki 对齐）：8% 淡边框 + 微阴影，替代原「无边框无阴影」 */
+    &--filled
+        border: 1px solid var(--card-border-color)
+        box-shadow: var(--card-shadow)
+
     /* 可点击卡片（button/a 语义）：hover/pressed 加 on-surface overlay + focus ring；
        button 默认 padding 由 Tailwind preflight 归零，外部 p-* 类可正常生效 */
     &--interactive

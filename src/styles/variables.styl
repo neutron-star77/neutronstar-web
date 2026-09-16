@@ -48,7 +48,8 @@ define({
 
   --title-active: var(--primary) var(--primary)
 
-  --line-divider: var(--outline-variant) var(--outline-variant)
+  /* 卡片边框分隔线：对齐 Mizuki 8% 淡边框（黑/白），而非偏重的 outline-variant */
+  --line-divider: black(0.08) white(0.08)
   --line-color: var(--outline) var(--outline)
   --meta-divider: var(--on-surface-variant) var(--on-surface-variant)
 
@@ -225,6 +226,9 @@ define({
   --m3e-easing-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15)
 
   /* 高度（tonal elevation）：level 0-5。color-mix 需 unquote 防 Stylus 误解析 */
+  /* Mizuki 卡片微阴影（对齐 Tailwind shadow-xs：极小、近无色差） */
+  --card-shadow: unquote("0 1px 2px 0 rgb(0 0 0 / 0.05)")
+  --card-border-color: var(--line-divider)
   --m3e-elevation-0: none
   --m3e-elevation-1: unquote("0 1px 2px color-mix(in srgb, var(--mc-shadow, #000) 6%, transparent)")
   --m3e-elevation-2: unquote("0 1px 2px color-mix(in srgb, var(--mc-shadow, #000) 8%, transparent), 0 2px 6px 1px color-mix(in srgb, var(--mc-shadow, #000) 6%, transparent)")

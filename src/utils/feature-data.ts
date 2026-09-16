@@ -4,13 +4,9 @@
  * 将 src/config/*Config.ts 的控制行为（disabledKeys、order 等）
  * 应用于 src/data/*.ts 的内容数据集合。
  */
-import { devicesData } from "../data/devices.ts";
 import { projectsData } from "../data/projects.ts";
-import { skillsData } from "../data/skills.ts";
 import { timelineData } from "../data/timeline.ts";
-import type { DeviceItem, DevicesConfig } from "../types/devicesConfig.ts";
 import type { ProjectItem, ProjectsConfig } from "../types/projectsConfig.ts";
-import type { SkillItem, SkillsConfig } from "../types/skillsConfig.ts";
 import type { TimelineConfig, TimelineItem } from "../types/timelineConfig.ts";
 import { url } from "./url-utils.ts";
 
@@ -87,22 +83,6 @@ export function resolveProjectsData(
 }
 
 /**
- * 解析技能页展示数据。
- */
-export function resolveSkillsData(
-	config: SkillsConfig,
-	customItems?: readonly SkillItem[],
-): SkillItem[] {
-	const source = customItems ?? config.items ?? skillsData;
-	const enabledItems = source.filter((item) => item.enable !== false);
-	return filterByDisabledKeys(
-		enabledItems,
-		config.disabledNames ?? config.disabledKeys,
-		(item) => item.name,
-	);
-}
-
-/**
  * 解析时间线页展示数据。
  */
 export function resolveTimelineData(
@@ -121,28 +101,4 @@ export function resolveTimelineData(
 		return [...filtered].reverse();
 	}
 	return filtered;
-}
-
-/**
- * 解析设备页展示数据。
- */
-export function resolveDevicesData(
-	config: DevicesConfig,
-	customItems?: readonly DeviceItem[],
-): DeviceItem[] {
-	const source = customItems ?? config.items ?? devicesData;
-	const enabledItems = source.filter((item) => item.enable !== false);
-	const filtered = filterByDisabledKeys(
-		enabledItems,
-		config.disabledIds ?? config.disabledKeys,
-		(item) => item.id,
-	);
-	return filtered.map((item) => ({
-		...item,
-		image: item.image
-			? item.image.startsWith("/")
-				? url(item.image)
-				: item.image
-			: undefined,
-	}));
 }
