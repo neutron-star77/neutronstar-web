@@ -5,6 +5,7 @@ import IconButton from "@components/atoms/action/IconButton.svelte";
 import Avatar from "@components/atoms/display/Avatar.svelte";
 import Card from "@components/atoms/display/Card.svelte";
 import Tooltip from "@components/atoms/overlay/Tooltip.svelte";
+import TypewriterText from "@components/atoms/display/typing/TypewriterText.astro";
 import UmamiStats from "@components/organisms/UmamiStats.astro";
 import { resolveImageAsset } from "@utils/asset-utils";
 import { getSiteOverrides } from "@utils/site-overrides";
@@ -86,7 +87,18 @@ if (typeof avatarAsset !== "string") {
     <div class="px-2">
         <div class="font-bold text-xl text-center mb-1 text-90 transition">{config.name}</div>
         <div class="h-1 w-5 bg-[var(--primary)] mx-auto rounded-full mb-2 transition"></div>
-        <div class="text-center text-50 mb-2.5 transition">{config.bio}</div>
+        <div class="text-center text-50 mb-2.5 transition">
+            {config.typewriter?.enable && config.bio ? (
+                <TypewriterText
+                    text={config.bio}
+                    speed={config.typewriter.speed ?? 100}
+                    deleteSpeed={config.typewriter.deleteSpeed ?? 50}
+                    pauseTime={config.typewriter.pauseTime ?? 2000}
+                />
+            ) : (
+                config.bio
+            )}
+        </div>
         <div class="flex flex-wrap gap-2 justify-center mb-1">
             {config.links.length > 1 && config.links.map(item =>
                 <Tooltip label={item.name} placement="top" client:load>

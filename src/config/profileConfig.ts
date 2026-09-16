@@ -9,6 +9,13 @@ export const profileConfig: ProfileConfig = withUserConfig("profile", {
 	avatar: "assets/images/demo-avatar.webp", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
 	name: "Neutronstar",
 	bio: "The rain remembers what the sky forgot to say.",
+	typewriter: {
+		/** 启用简介打字机效果（对齐 Mizuki TypewriterText），单条 bio 打出即停 */
+		enable: true,
+		speed: 100,
+		deleteSpeed: 50,
+		pauseTime: 2000,
+	},
 	links: [
 		{
 			name: "Twitter",

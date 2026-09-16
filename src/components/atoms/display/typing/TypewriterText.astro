@@ -1,0 +1,130 @@
+---
+/**
+ * 打字机效果文本组件（对齐 Mizuki TypewriterText）。
+ * 支持单条文本打出即停，或多条文本轮播（打出→停顿→删除→下一条）。
+ * 页面切换（Swup）后自动重新初始化。
+ */
+export interface Props {
+	text: string | string[];
+	speed?: number;
+	deleteSpeed?: number;
+	pauseTime?: number;
+	class?: string;
+}
+
+const {
+	text,
+	speed = 100,
+	deleteSpeed = 50,
+	pauseTime = 2000,
+	class: className = "",
+} = Astro.props;
+const textData = Array.isArray(text) ? JSON.stringify(text) : text;
+---
+
+<span
+	class={`typewriter ${className}`}
+	data-text={textData}
+	data-speed={speed}
+	data-delete-speed={deleteSpeed}
+	data-pause-time={pauseTime}
+	aria-label={Array.isArray(text) ? text.join(" / ") : text}
+></span>
+
+<script>
+	class TypewriterEffect {
+		private element: HTMLElement;
+		private texts: string[];
+		private currentTextIndex = 0;
+		private speed: number;
+		private deleteSpeed: number;
+		private pauseTime: number;
+		private currentIndex = 0;
+		private isDeleting = false;
+		private timeoutId: number | null = null;
+
+		constructor(element: HTMLElement) {
+			this.element = element;
+			const textData = element.dataset.text || "";
+			try {
+				const parsed = JSON.parse(textData);
+				this.texts = Array.isArray(parsed) ? parsed : [textData];
+			} catch {
+				this.texts = [textData];
+			}
+			this.speed = parseInt(element.dataset.speed || "100");
+			this.deleteSpeed = parseInt(element.dataset.deleteSpeed || "50");
+			this.pauseTime = parseInt(element.dataset.pauseTime || "2000");
+			this.start();
+		}
+
+		private start() {
+			if (this.texts.length === 0) return;
+			this.type();
+		}
+
+		private getCurrentText(): string {
+			return this.texts[this.currentTextIndex] || "";
+		}
+
+		private type() {
+			const currentText = this.getCurrentText();
+
+			if (this.isDeleting) {
+				if (this.currentIndex > 0) {
+					this.currentIndex--;
+					this.element.textContent = currentText.substring(0, this.currentIndex);
+					this.timeoutId = window.setTimeout(
+						() => this.type(),
+						this.deleteSpeed,
+					);
+				} else {
+					this.isDeleting = false;
+					this.currentTextIndex = (this.currentTextIndex + 1) % this.texts.length;
+					this.timeoutId = window.setTimeout(() => this.type(), this.speed);
+				}
+			} else {
+				if (this.currentIndex < currentText.length) {
+					this.currentIndex++;
+					this.element.textContent = currentText.substring(0, this.currentIndex);
+					this.timeoutId = window.setTimeout(() => this.type(), this.speed);
+				} else if (this.texts.length > 1) {
+					this.isDeleting = true;
+					this.timeoutId = window.setTimeout(() => this.type(), this.pauseTime);
+				} else if (currentText === "") {
+					this.element.innerHTML = "&nbsp;";
+				}
+			}
+		}
+
+		destroy() {
+			if (this.timeoutId) clearTimeout(this.timeoutId);
+		}
+	}
+
+	function initTypewriters() {
+		document.querySelectorAll<HTMLElement>(".typewriter").forEach((el) => {
+			if (!(el as { __typewriter?: TypewriterEffect }).__typewriter) {
+				(el as { __typewriter?: TypewriterEffect }).__typewriter =
+					new TypewriterEffect(el);
+			}
+		});
+	}
+
+	document.addEventListener("DOMContentLoaded", initTypewriters);
+	document.addEventListener("swup:contentReplaced", initTypewriters);
+</script>
+
+<style>
+	.typewriter {
+		position: relative;
+		min-height: 1.5em;
+		display: inline-block;
+		vertical-align: baseline;
+	}
+
+	.typewriter:empty::before {
+		content: "\00A0";
+		visibility: hidden;
+	}
+</style>

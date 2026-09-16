@@ -143,6 +143,16 @@ export type ProfileConfig = {
 	avatar?: string;
 	name: string;
 	bio?: string;
+	typewriter?: {
+		/** 是否启用简介打字机效果（对齐 Mizuki TypewriterText） */
+		enable?: boolean;
+		/** 打字速度 ms/字符 */
+		speed?: number;
+		/** 删除速度 ms/字符 */
+		deleteSpeed?: number;
+		/** 多条文本切换的停顿 ms */
+		pauseTime?: number;
+	};
 	links: {
 		name: string;
 		url: string;
