@@ -1,10 +1,16 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+// 小说页壳：Mizuki 视觉。
+// 数据来自后续 reader 服务（/reader3 代理，见改动清单 §C2），当前未接入，
+// 故渲染「内容待接入」空态；接入后在此通过 island 拉取书单/连载列表。
 ---
 
-<MainGridLayout title="小说">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-4">小说</h1>
-        <p>P2 迁移占位。</p>
+<MainGridLayout title="小说" description="书单与连载" page="novel">
+    <div class="card-base onload-animation rounded-m3 bg-surface-container px-6 py-8 text-center">
+        <h1 class="mb-2 text-xl font-bold text-on-surface">小说</h1>
+        <p class="mx-auto max-w-md text-sm leading-6 text-on-surface-variant">
+            小说内容正在筹备中，等服务入口接入后这里会展示书单与连载。
+        </p>
     </div>
 </MainGridLayout>

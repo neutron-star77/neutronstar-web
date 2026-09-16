@@ -1,0 +1,12 @@
+---
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+import BookmarkList from "@components/islands/BookmarkList";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+
+// 收藏夹页：静态壳 + BookmarkList island（客户端拉取 /api/bookmarks，按分类分组）
+---
+
+<MainGridLayout title="收藏夹" description="收藏的站点与资源" page="bookmark">
+    <BookmarkList client:load />
+</MainGridLayout>

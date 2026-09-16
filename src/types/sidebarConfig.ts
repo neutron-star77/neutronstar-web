@@ -42,6 +42,9 @@ export type SidebarPage =
 	| "about" // 关于
 	| "categories" // 分类索引
 	| "tags" // 标签索引
+	| "bookmark" // 收藏夹
+	| "messages" // 杂谈（留言板）
+	| "novel" // 小说
 	| "rss" // RSS 订阅指南
 	| "atom" // Atom 订阅指南
 	| "posts" // 文章列表页（/posts，卡片网格，区别于归档）

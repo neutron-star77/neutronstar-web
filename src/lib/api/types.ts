@@ -80,3 +80,28 @@ export interface Category {
 
 /** 列表接口返回裸数组（后端无 total 头）；前端用返回长度 == size 判断 hasMore */
 export type ListResult<T> = T[];
+
+export interface BookmarkSite {
+  id: number;
+  category_id: number;
+  name: string;
+  url: string;
+  icon: string;
+  description: string;
+  platforms: string[];
+  sort: number;
+  created_at: string;
+  updated_at: string | null;
+}
+
+/** 收藏夹分类（带其下站点）；`/api/bookmarks` 返回该数组 */
+export interface BookmarkCategory {
+  id: number;
+  name: string;
+  icon: string;
+  description: string;
+  sort: number;
+  created_at: string;
+  updated_at: string | null;
+  sites: BookmarkSite[];
+}
