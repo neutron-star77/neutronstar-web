@@ -3,10 +3,16 @@ import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
 import CommentsThread from "@components/islands/CommentsThread";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import LoadMoreContent from "@components/islands/LoadMoreContent";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
 import { getPostBySlug } from "@utils/content-utils";
 import { apiUrl } from "@/lib/server/api";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
+import {
+	splitMarkdownByH2,
+	pickFirstScreenChunks,
+	extractOutline,
+} from "@utils/markdown-chunks.mjs";
 import { url } from "@utils/url-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getSiteIdentity } from "@utils/site-overrides";
@@ -23,23 +29,23 @@ if (!entry) {
 	return Astro.redirect(url("/"));
 }
 
+// 长文分块渲染：262KB+ 的文章全量渲染会触发 Worker 1102。
+// 按 h2 切块，首屏只渲染累计 ~15KB 以内的前若干 chunk，后续由 LoadMoreContent 逐段加载。
+const fullMarkdown = entry.body ?? "";
+const chunks = splitMarkdownByH2(fullMarkdown);
+const firstScreenCount = pickFirstScreenChunks(chunks);
+const isChunked = chunks.length > 1 && firstScreenCount < chunks.length;
+const firstScreenMarkdown = chunks.slice(0, firstScreenCount).join("\n\n");
+
 let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
 rendererPromise ??= siteMarkdownProcessor.createRenderer({});
 const renderer = await rendererPromise;
-const { code: renderedHtml } = await renderer.render(entry.body ?? "", {
+const { code: renderedHtml } = await renderer.render(firstScreenMarkdown, {
 	frontmatter: entry.data as unknown as Record<string, unknown>,
 });
 
-// TOC 数据：从渲染后的 HTML 提取 h2-h4（rehype-slug 已给标题写好 id）。
-// 此前该 prop 从未传入导致侧栏文章目录一直为空（P2 数据换血时断线）。
-// 注意：必须在阅读版增强（ruby 注音）之前提取，TOC 文字才是干净的。
-const headings = [...renderedHtml.matchAll(/<h([2-4])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g)].map(
-	(m) => ({
-		depth: Number(m[1]),
-		slug: m[2],
-		text: m[3].replace(/<[^>]+>/g, "").trim(),
-	}),
-);
+// TOC 全量提取：正则从 markdown 抓 h2-h4，slug 规则与 rehype-slug 一致。
+const headings = extractOutline(fullMarkdown);
 
 // 纯文字阅读版（剥内嵌装饰 + 每字 ruby 注音）：slug 命中配置才启用，其余文章零影响
 const pinyinReading = articleConfig.pinyinReading.slugs.includes(slug);
@@ -79,6 +85,10 @@ const postPath = entry.url || url(`/posts/${slug}`);
             </div>
         )}
         <Markdown class="!max-w-none"><div set:html={html} /></Markdown>
+        {/* 长文分块加载：首屏之后的 chunk 由本 island 滚动时自动拉取 */}
+        {isChunked && (
+          <LoadMoreContent client:visible slug={slug} totalChunks={chunks.length} />
+        )}
         {/* P6 ⑧：分享海报 */}
         {shareOptions && (
             <ArticleShare
