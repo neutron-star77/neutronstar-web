@@ -36,8 +36,10 @@ export const fabConfig: FabConfig = withUserConfig("fab", {
 			thresholdRatio: 10,
 		},
 		{
+			// Kirameku 改造：文章页改用 islands/FloatingToc（悬浮目录，全设备生效），
+			// 旧的底部抽屉 TOC 关闭，避免两个目录入口
 			type: "toc",
-			enable: true,
+			enable: false,
 			devices: ["mobile", "tablet"],
 			pages: ["post"],
 			depth: 3,

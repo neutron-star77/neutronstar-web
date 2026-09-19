@@ -94,3 +94,14 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T | null
     return null;
   }
 }
+
+/** 删除操作（删评论等），带登录态；经 BFF 透传不缓存。 */
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, await safeText(res));
+  }
+}

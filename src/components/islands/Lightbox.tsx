@@ -4,6 +4,7 @@
  * 改动画手感：调内部图片 motion.div 的 transition（spring stiffness/damping）。
  */
 import { useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 
 export interface LightboxPhoto {
@@ -62,7 +63,7 @@ export default function Lightbox({
     };
   }, [open]);
 
-  return (
+  const content = (
     <AnimatePresence>
       {open && photo && (
         <motion.div
@@ -195,4 +196,9 @@ export default function Lightbox({
       )}
     </AnimatePresence>
   );
+
+  // Portal 到 body：灯箱祖先（framer-motion layout / onload-animation）带 transform，
+  // 会让 fixed 定位相对该祖先，导致遮罩错位；挂到 body 才真正相对视口。
+  if (typeof document === "undefined") return content;
+  return createPortal(content, document.body);
 }

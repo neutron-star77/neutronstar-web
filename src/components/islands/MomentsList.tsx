@@ -1,85 +1,111 @@
 /**
- * MomentsList —— 说说（动态）列表，React island（在 moments.astro 中以 client:visible 水合）。
+ * MomentsList —— 说说页 React island（moments.astro，client:load）。
  *
- * 视觉/交互对齐原版 Xinghongia/Neutronstar（f:/AI/projects/Neutronstar-ref）的 /moments 页：
- *  - 按「日期」分组展示（同一天的多条动态聚在一起）
- *  - 同一天多条时：绝对定位堆叠 + 确定性倾斜（stackRotations），模拟实体卡片随手摆的质感
- *  - 点击任意卡片：layout 弹簧展开（spring 300/25），显示全文 + 图片网格 + 点赞 + 「只看这条」
- *  - 悬停未展开卡片：回正角度并轻微上浮（whileHover）
- *
- * 数据来源：useChatters() → bff.neutronstar.fun（Hono Worker）→ 回源真实后端 neutronstar-api。
- * 后端若没有 chatters 数据，页面显示「还没有动态」（动画只在有内容时可见）。
- *
- * 二次开发提示：
- *  - 倾斜角度/弹簧手感：改 web/src/lib/variants.ts 的 stackRotations / spring。
- *  - 点赞已落库（P5）：`POST /api/chatters/{id}/like|unlike`，乐观更新 + 失败回滚 +
- *    成功后 SWR mutate 重拉真实计数。要做"用户维度防刷/我的点赞态"需后端加 like 关联表。
- *  - 评论尚未接入：`/api/comments` 只支持 post 维度，说说/相册要多态关联（见 HANDOFF P5）。
- *  - 图片地址：imgUrl() 走 bff 的 /img 边缘优化（AVIF，w= 控制宽度）；直接给 http(s) 链接则原样返回。
+ * 1:1 对齐 Xinghongia/Kirameku 的 app/moments/page.tsx：
+ *  - 按天分组；同日多条便利贴 absolute 堆叠（rotations 倾斜 + 奇偶 x 偏移）
+ *  - 弹簧动画（stiffness 300 / damping 25），hover 回正上浮
+ *  - 点击展开（遮罩 fixed inset-0 bg-black/20 backdrop-blur-sm z-40）
+ *  - 「只看这条」进入 onlyView：此时才挂载评论区（CommentsThread kind=chatter）
+ *  - 图片网格（≤2 张两列，否则三列）+ 灯箱（复用本地 Lightbox）
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { mutate } from "swr";
+import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
-import { useChatters } from "../../lib/api/hooks";
+import { apiGet, apiPost, ApiError } from "../../lib/api/client";
+import { useGithubUser, loginUrl } from "../../lib/auth";
 import { useRealtimeRefresh } from "../../lib/realtime";
-import { API_BASE_URL, apiGet, apiPost } from "../../lib/api/client";
-import { getToken, loginUrl } from "../../lib/auth";
-import CommentsThread from "./CommentsThread";
+import { stackRotations } from "../../lib/variants";
 import type { Chatter } from "../../lib/api/types";
-import { spring, stackRotations } from "../../lib/variants";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
+import CommentsThread from "./CommentsThread";
 
-/** 把后端返回的图片路径拼成可访问 URL：http(s) 直返；相对路径走 bff /img 边缘优化（w= 控制宽度）。 */
-function imgUrl(path: string, w = 400) {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return `${API_BASE_URL}/img${path.startsWith("/") ? "" : "/"}${path}?w=${w}`;
+/* ── 图标 ── */
+const Icon = {
+  MessageSquare: (p: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  Heart: ({ className, filled }: { className?: string; filled?: boolean }) => (
+    <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
+  ),
+  ChevronLeft: (p: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  ),
+  Camera: (p: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
+    </svg>
+  ),
+};
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-/** 日期 → 「M月D日」分组标题。 */
-function formatDate(d: string) {
-  const dt = new Date(d);
-  return `${dt.getMonth() + 1}月${dt.getDate()}日`;
-}
-
-/** 相对时间（刚刚 / N分钟前 / N小时前 / N天前 / 绝对时间）。 */
-function relativeTime(d: string) {
+function relativeTime(dateStr: string): string {
   const now = new Date();
-  const dt = new Date(d);
-  const diff = now.getTime() - dt.getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "刚刚";
-  if (m < 60) return `${m}分钟前`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}小时前`;
-  const days = Math.floor(h / 24);
-  if (days < 3) return `${days}天前`;
+  const d = new Date(dateStr);
+  const diff = now.getTime() - d.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes} 分钟前`;
+  if (hours < 24) return `${hours} 小时前`;
+  if (days < 3) return `${days} 天前`;
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function MomentsList() {
-  // 真实数据：每页最多取 30 条动态（size 可调）。SWR 自动 30s 去重 + 聚焦重校验。
-  const { data, isLoading, error } = useChatters({ page: 1, size: 30 });
-  // P4 实时：后台发说说 → BFF 广播 moments 频道 → 本列表自动重拉（新卡片按原入场动画插入）
-  useRealtimeRefresh(["chatters"]);
-  // 当前「弹簧展开」的卡片 id（同一时刻只展开一张）
+  const { user } = useGithubUser();
+  const isLogged = !!user;
+  const { data: moments, isLoading, mutate } = useSWR<Chatter[]>(
+    ["chatters"],
+    () => apiGet<Chatter[]>("/api/chatters?status=published&page=1&size=50"),
+    { revalidateOnFocus: false }
+  );
+  useRealtimeRefresh(["chatters", "comments"]);
+
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  // 「只看这条」隔离模式：非 null 时只渲染该条并回正所有角度
   const [onlyViewId, setOnlyViewId] = useState<number | null>(null);
-  // 已点赞集合（乐观态，未落库）
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  // 灯箱状态：null = 关闭；否则 { photos, index }
+  const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
   const [lightbox, setLightbox] = useState<{ photos: LightboxPhoto[]; index: number } | null>(null);
 
-  const moments: Chatter[] = data ?? [];
+  // 我的说说点赞
+  const { data: mineData } = useSWR(
+    isLogged ? ["likes-mine", "chatter"] : null,
+    () => apiGet<{ ids: number[] }>("/api/likes/mine?target_type=chatter"),
+    { revalidateOnFocus: false }
+  );
+  useEffect(() => {
+    if (mineData?.ids) setLikedIds(new Set(mineData.ids));
+  }, [mineData]);
+  useEffect(() => {
+    if (moments) {
+      setLikeCounts((prev) => {
+        const next = { ...prev };
+        moments.forEach((m) => {
+          if (next[m.id] === undefined) next[m.id] = m.likes;
+        });
+        return next;
+      });
+    }
+  }, [moments]);
 
-  // 按 created_at 的「年月日」分组，得到 dayGroups：[{ date, label, moments[] }]
   const dayGroups = useMemo(() => {
     const map = new Map<string, Chatter[]>();
-    for (const m of moments) {
-      const key = m.created_at.slice(0, 10);
+    for (const m of moments ?? []) {
+      const key = (m.created_at || "").slice(0, 10);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(m);
     }
@@ -90,96 +116,85 @@ export default function MomentsList() {
     }));
   }, [moments]);
 
-  // 隔离模式下只保留目标条（过滤掉其它分组里的无关项）
-  const visibleGroups =
-    onlyViewId != null
-      ? dayGroups
-          .map((g) => ({
-            ...g,
-            moments: g.moments.filter((m) => m.id === onlyViewId),
-          }))
-          .filter((g) => g.moments.length > 0)
-      : dayGroups;
-
-  // P5：点赞落库（登录 + 用户维度去重，真值在 likes 表；乐观更新 + 失败回滚）
-  const [token, setTokenState] = useState<string | null>(null);
-  const [likeNotice, setLikeNotice] = useState("");
-
-  useEffect(() => {
-    setTokenState(getToken());
-  }, []);
-
-  // 回填「我点过赞的说说」，避免刷新后点赞态丢失
-  useEffect(() => {
-    if (!token) {
-      setLikedIds(new Set());
-      return;
-    }
-    let alive = true;
-    apiGet<{ ids: number[] }>("/api/likes/mine?target_type=chatter")
-      .then((res) => {
-        if (alive) setLikedIds(new Set(res?.ids ?? []));
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [token]);
+  const visibleGroups = onlyViewId
+    ? dayGroups
+        .map((g) => ({ ...g, moments: g.moments.filter((m) => m.id === onlyViewId) }))
+        .filter((g) => g.moments.length > 0)
+    : dayGroups;
 
   async function toggleLike(id: number) {
-    if (!token) {
-      setLikeNotice("点赞需要先用 GitHub 登录");
+    if (!isLogged) {
+      window.location.href = loginUrl();
       return;
     }
-    setLikeNotice("");
-    const wasLiked = likedIds.has(id);
+    const liked = likedIds.has(id);
+    // 乐观更新
     setLikedIds((prev) => {
-      const n = new Set(prev);
-      if (wasLiked) n.delete(id);
-      else n.add(id);
-      return n;
+      const next = new Set(prev);
+      if (liked) next.delete(id);
+      else next.add(id);
+      return next;
     });
-
+    setLikeCounts((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + (liked ? -1 : 1)) }));
     try {
-      await apiPost("/api/likes/toggle", { target_type: "chatter", target_id: id });
-      // 计数以服务端为准（同时把 BFF 缓存刷成最新值）
-      void mutate((key) => Array.isArray(key) && String(key[0]) === "chatters");
-    } catch {
-      // 回滚乐观态
+      const res = await apiPost<{ likes: number }>("/api/likes/toggle", { target_type: "chatter", target_id: id });
+      setLikeCounts((prev) => ({ ...prev, [id]: res.likes }));
+      void mutate();
+    } catch (err) {
+      // 回滚
       setLikedIds((prev) => {
-        const n = new Set(prev);
-        if (wasLiked) n.add(id);
-        else n.delete(id);
-        return n;
+        const next = new Set(prev);
+        if (liked) next.add(id);
+        else next.delete(id);
+        return next;
       });
-      setLikeNotice("点赞失败，请稍后再试");
+      if (err instanceof ApiError && err.status === 401) window.location.href = loginUrl();
     }
   }
 
-  return (
-    <div className="max-w-2xl">
-      {isLoading && <p className="text-sm text-on-surface-variant">加载中…</p>}
-      {error && <p className="text-sm text-on-surface-variant">加载失败，请刷新</p>}
-      {likeNotice && (
-        <p className="mb-3 text-xs text-on-surface-variant">
-          {likeNotice}{" "}
-          <a href={loginUrl()} className="underline hover:text-primary">
-            去登录
-          </a>
-        </p>
-      )}
-      {!isLoading && moments.length === 0 && (
-        <p className="text-sm text-on-surface-variant">还没有动态。</p>
-      )}
+  if (isLoading) {
+    return (
+      <div>
+        <Header />
+        <div className="space-y-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-2xl bg-white/40 dark:bg-slate-800/40 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-      {onlyViewId != null && (
-        <button
+  if (!moments || moments.length === 0) {
+    return (
+      <div>
+        <Header />
+        <div className="text-center py-20 text-slate-400">
+          <Icon.MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-40" />
+          <p className="text-sm">暂无说说</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <Header />
+
+      {onlyViewId !== null && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           type="button"
-          onClick={() => setOnlyViewId(null)}
-          className="mb-4 text-sm text-primary transition-colors hover:underline"
+          onClick={() => {
+            setOnlyViewId(null);
+            setExpandedId(null);
+          }}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-sky-500 transition-colors mb-6"
         >
-          ← 返回全部
-        </button>
+          <Icon.ChevronLeft className="w-4 h-4" />
+          返回全部
+        </motion.button>
       )}
 
       {visibleGroups.map((group, groupIdx) => (
@@ -188,208 +203,157 @@ export default function MomentsList() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: groupIdx * 0.1 }}
-          className="mb-10 last:mb-0"
+          className="mb-12 last:mb-0"
         >
-          <div className="mb-4 flex items-center gap-3">
-            <span className="text-sm font-bold text-on-surface">{group.label}</span>
-            <span className="text-xs text-on-surface-variant">
-              {group.moments.length} 条
-            </span>
-            <div className="h-px flex-1 bg-gradient-to-r from-outline to-transparent" />
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{group.label}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{group.moments.length} 条</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-slate-300/70 dark:from-slate-700 to-transparent" />
           </div>
 
-          {/* 堆叠容器：同一天多条时给一个最小高度，避免绝对定位卡片溢出重叠错位 */}
           <div
             className="relative"
-            style={{
-              minHeight:
-                group.moments.length > 1 ? 100 + (group.moments.length - 1) * 18 : "auto",
-            }}
+            style={{ minHeight: group.moments.length > 1 ? 100 + (group.moments.length - 1) * 18 : "auto" }}
           >
             {group.moments.map((moment, i) => {
-              // 倾斜角：从 variants.ts 的固定序列循环取（确定性，禁止 Math.random，保证 SSR/水合一致）
               const rot = stackRotations[i % stackRotations.length];
-              // 水平错落：奇偶左右各偏 4px，增强手摆感
               const offsetX = i % 2 === 0 ? -4 : 4;
               const isExpanded = expandedId === moment.id;
-              const isLiked = likedIds.has(moment.id);
+              const isOnlyView = onlyViewId === moment.id;
               const hasImages = moment.images && moment.images.length > 0;
-              // 点赞数直接读服务端计数（点击后会 mutate 重拉；心形颜色由 likedIds 即时反馈）
-              const likeCount = moment.likes;
-
-              // 该条动态的图片 → 灯箱数据结构（url 走 imgUrl 取大图 w=1200）
-              const photos: LightboxPhoto[] = (moment.images ?? []).map((url, pi) => ({
-                id: `${moment.id}-${pi}`,
-                url: imgUrl(url, 1200),
-                caption: "",
-              }));
+              const liked = likedIds.has(moment.id);
 
               return (
                 <motion.div
                   key={moment.id}
                   layout
-                  ref={(el) => {
-                    // 展开后平滑滚到可视区
-                    if (isExpanded && el)
-                      setTimeout(
-                        () => el.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-                        100
-                      );
-                  }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{
                     opacity: 1,
                     y: 0,
-                    // 展开或隔离模式：回正角度/位移；否则用堆叠倾斜角
-                    rotate: isExpanded || onlyViewId != null ? 0 : rot,
-                    x: isExpanded || onlyViewId != null ? 0 : offsetX,
+                    rotate: isExpanded || isOnlyView ? 0 : rot,
+                    x: isExpanded || isOnlyView ? 0 : offsetX,
                   }}
-                  // 弹簧展开手感：stiffness/damping 可调（也可改用 variants.ts 的 spring.card）
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 25,
-                    delay: i * 0.05,
+                  transition={{ type: "spring", stiffness: 300, damping: 25, delay: i * 0.05 }}
+                  whileHover={!isExpanded && !isOnlyView ? { rotate: 0, x: 0, y: -4, scale: 1.01 } : undefined}
+                  onClick={() => {
+                    if (onlyViewId !== null) return;
+                    setExpandedId(isExpanded ? null : moment.id);
                   }}
-                  whileHover={
-                    !isExpanded && onlyViewId == null
-                      ? { rotate: 0, x: 0, y: -4, scale: 1.01 }
-                      : undefined
-                  }
-                  onClick={() => setExpandedId(isExpanded ? null : moment.id)}
-                  // 多张堆叠：绝对定位铺满宽度；单张或隔离模式：相对定位正常流
-                  className={`${
-                    group.moments.length > 1 && onlyViewId == null
-                      ? "absolute left-0 right-0"
-                      : "relative"
-                  } cursor-pointer`}
+                  className={`${group.moments.length > 1 && !isOnlyView ? "absolute left-0 right-0" : "relative"} cursor-pointer`}
                   style={{
-                    // 展开卡片置顶；其余按「越新越靠上」递减层叠
                     zIndex: isExpanded ? 50 : group.moments.length - i,
-                    ...(group.moments.length > 1 && onlyViewId == null
-                      ? { top: i * 18 }
-                      : {}),
+                    ...(group.moments.length > 1 && !isOnlyView ? { top: i * 18 } : {}),
                   }}
                 >
-                  <div className="overflow-hidden rounded-m3 border border-outline/40 bg-surface-container shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
-                    {/* 收起态：相对时间 + 心情 + 📷 + 2 行截断正文 */}
-                    {!isExpanded && onlyViewId == null && (
-                      <div className="px-4 py-3">
-                        <div className="mb-1.5 flex items-center gap-2">
-                          <span className="text-xs text-on-surface-variant">
-                            {relativeTime(moment.created_at)}
-                          </span>
-                          {moment.mood && (
-                            <span className="text-xs">{moment.mood}</span>
-                          )}
-                          {hasImages && (
-                            <span className="text-xs text-on-surface-variant">📷</span>
-                          )}
+                  <div className="rounded-2xl bg-white/50 dark:bg-slate-800/60 backdrop-blur-xl border border-white/30 dark:border-white/10 shadow-lg overflow-hidden transition-shadow duration-300 hover:shadow-xl">
+                    {/* 折叠态 */}
+                    {!isExpanded && !isOnlyView && (
+                      <div className="px-4 py-3 md:px-5 md:py-4">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs text-slate-400">{relativeTime(moment.created_at)}</span>
+                          {moment.mood && <span className="text-xs">{moment.mood}</span>}
+                          {hasImages && <Icon.Camera className="w-3.5 h-3.5 text-slate-400" />}
                         </div>
-                        <p className="line-clamp-2 text-sm leading-relaxed text-on-surface">
+                        <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 leading-relaxed">
                           {moment.content}
                         </p>
                       </div>
                     )}
 
-                    {/* 展开态 / 隔离态：作者 + 全文 + 图片网格 + 点赞 + 只看这条 */}
-                    {(isExpanded || onlyViewId != null) && (
+                    {/* 展开 / 只看这条 */}
+                    {(isExpanded || isOnlyView) && (
                       <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <div className="p-4">
-                          <div className="mb-3 flex items-center gap-2">
-                            <span className="text-sm font-semibold text-on-surface">
-                              Starhiro
-                            </span>
-                            <span className="text-xs text-on-surface-variant">
-                              {relativeTime(moment.created_at)}
-                            </span>
+                        <div className="p-4 md:p-5">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                                N
+                              </div>
+                              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">说说</span>
+                              <span className="text-xs text-slate-400">{relativeTime(moment.created_at)}</span>
+                            </div>
                             {moment.mood && (
-                              <span className="rounded-full bg-secondary-container px-2 py-0.5 text-xs text-on-surface">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100/80 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400">
                                 {moment.mood}
                               </span>
                             )}
                           </div>
 
-                          <p className="mb-4 whitespace-pre-wrap text-sm leading-relaxed text-on-surface">
+                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-4 whitespace-pre-wrap">
                             {moment.content}
                           </p>
 
                           {hasImages && (
                             <div
-                              className={`mb-4 grid gap-2 ${
-                                moment.images.length <= 2
-                                  ? "grid-cols-2"
-                                  : "grid-cols-3"
-                              }`}
+                              className={`grid gap-2 mb-4 ${moment.images.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}
                             >
-                              {moment.images.map((img, idx) => (
-                                <div
-                                  key={idx}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setLightbox({ photos, index: idx });
-                                  }}
-                                  className="group/img relative aspect-square cursor-pointer overflow-hidden rounded-xl"
-                                >
-                                  <img
-                                    src={imgUrl(img, 600)}
-                                    alt=""
-                                    loading="lazy"
-                                    className="h-full w-full object-cover transition-transform duration-300 group-hover/img:scale-105"
-                                  />
-                                </div>
-                              ))}
+                              {moment.images.map((img, idx) => {
+                                const photos: LightboxPhoto[] = moment.images.map((url, pi) => ({
+                                  id: `${moment.id}-${pi}`,
+                                  url,
+                                }));
+                                return (
+                                  <div
+                                    key={idx}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLightbox({ photos, index: idx });
+                                    }}
+                                    className="relative rounded-xl overflow-hidden cursor-pointer group aspect-square"
+                                  >
+                                    <img
+                                      src={img}
+                                      alt=""
+                                      loading="lazy"
+                                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    />
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between border-t border-outline/40 pt-3">
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 dark:border-white/5">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleLike(moment.id);
+                                void toggleLike(moment.id);
                               }}
-                              className={`flex items-center gap-1.5 text-xs transition-colors ${
-                                isLiked
-                                  ? "text-pink-500"
-                                  : "text-on-surface-variant hover:text-pink-500"
-                              }`}
+                              className={`flex items-center gap-1.5 text-xs transition-colors ${liked ? "text-pink-500" : "text-slate-400 hover:text-pink-500"}`}
                             >
-                              <svg
-                                className={`h-4 w-4 transition-all duration-300 ${
-                                  isLiked ? "scale-110 fill-pink-500" : ""
-                                }`}
-                                viewBox="0 0 24 24"
-                                fill={isLiked ? "currentColor" : "none"}
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
+                              <Icon.Heart className={`w-4 h-4 transition-all duration-300 ${liked ? "fill-pink-500 scale-110" : ""}`} />
+                              <span>{likeCounts[moment.id] ?? moment.likes}</span>
+                            </button>
+                            {!isOnlyView && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOnlyViewId(moment.id);
+                                }}
+                                className="text-xs px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-colors"
                               >
-                                <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z" />
-                              </svg>
-                              <span>{likeCount}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOnlyViewId(onlyViewId === moment.id ? null : moment.id);
-                              }}
-                              className="rounded-full bg-primary-container px-3 py-1 text-xs text-on-primary-container transition-colors hover:bg-primary/20"
-                            >
-                              {onlyViewId === moment.id ? "返回全部" : "只看这条"}
-                            </button>
+                                只看这条
+                              </button>
+                            )}
                           </div>
-
-                          {/* P5：评论区（说说维度；GitHub 登录后可发言/点赞/回复） */}
-                          <CommentsThread kind="chatter" targetId={moment.id} />
                         </div>
+
+                        {/* 评论区：仅在「只看这条」时挂载 */}
+                        {isOnlyView && (
+                          <div
+                            className="border-t border-slate-200/50 dark:border-white/5 px-3 md:px-5 py-4"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <CommentsThread kind="chatter" targetId={moment.id} embedded />
+                          </div>
+                        )}
                       </motion.div>
                     )}
                   </div>
@@ -400,35 +364,58 @@ export default function MomentsList() {
         </motion.div>
       ))}
 
-      {/* 展开遮罩：点击空白处收起当前卡片 */}
+      {/* 展开遮罩 */}
       <AnimatePresence>
-        {expandedId != null && onlyViewId == null && (
+        {expandedId !== null && onlyViewId === null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setExpandedId(null)}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
           />
         )}
       </AnimatePresence>
 
-      <Lightbox
-        photos={lightbox?.photos ?? []}
-        index={lightbox?.index ?? 0}
-        open={!!lightbox}
-        onClose={() => setLightbox(null)}
-        onPrev={() =>
-          setLightbox((lb) =>
-            lb ? { ...lb, index: (lb.index - 1 + lb.photos.length) % lb.photos.length } : null
-          )
-        }
-        onNext={() =>
-          setLightbox((lb) =>
-            lb ? { ...lb, index: (lb.index + 1) % lb.photos.length } : null
-          )
-        }
-      />
+      {lightbox && (
+        <Lightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          open={true}
+          onClose={() => setLightbox(null)}
+          onPrev={() =>
+            setLightbox((prev) =>
+              prev
+                ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length }
+                : prev
+            )
+          }
+          onNext={() =>
+            setLightbox((prev) =>
+              prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : prev
+            )
+          }
+        />
+      )}
     </div>
+  );
+}
+
+function Header() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="mb-8 md:mb-12"
+    >
+      <div className="flex items-center gap-3 mb-2">
+        <Icon.MessageSquare className="w-6 h-6 md:w-7 md:h-7 text-sky-500" />
+        <h1 className="text-xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">说说</h1>
+      </div>
+      <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 ml-7 md:ml-10">
+        记录生活中的小确幸
+      </p>
+    </motion.div>
   );
 }

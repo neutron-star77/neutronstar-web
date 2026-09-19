@@ -1,44 +1,31 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import { getSortedPostsList } from "@utils/content-utils";
+import TimelineRiver, { type RiverPost } from "@components/islands/TimelineRiver";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import { formatDateToYYYYMMDD } from "@utils/date-utils";
-import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import { getSortedPosts } from "@utils/content-utils";
 
-// P2：归档页 SSR，数据来自后端文章接口
+// Kirameku 风格「时光河流」归档页：SSR 全量文章下发，SVG 河流 + 横向拖拽。
+// 原年度列表被替换；个人经历页 /timeline（data/timeline.ts）保持不变。
 export const prerender = false;
 
-const posts = await getSortedPostsList();
+const posts = await getSortedPosts();
 
-const byYear = new Map<number, typeof posts>();
-for (const post of posts) {
-	const year = post.data.published.getFullYear();
-	if (!byYear.has(year)) byYear.set(year, []);
-	byYear.get(year)!.push(post);
-}
-const years = [...byYear.keys()].sort((a, b) => b - a);
+const riverPosts: RiverPost[] = posts.map((p) => ({
+  id: p.postId ?? 0,
+  slug: p.slug,
+  title: p.data.title,
+  description: p.data.description ?? "",
+  cover: p.data.image ?? "",
+  category: p.data.category ?? "",
+  views: p.views ?? 0,
+  likes: p.likes ?? 0,
+  published_at: p.data.published.toISOString(),
+}));
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)} page="archive">
-    <div class="card-base onload-animation p-6">
-        <h1 class="text-2xl font-bold mb-6">{i18n(I18nKey.archive)}</h1>
-        {years.map((year) => (
-            <section class="mb-8">
-                <h2 class="text-xl font-bold mb-3">{year}</h2>
-                <ul class="flex flex-col gap-2">
-                    {byYear.get(year)!.map((post) => (
-                        <li class="flex items-baseline gap-4">
-                            <span class="opacity-60 font-mono text-sm shrink-0">
-                                {formatDateToYYYYMMDD(post.data.published)}
-                            </span>
-                            <a class="hover:underline" href={post.url}>{post.data.title}</a>
-                        </li>
-                    ))}
-                </ul>
-            </section>
-        ))}
-        {posts.length === 0 && <p class="opacity-60">暂无文章</p>}
+    <div class="kirameku-page">
+        <TimelineRiver posts={riverPosts} client:load />
     </div>
 </MainGridLayout>
-<LiveRefreshBanner client:load />

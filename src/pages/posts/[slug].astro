@@ -2,6 +2,9 @@
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
 import CommentsThread from "@components/islands/CommentsThread";
+import ReadingProgress from "@components/islands/ReadingProgress";
+import FloatingToc from "@components/islands/FloatingToc";
+import PostLikeButton from "@components/islands/PostLikeButton";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import LoadMoreContent from "@components/islands/LoadMoreContent";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
@@ -14,12 +17,11 @@ import {
 	extractOutline,
 } from "@utils/markdown-chunks.mjs";
 import { url } from "@utils/url-utils";
-import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getSiteIdentity } from "@utils/site-overrides";
 import { articleConfig, resolveArticleShareOptions } from "@/config/articleConfig";
 import { siteConfig } from "@/config";
 
-// P2：文章详情页 SSR（markdown 服务端渲染），正文来自后端
+// Kirameku 风格文章详情页：封面 hero + 元信息行 + 点赞 + 阅读进度条 + 悬浮目录 + 评论
 export const prerender = false;
 
 const { slug = "" } = Astro.params;
@@ -29,7 +31,7 @@ if (!entry) {
 	return Astro.redirect(url("/"));
 }
 
-// 长文分块渲染：262KB+ 的文章全量渲染会触发 Worker 1102。
+// 长文分块渲染：162KB+ 的文章全量渲染会触发 Worker 1102。
 // 按 h2 切块，首屏只渲染累计 ~15KB 以内的前若干 chunk，后续由 LoadMoreContent 逐段加载。
 const fullMarkdown = entry.body ?? "";
 const chunks = splitMarkdownByH2(fullMarkdown);
@@ -47,65 +49,132 @@ const { code: renderedHtml } = await renderer.render(firstScreenMarkdown, {
 // TOC 全量提取：正则从 markdown 抓 h2-h4，slug 规则与 rehype-slug 一致。
 const headings = extractOutline(fullMarkdown);
 
-// 纯文字阅读版（剥内嵌装饰 + 每字 ruby 注音）：slug 命中配置才启用，其余文章零影响
+// 纯文字阅读版（窄内嵌套 + 每字 ruby 注音）：slug 命中配置才启用，其余文章零影响
 const pinyinReading = articleConfig.pinyinReading.slugs.includes(slug);
 const html = pinyinReading
 	? (await import("@utils/pinyin-reading")).enhancePinyinReading(renderedHtml)
 	: renderedHtml;
 
 // 文章级字体（后台可选；未选为空 → 保持站点默认字体，零影响）
-// 字体二进制由后端 font_asset 表存储，经 BFF /api/fonts/{id}/file 下发；
-// family 已带引号场景由 CSS 侧处理，这里只透传原始 family 名。
 const postFont = entry.font?.family ? entry.font : null;
 const fontFaceUrl = postFont ? apiUrl(`/api/fonts/${postFont.id}/file`) : null;
 const postFontFamily = postFont ? `"${postFont.family}", var(--m3e-font-sans)` : "";
 const postFontName = postFont?.name ?? "";
 const articleStyle = postFont ? { "--post-font": postFontFamily } : undefined;
 
-// P6 ⑧：分享海报
+// 分享海报
 const shareOptions = resolveArticleShareOptions(articleConfig);
 const { title: siteTitle } = await getSiteIdentity();
 const postPath = entry.url || url(`/posts/${slug}`);
+
+const dateStr = entry.data.published.toLocaleDateString("zh-CN", {
+	year: "numeric",
+	month: "long",
+	day: "numeric",
+});
+const cover = entry.data.image || "";
 ---
 
 <MainGridLayout title={entry.data.title} page="post" postCategory={entry.data.category || undefined} setOGTypeArticle headings={headings}>
-    <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿用于他处 -->
-    <article class:list={["card-base prose-host onload-animation p-6", { "pinyin-reading": pinyinReading, "post-font-custom": Boolean(postFont) }]} style={articleStyle}>
-        <h1 class="text-3xl font-bold mb-4">{entry.data.title}</h1>
-        <div class="opacity-60 text-sm mb-2">
-            {formatDateToYYYYMMDD(entry.data.published)}
-            {entry.data.category && <span class="mx-2">·</span>}{entry.data.category}
-            {entry.wordCount > 0 && <span class="mx-2">·</span>}{entry.wordCount} 字
-        </div>
-        {entry.data.tags.length > 0 && (
-            <div class="flex flex-wrap gap-2 mb-6">
-                {entry.data.tags.map((tag) => (
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--primary)]/10">#{tag}</span>
-                ))}
+    <ReadingProgress client:load />
+    <FloatingToc client:load headings={headings} />
+
+    <div class="kirameku-page">
+        <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿挪作他处 -->
+        <article
+            class:list={[
+                "kirameku-article prose-host onload-animation rounded-3xl shadow-2xl overflow-hidden bg-white/60 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/30 dark:border-white/10",
+                { "pinyin-reading": pinyinReading, "post-font-custom": Boolean(postFont) },
+            ]}
+            style={articleStyle}
+        >
+            <!-- 封面 hero -->
+            {cover && (
+                <div class="relative w-full h-40 sm:h-56 md:h-72 overflow-hidden">
+                    <img src={cover} alt={entry.data.title} class="absolute inset-0 w-full h-full object-cover" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                </div>
+            )}
+
+            <div class="px-4 sm:px-6 md:px-12 py-5 sm:py-8 md:py-10">
+                <h1 class="text-xl sm:text-2xl md:text-4xl font-bold text-slate-900 dark:text-white leading-tight mb-3 md:mb-4">
+                    {entry.data.title}
+                </h1>
+
+                {entry.data.description && (
+                    <p class="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 mb-4 sm:mb-6 leading-relaxed">
+                        {entry.data.description}
+                    </p>
+                )}
+
+                <!-- 元信息行 -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4 pb-5 border-b border-slate-200/60 dark:border-white/10">
+                    <span class="flex items-center gap-1.5">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="w-3.5 h-3.5 sm:w-4 sm:h-4"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        {dateStr}
+                    </span>
+                    {entry.readingTime > 0 && (
+                        <span class="flex items-center gap-1.5">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="w-3.5 h-3.5 sm:w-4 sm:h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            {entry.readingTime} 分钟阅读
+                        </span>
+                    )}
+                    <span class="flex items-center gap-1.5">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="w-3.5 h-3.5 sm:w-4 sm:h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {entry.views} 次浏览
+                    </span>
+                    {entry.postId && (
+                        <PostLikeButton client:load postId={entry.postId} initialLikes={entry.likes} />
+                    )}
+                    {entry.data.category && (
+                        <span class="text-slate-400 dark:text-slate-500">· {entry.data.category}</span>
+                    )}
+                </div>
+
+                <!-- 标签 -->
+                {entry.data.tags.length > 0 && (
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        {entry.data.tags.map((tag) => (
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-300">
+                                #{tag}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                <!-- 正文 -->
+                <Markdown class="post-content !max-w-none"><div set:html={html} /></Markdown>
+                {/* 长文分块加载：首屏之后的 chunk 由本 island 滚动时自动拉取 */}
+                {isChunked && (
+                  <LoadMoreContent client:visible slug={slug} totalChunks={chunks.length} />
+                )}
+
+                {/* 分享海报 */}
+                {shareOptions && (
+                    <div class="mt-8">
+                        <ArticleShare
+                            client:load
+                            options={shareOptions}
+                            title={entry.data.title}
+                            description={entry.data.description || ""}
+                            author={siteConfig.author || ""}
+                            published={dateStr}
+                            siteTitle={siteTitle || siteConfig.title}
+                            postPath={postPath}
+                            avatarUrl={siteConfig.avatar || ""}
+                        />
+                    </div>
+                )}
+            </div>
+        </article>
+
+        {/* 评论区（文章卡外） */}
+        {entry.postId && (
+            <div class="mt-8">
+                <CommentsThread client:load kind="post" targetId={entry.postId} />
             </div>
         )}
-        <Markdown class="!max-w-none"><div set:html={html} /></Markdown>
-        {/* 长文分块加载：首屏之后的 chunk 由本 island 滚动时自动拉取 */}
-        {isChunked && (
-          <LoadMoreContent client:visible slug={slug} totalChunks={chunks.length} />
-        )}
-        {/* P6 ⑧：分享海报 */}
-        {shareOptions && (
-            <ArticleShare
-                client:load
-                options={shareOptions}
-                title={entry.data.title}
-                description={entry.data.description || ""}
-                author={siteConfig.author || ""}
-                published={formatDateToYYYYMMDD(entry.data.published)}
-                siteTitle={siteTitle || siteConfig.title}
-                postPath={postPath}
-                avatarUrl={siteConfig.avatar || ""}
-            />
-        )}
-        {/* P5：文章评论区（多态评论表 post 维度，GitHub 登录后可发言/点赞/回复） */}
-        {entry.postId ? <CommentsThread client:load kind="post" targetId={entry.postId} /> : null}
-    </article>
+    </div>
 </MainGridLayout>
 <LiveRefreshBanner client:load />
 {
@@ -119,11 +188,10 @@ const postPath = entry.url || url(`/posts/${slug}`);
 <style is:global>
 /* 文章级字体（后台 font_asset 选择）：挂 .post-font-custom 时正文用所选字体。
    @font-face 按文章动态注入（fontFaceUrl），字体文件经 BFF 下发并长缓存。
-   未选字体（entry.font 为空)时整段 CSS 不生效，站点保持默认字体，零影响。 */
+   未选字体（entry.font 为空）时整段 CSS 不生效，站点保持默认字体，零影响。*/
 .post-font-custom .prose {
 	font-family: var(--post-font, var(--m3e-font-sans));
 }
-/* 正文标题/列表也应随文章字体，仅代码块保持 mono 角色不变 */
 .post-font-custom .prose h1,
 .post-font-custom .prose h2,
 .post-font-custom .prose h3,
@@ -135,7 +203,7 @@ const postPath = entry.url || url(`/posts/${slug}`);
 .post-font-custom .prose blockquote {
 	font-family: inherit;
 }
-/* 纯文字阅读版（pinyin-reading，2026-09-14）：窄栏居中 + 衬线 + 宽行距容纳注音。
+/* 纯文字阅读版（pinyin-reading，2026-09-14）：窄栏居中 + 宽行 + 宽行距容纳注音。
    仅命中 articleConfig.pinyinReading.slugs 的文章挂 .pinyin-reading，其余文章零影响 */
 .pinyin-reading .prose {
 	max-width: 42rem;
@@ -149,7 +217,7 @@ const postPath = entry.url || url(`/posts/${slug}`);
 	margin-block: 1.5em;
 	text-indent: 2em;
 }
-/* 文末题注（原作者写在内容里的 .lsf-note，装饰样式已随 <style> 剥除，这里补极简样式） */
+/* 文末题注（原作者写在内容里的 .lsf-note，装饰样式已随 <style> 剥离，这里补极简样式）*/
 .pinyin-reading .lsf-note {
 	text-indent: 0 !important;
 	text-align: center;

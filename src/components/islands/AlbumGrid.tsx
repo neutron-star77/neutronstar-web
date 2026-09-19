@@ -1,26 +1,21 @@
 /**
- * AlbumGrid —— 相册列表，React island（albums.astro 中 client:visible 水合）。
+ * AlbumGrid —— 照片墙 React island（albums.astro，client:visible）。
  *
- * 视觉/交互对齐原版 Xinghongia/Neutronstar 的 /photowall：
- *  - AlbumCard：封面 3 张堆叠 → 悬停扇形展开（STACK_ANGLES → FAN_ANGLES）→ 点击内联高度展开照片墙
- *  - 展开后内部是拍立得风格 PhotoCard（白边 + 胶带 + 确定性倾斜 tiltFromId），点图进 Lightbox
- *  - 展开卡片占满整行（sm:col-span-2 lg:col-span-3），照片墙才够宽
+ * 1:1 对齐 Xinghongia/Kirameku 的 app/photowall/page.tsx + components/photos/*：
+ *  - AlbumCard：封面 3 张堆叠（STACK_ANGLES）→ 悬停/展开扇子（FAN_ANGLES/FAN_Y）
+ *  - 点击内联展开（height 0→auto），展开卡占满整行（lg:col-span-3）
+ *  - 拍立得 PhotoCard（白底 + 胶带 + id 确定性倾角），点外部收起
+ *  - 灯箱复用本地 Lightbox（键盘/滑动/spring 缩放与参考一致）
  *
- * 数据来源（P2 数据换血）：相册列表 useAlbums()（/api/albums），照片墙
- * useAlbumPhotos(album.id)（/api/albums/{id}/photos，SWR 懒加载）。
- *
- * 二次开发提示：
- *  - 扇形角度：STACK_ANGLES / FAN_ANGLES / FAN_Y（本文件顶部常量）
- *  - 拍立得倾斜：tiltFromId(id)（variants.ts），按 id 确定性派生，禁止随机
- *  - 展开动画时长/缓动：AlbumCard 内 AnimatePresence 的 transition
+ * 数据：相册列表 useSWR("/api/albums")，照片墙懒加载 /api/albums/{id}/photos。
+ * 图床：fastimage 两级派生（thumbs 列表 / full 灯箱），非图床 URL 原样返回。
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { motion, AnimatePresence } from "motion/react";
-import { spring, tiltFromId } from "../../lib/variants";
+import { spring } from "../../lib/variants";
 import { useRealtimeRefresh } from "../../lib/realtime";
-import CommentsThread from "./CommentsThread";
 import { apiGet } from "../../lib/api/client";
 import type { Album } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
@@ -29,45 +24,54 @@ interface AlbumPhoto {
   id: string;
   url: string;
   caption?: string;
+  orientation: "landscape" | "portrait";
 }
 
-/**
- * fastimage 两级派生：母版 URL（.../2026/08/xxx.webp）按目录约定派生
- * thumbs/xxx.webp（800w 列表）与 full/xxx.webp（1600w 灯箱）。非图床 URL 原样返回。
- */
+/* fastimage 两级派生：母片 URL（…/2026/08/xxx.webp）按目录约定派生 thumbs/full */
 const FASTIMAGE_RE = /^(https:\/\/(?:cdn|fastly|gcore)\.jsdelivr\.net\/gh\/neutron-star77\/fastimage@main\/2026\/08\/)(.+)$/;
 const GCORE_BASE = "https://gcore.jsdelivr.net/gh/neutron-star77/fastimage@main/2026/08/";
 function deriveVariants(url: string): { thumb: string; full: string } | null {
   const m = url.match(FASTIMAGE_RE);
   if (!m) return null;
-  // cdn/fastly 子域目前对 gh 资源 301 到 raw（大陆直连差），gcore 直出，统一走 gcore
   return { thumb: `${GCORE_BASE}thumbs/${m[2]}`, full: `${GCORE_BASE}full/${m[2]}` };
 }
 
-/** 相册照片列表（展开/封面共用，39 条 URL 级数据量很小） */
 function useAlbumPhotos(albumId: number) {
   return useSWR<AlbumPhoto[]>(
     ["album-photos", albumId],
     async ([, id]) => {
-      const rows = await apiGet<
-        { id: number; url: string; caption: string }[]
-      >(`/api/albums/${id}/photos`);
+      const rows = await apiGet<{ id: number; url: string; caption: string; orientation?: string }[]>(
+        `/api/albums/${id}/photos`
+      );
       return (rows ?? []).map((p) => ({
         id: String(p.id),
         url: p.url,
         caption: p.caption || undefined,
+        orientation: p.orientation === "portrait" ? "portrait" : "landscape",
       }));
     },
     { revalidateOnFocus: false }
   );
 }
 
-// 封面堆叠（收起）角度 / 悬停扇形角度 / 扇形纵向偏移。索引对应封面第 i 张（上/中/下）。
+/* 封面堆叠（收起）角度 / 悬停扇子角度 / 扇子纵向偏移，索引对应封面第 i 张（上中下） */
 const STACK_ANGLES = [-4, 0, 3];
 const FAN_ANGLES = [-12, 0, 12];
 const FAN_Y = [-4, -10, -4];
 
-// 拍立得照片卡片：白底 + 底部留白 + 胶带 + 确定性倾斜 + 悬停回正放大
+function photoTilt(id: string): number {
+  const seed = id.charCodeAt(0) + id.charCodeAt(id.length - 1);
+  return ((seed % 7) - 3) * 0.8;
+}
+
+const CameraIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+    <circle cx="12" cy="13" r="3" />
+  </svg>
+);
+
+/* ── 拍立得照片卡 ── */
 function PhotoCard({
   photo,
   index,
@@ -78,13 +82,15 @@ function PhotoCard({
   onClick: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
-  const rotation = tiltFromId(photo.id); // 由 id 派生 ±2.4° 内的固定倾斜角
+  const rotation = photoTilt(photo.id);
+  const isLandscape = photo.orientation === "landscape";
+  const variants = deriveVariants(photo.url);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, rotate: rotation * 2 }}
       animate={{ opacity: 1, y: 0, rotate: rotation }}
-      transition={{ duration: 0.6, delay: index * 0.04, ease: "easeOut" }}
+      transition={{ duration: 0.6, delay: index * 0.06, ease: "easeOut" }}
       whileHover={{
         rotate: 0,
         scale: 1.03,
@@ -92,43 +98,45 @@ function PhotoCard({
         transition: { type: "spring", stiffness: 300, damping: 20 },
       }}
       onClick={onClick}
-      className="group relative mb-3 cursor-pointer break-inside-avoid"
+      className="relative cursor-pointer group break-inside-avoid mb-3 md:mb-5"
       style={{ transformOrigin: "center center" }}
     >
-      {/* 拍立得白框（深色模式变深灰）+ 图片淡入 + 骨架占位 */}
-      <div className="relative rounded-sm bg-white p-2 pb-6 shadow-lg transition-shadow duration-300 group-hover:shadow-2xl dark:bg-slate-800 dark:shadow-black/30">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[1px]">
+      <div className="relative bg-white dark:bg-slate-800 p-2 pb-6 md:p-2.5 md:pb-8 rounded-sm shadow-lg dark:shadow-black/30 group-hover:shadow-2xl transition-shadow duration-300">
+        <div className={`relative overflow-hidden rounded-[1px] ${isLandscape ? "aspect-[4/3]" : "aspect-[4/5]"}`}>
           <img
-            src={deriveVariants(photo.url)?.thumb ?? photo.url}
-            srcSet={
-              deriveVariants(photo.url)
-                ? `${deriveVariants(photo.url)!.thumb} 800w, ${deriveVariants(photo.url)!.full} 1600w, ${photo.url} 1920w`
-                : undefined
-            }
-            sizes="(min-width: 640px) 30vw, 45vw"
+            src={variants?.thumb ?? photo.url}
+            srcSet={variants ? `${variants.thumb} 800w, ${variants.full} 1600w, ${photo.url} 1920w` : undefined}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             alt={photo.caption || "照片"}
             loading="lazy"
-            className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+            className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
               loaded ? "opacity-100" : "opacity-0"
             }`}
             onLoad={() => setLoaded(true)}
           />
           {!loaded && (
-            <div className="absolute inset-0 animate-pulse bg-slate-200 dark:bg-slate-700" />
+            <div className={`absolute inset-0 w-full bg-slate-200 dark:bg-slate-700 animate-pulse ${isLandscape ? "aspect-[4/3]" : "aspect-[3/4]"}`} />
           )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
         </div>
         {photo.caption && (
           <div className="absolute bottom-1.5 left-0 right-0 text-center">
-            <span className="rounded-full bg-black/40 px-2 py-0.5 text-[10px] text-white">
+            <span className="text-xs text-slate-400 dark:text-slate-500 font-serif italic tracking-wide">
               {photo.caption}
             </span>
           </div>
         )}
       </div>
+      {/* 胶带装饰 */}
+      <div
+        className="absolute -top-2 left-2 md:left-3 w-8 h-3 md:w-10 md:h-4 bg-amber-200/60 dark:bg-amber-300/30 rounded-sm rotate-[-6deg] pointer-events-none"
+        style={{ backdropFilter: "blur(2px)" }}
+      />
     </motion.div>
   );
 }
 
+/* ── 相册卡 ── */
 function AlbumCard({
   album,
   isExpanded,
@@ -142,11 +150,12 @@ function AlbumCard({
 }) {
   const { data: photos } = useAlbumPhotos(album.id);
 
-  // 取前 3 张做封面，reverse 让「最上面」是最后一张（视觉更自然）；
-  // 照片未加载时用相册 cover 兜底单张
-  const covers = (photos && photos.length > 0
-    ? photos.slice(0, 3).reverse()
-    : [{ id: `cover-${album.id}`, url: album.cover }]) as AlbumPhoto[];
+  // 前 3 张做封面，reverse 让「最上面」是最后一张（视觉更自然）
+  const covers = (
+    photos && photos.length > 0
+      ? photos.slice(0, 3).reverse()
+      : [{ id: `cover-${album.id}`, url: album.cover, orientation: "landscape" as const }]
+  ) as AlbumPhoto[];
 
   const lightboxPhotos: LightboxPhoto[] = (photos ?? []).map((p) => ({
     id: p.id,
@@ -156,14 +165,10 @@ function AlbumCard({
   const photoCount = photos?.length ?? album.photo_count;
 
   return (
-    <div
-      className="cursor-pointer select-none overflow-hidden rounded-3xl"
-      onClick={onToggle}
-    >
-      <div className="relative px-4 pb-3 pt-4">
-        {/* 封面堆叠区：rest=堆叠态，hover=扇形态（悬停或展开时触发） */}
+    <div className="rounded-3xl overflow-hidden cursor-pointer select-none" onClick={onToggle}>
+      <div className="relative px-4 pt-4 pb-3 md:px-6 md:pt-6 md:pb-4">
         <motion.div
-          className="relative mx-auto h-36 max-w-[200px]"
+          className="relative h-36 md:h-48 mx-auto max-w-[200px] md:max-w-[260px]"
           initial="rest"
           animate={isExpanded ? "hover" : "rest"}
           whileHover="hover"
@@ -188,30 +193,29 @@ function AlbumCard({
               }}
               transition={spring.card}
             >
-              <div className="relative h-full w-full overflow-hidden rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+              <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10">
                 <img
-                  src={photo.url}
-                  alt={album.title}
+                  src={deriveVariants(photo.url)?.thumb ?? photo.url}
+                  alt={photo.caption || album.title}
                   loading="lazy"
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
             </motion.div>
           ))}
-          <div className="absolute -bottom-2 right-0 z-20 rounded-full bg-primary px-2.5 py-0.5 text-xs font-bold text-on-primary shadow-lg">
+          <div className="absolute -bottom-2 right-0 z-20 px-2 py-0.5 md:px-2.5 rounded-full bg-sky-500 text-white text-[10px] md:text-xs font-bold shadow-lg shadow-sky-500/30">
             {photoCount} 张
           </div>
         </motion.div>
 
-        <div className="mt-4 text-center">
-          <h3 className="text-lg font-bold text-on-surface">{album.title}</h3>
+        <div className="mt-4 md:mt-6 text-center">
+          <h3 className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100">{album.title}</h3>
           {album.description && (
-            <p className="mt-1 text-xs text-on-surface-variant">{album.description}</p>
+            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1">{album.description}</p>
           )}
         </div>
       </div>
 
-      {/* 内联展开：高度 0→auto 的缓动过渡，内部渲染照片墙 */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -222,27 +226,29 @@ function AlbumCard({
             onClick={(e) => e.stopPropagation()}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-6">
-              {/* 照片墙网格：2 列(移动)/3 列(>=sm)；每张是拍立得 PhotoCard */}
-              {photos ? (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {photos.map((photo, idx) => (
-                    <PhotoCard
-                      key={photo.id}
-                      photo={photo}
-                      index={idx}
-                      onClick={() => onPhotoClick(lightboxPhotos, idx)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-8">
-                  <span className="text-sm text-on-surface-variant">照片加载中…</span>
-                </div>
-              )}
-
-              {/* P5：相册评论（多态评论表 album 维度，GitHub 登录后可发言/点赞） */}
-              <CommentsThread kind="album" targetId={album.id} />
+            <div className="px-4 pb-6 md:px-6">
+              <div className="p-4 md:p-6 rounded-2xl">
+                {photos ? (
+                  photos.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
+                      {photos.map((photo, photoIndex) => (
+                        <PhotoCard
+                          key={photo.id}
+                          photo={photo}
+                          index={photoIndex}
+                          onClick={() => onPhotoClick(lightboxPhotos, photoIndex)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-sm text-slate-400 py-8">相册里还没有照片</p>
+                  )
+                ) : (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -254,66 +260,107 @@ function AlbumCard({
 export default function AlbumGrid() {
   const { data: albums, isLoading } = useSWR<Album[]>(
     ["albums"],
-    () => apiGet<Album[]>("/api/albums"),
+    async () => {
+      const list = await apiGet<Album[]>("/api/albums");
+      return (list ?? []).sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    },
     { revalidateOnFocus: false }
   );
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [lightbox, setLightbox] = useState<{ photos: LightboxPhoto[]; index: number } | null>(
-    null
-  );
-
-  // P4 实时：后台改相册/加照片 → BFF 广播 albums 频道 → 相册列表与已展开的照片墙自动重拉
   useRealtimeRefresh(["albums", "album-photos"]);
 
-  if (isLoading) {
-    return (
-      <p className="text-sm text-on-surface-variant">相册加载中…</p>
-    );
-  }
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [currentPhotos, setCurrentPhotos] = useState<LightboxPhoto[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const expandedRef = useRef<HTMLDivElement>(null);
 
-  if (!albums || albums.length === 0) {
-    return <p className="text-sm text-on-surface-variant">还没有相册。</p>;
-  }
+  // 点外部收起（灯箱打开时不处理）
+  useEffect(() => {
+    if (expandedId === null) return;
+    const handler = (e: MouseEvent) => {
+      if (lightboxOpen) return;
+      if (expandedRef.current && !expandedRef.current.contains(e.target as Node)) {
+        setExpandedId(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [expandedId, lightboxOpen]);
+
+  const openLightbox = (photos: LightboxPhoto[], index: number) => {
+    setCurrentPhotos(photos);
+    setCurrentIndex(index);
+    setLightboxOpen(true);
+  };
 
   return (
-    <div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {albums.map((album) => {
-          const isExpanded = expandedId === album.id;
-          return (
-            // 展开时占满整行，照片墙才够宽
-            <div key={album.id} className={isExpanded ? "sm:col-span-2 lg:col-span-3" : ""}>
-              <AlbumCard
-                album={album}
-                isExpanded={isExpanded}
-                onToggle={() => setExpandedId((prev) => (prev === album.id ? null : album.id))}
-                onPhotoClick={(photos, index) => setLightbox({ photos, index })}
-              />
-            </div>
-          );
-        })}
-      </div>
+    <div className="max-w-6xl mx-auto">
+      {/* 页头 */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-6 md:mb-10"
+      >
+        <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+          <CameraIcon className="w-5 h-5 md:w-7 md:h-7 text-sky-500" />
+          <h1 className="text-xl md:text-3xl font-bold text-slate-800 dark:text-slate-100">照片墙</h1>
+        </div>
+        <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 ml-7 md:ml-10">
+          用镜头记录生活的每一个瞬间
+        </p>
+      </motion.div>
 
-      {lightbox && (
-        <Lightbox
-          photos={lightbox.photos}
-          index={lightbox.index}
-          open={true}
-          onClose={() => setLightbox(null)}
-          onPrev={() =>
-            setLightbox((prev) =>
-              prev
-                ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length }
-                : prev
-            )
-          }
-          onNext={() =>
-            setLightbox((prev) =>
-              prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : prev
-            )
-          }
-        />
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 md:py-32">
+          <div className="w-6 h-6 md:w-8 md:h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : !albums || albums.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 md:py-32 text-slate-400">
+          <CameraIcon className="w-10 h-10 md:w-12 md:h-12 mb-4 opacity-40" />
+          <p className="text-sm md:text-base">暂无照片</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 select-none">
+          {albums.map((album, albumIndex) => {
+            const isExpanded = expandedId === album.id;
+            const isHidden = expandedId !== null && !isExpanded;
+            return (
+              <AnimatePresence key={album.id}>
+                {!isHidden && (
+                  <motion.div
+                    layout
+                    initial={expandedId === null ? { opacity: 0, y: 30 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: expandedId === null ? albumIndex * 0.1 : 0 }}
+                    className={isExpanded ? "sm:col-span-2 lg:col-span-3" : ""}
+                  >
+                    <div ref={isExpanded ? expandedRef : undefined}>
+                      <AlbumCard
+                        album={album}
+                        isExpanded={isExpanded}
+                        onToggle={() => setExpandedId((prev) => (prev === album.id ? null : album.id))}
+                        onPhotoClick={openLightbox}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            );
+          })}
+        </div>
       )}
+
+      <Lightbox
+        photos={currentPhotos}
+        index={currentIndex}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrev={() => setCurrentIndex((i) => (i - 1 + currentPhotos.length) % currentPhotos.length)}
+        onNext={() => setCurrentIndex((i) => (i + 1) % currentPhotos.length)}
+      />
     </div>
   );
 }

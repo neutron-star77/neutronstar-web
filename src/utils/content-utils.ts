@@ -72,6 +72,9 @@ export interface PostEntry {
 	/** 后端统计字段（原版来自 remark frontmatter，这里直接透传） */
 	wordCount: number;
 	readingTime: number;
+	/** 后端统计字段（时光河流归档页等需要） */
+	views: number;
+	likes: number;
 	/** 文章级字体（后台可选，未选为空 → 前端走站点默认字体，零影响） */
 	font?: { id: number; name: string; family: string };
 }
@@ -103,6 +106,8 @@ export function apiPostToEntry(p: ApiPost): PostEntry {
 		},
 		wordCount: p.word_count || 0,
 		readingTime: p.reading_time || 0,
+		views: p.views || 0,
+		likes: p.likes || 0,
 		font: p.font_id
 			? { id: p.font_id, name: p.font_name || "", family: p.font_family || "" }
 			: undefined,

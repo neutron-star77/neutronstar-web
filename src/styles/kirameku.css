@@ -1,0 +1,156 @@
+/* ============================================================================
+ * Kirameku 风格页面作用域（说说 / 照片墙 / 时光河流归档 / 文章页）
+ * 只作用于带 .kirameku-page 包裹层的页面，不改动全站 M3 主题。
+ * 玻璃卡片本身直接用 Tailwind 工具类（bg-white/50 dark:bg-slate-800/60 …）。
+ * ========================================================================== */
+
+.kirameku-page {
+  position: relative;
+  border-radius: 1.5rem;
+  padding: 1.5rem 1rem 2.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, rgba(125, 211, 252, 0.18), transparent 60%),
+    radial-gradient(1000px 480px at 110% 10%, rgba(165, 180, 252, 0.18), transparent 55%),
+    linear-gradient(135deg, rgba(240, 249, 255, 0.9) 0%, rgba(238, 242, 255, 0.82) 45%, rgba(250, 245, 255, 0.88) 100%);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+}
+
+.dark .kirameku-page {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(1200px 520px at 8% -10%, rgba(56, 189, 248, 0.12), transparent 60%),
+    radial-gradient(1000px 500px at 110% 6%, rgba(129, 140, 248, 0.14), transparent 55%),
+    linear-gradient(135deg, rgba(15, 11, 46, 0.78) 0%, rgba(26, 17, 69, 0.7) 42%, rgba(13, 27, 62, 0.78) 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 640px) {
+  .kirameku-page {
+    padding: 2rem 1.5rem 3rem;
+  }
+}
+
+/* 河流拖拽区隐藏滚动条 */
+.kirameku-river-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.kirameku-river-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================================
+ * 文章正文排版（Kirameku .post-content 风格）
+ * 说明：代码块由 expressive-code 接管，这里不覆盖 pre/figure；
+ *       只统一标题、行内代码、引用、图片、表格、链接的观感。
+ * ========================================================================== */
+
+.kirameku-article .post-content {
+  color: rgb(30 41 59 / 0.92);
+  line-height: 1.85;
+}
+.dark .kirameku-article .post-content {
+  color: rgb(226 232 240 / 0.92);
+}
+
+.kirameku-article .post-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2.25rem 0 0.85rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid rgb(148 163 184 / 0.25);
+}
+.kirameku-article .post-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.75rem 0 0.6rem;
+}
+.kirameku-article .post-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.kirameku-article .post-content p code,
+.kirameku-article .post-content li code {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.88em;
+}
+.dark .kirameku-article .post-content p code,
+.dark .kirameku-article .post-content li code {
+  background-color: rgba(99, 102, 241, 0.22);
+  color: #a5b4fc;
+}
+
+.kirameku-article .post-content blockquote {
+  border-left: 4px solid #6366f1;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #475569;
+  font-style: italic;
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: rgba(99, 102, 241, 0.05);
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  padding-right: 0.8rem;
+}
+.dark .kirameku-article .post-content blockquote {
+  color: #94a3b8;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.kirameku-article .post-content img {
+  display: block;
+  margin: 2rem auto;
+  border-radius: 1rem;
+  max-width: 100%;
+  height: auto;
+  cursor: zoom-in;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.kirameku-article .post-content a {
+  color: #6366f1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.dark .kirameku-article .post-content a {
+  color: #818cf8;
+}
+
+.kirameku-article .post-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: block;
+  overflow-x: auto;
+}
+.dark .kirameku-article .post-content table {
+  border-color: #475569;
+}
+.kirameku-article .post-content th,
+.kirameku-article .post-content td {
+  border: 1px solid #cbd5e1;
+  padding: 0.6rem 1rem;
+  text-align: left;
+}
+.dark .kirameku-article .post-content th,
+.dark .kirameku-article .post-content td {
+  border-color: #475569;
+}
+.kirameku-article .post-content th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+}
+.dark .kirameku-article .post-content th {
+  background-color: #1e293b;
+}

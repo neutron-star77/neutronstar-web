@@ -5,13 +5,15 @@ import AuthButton from "@components/islands/AuthButton";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
-// P2：相册页静态壳 + AlbumGrid island（客户端 SWR 拉取 /api/albums）
-// P5：顶部右侧挂登录入口
+// Kirameku 风格：照片墙（相册分类 + 扇子展开 + 拍立得照片墙 + 灯箱）
+// 静态外壳包一层 .kirameku-page 渐变面板，页头在 AlbumGrid island 内
 ---
 
 <MainGridLayout title={i18n(I18nKey.albums)} page="albums">
-    <div class="mb-4 flex justify-end">
-        <AuthButton client:load />
+    <div class="kirameku-page">
+        <div class="absolute right-4 top-4 sm:right-6 sm:top-5 z-20">
+            <AuthButton client:load />
+        </div>
+        <AlbumGrid client:visible />
     </div>
-    <AlbumGrid client:visible />
 </MainGridLayout>
