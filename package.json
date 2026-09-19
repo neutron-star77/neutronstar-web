@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/subset-font.mjs && astro build",
     "postbuild": "node scripts/build-search-index.mjs",
     "preview": "astro preview",
     "check": "astro check",
