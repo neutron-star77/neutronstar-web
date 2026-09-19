@@ -116,7 +116,9 @@ const isHomeItemVisible = homeItem
 		</FloatingActionButton>
 	)}
 
-	<!-- 4. 返回顶部：绳子吊小动物趣味样式（原创 SVG，主题色自适应；点击播放收绳动画后平滑回顶） -->
+	<!-- 4. 返回顶部：成熟方案复刻（Element Plus el-backtop / Hexo Butterfly 风格）：
+	     圆形按钮 + 随页面滚动填充的 SVG 进度环 + 居中箭头；hover 光晕，点击平滑回顶。
+	     进度由 fab-controller 在 scroll 时写 stroke-dashoffset。 -->
 	{topItem && (
 		<FloatingActionButton
 			id="fab-top-btn"
@@ -126,65 +128,19 @@ const isHomeItemVisible = homeItem
 			pages={topItem.pages}
 			size={fabConfig.size}
 			thresholdRatio={topItem.scrollThresholdRatio}
-			class:list={["fab-top-doodle", "is-hidden", { "is-page-hidden": !isWidgetVisibleOnPage(topItem.pages, page) }]}
+			class:list={["fab-top-progress", "is-hidden", { "is-page-hidden": !isWidgetVisibleOnPage(topItem.pages, page) }]}
 			onclick="window.__shironeFab?.scrollToTop()"
 		>
 			<svg
-				class="fab-top-doodle-svg"
-				width="48"
-				height="88"
-				viewBox="0 0 56 104"
+				class="fab-top-progress-ring"
+				viewBox="0 0 48 48"
 				fill="none"
 				aria-hidden="true"
-				xmlns="http://www.w3.org/2000/svg"
 			>
-				<!-- 顶端挂环（摆动支点） -->
-				<circle cx="28" cy="9" r="5" stroke="var(--primary)" stroke-width="3" />
-				<!-- 绳子 -->
-				<path
-					class="fab-top-doodle-rope"
-					d="M28 14 C26 26, 30 38, 28 52"
-					stroke="var(--primary)"
-					stroke-opacity="0.72"
-					stroke-width="3"
-					stroke-linecap="round"
-				/>
-				<!-- 绳结 -->
-				<ellipse cx="28" cy="53.5" rx="3.5" ry="2.5" fill="var(--primary)" />
-				<!-- 小狐狸（吊在绳下） -->
-				<g class="fab-top-doodle-animal">
-					<!-- 左耳 + 内耳 -->
-					<path d="M15.5 69 L20 50 L27.5 65 Z" fill="var(--primary)" />
-					<path d="M18.5 65 L21 56 L24.5 65 Z" fill="var(--tertiary)" />
-					<!-- 右耳 + 内耳 -->
-					<path d="M40.5 69 L36 50 L28.5 65 Z" fill="var(--primary)" />
-					<path d="M37.5 65 L35 56 L31.5 65 Z" fill="var(--tertiary)" />
-					<!-- 小爪（抓绳） -->
-					<path
-						d="M24.5 63 C26 58.5, 27.5 58, 28 61.5 M31.5 63 C30 58.5, 28.5 58, 28 61.5"
-						stroke="var(--on-primary-container)"
-						stroke-width="2"
-						stroke-linecap="round"
-					/>
-					<!-- 头部 -->
-					<ellipse cx="28" cy="82" rx="17" ry="14.5" fill="var(--primary)" />
-					<!-- 眼睛 -->
-					<circle cx="22" cy="80" r="1.9" fill="var(--on-primary-container)" />
-					<circle cx="34" cy="80" r="1.9" fill="var(--on-primary-container)" />
-					<!-- 鼻子 -->
-					<circle cx="28" cy="85" r="1.7" fill="var(--tertiary)" />
-					<!-- 微笑 -->
-					<path
-						d="M25.2 88.5 Q28 91.3 30.8 88.5"
-						stroke="var(--on-primary-container)"
-						stroke-width="1.6"
-						stroke-linecap="round"
-					/>
-					<!-- 腮红 -->
-					<circle cx="17.5" cy="85" r="2.4" fill="var(--tertiary)" fill-opacity="0.45" />
-					<circle cx="38.5" cy="85" r="2.4" fill="var(--tertiary)" fill-opacity="0.45" />
-				</g>
+				<circle class="ring-track" cx="24" cy="24" r="20" />
+				<circle class="ring-value" cx="24" cy="24" r="20" />
 			</svg>
+			<Icon name="material-symbols:arrow-upward-rounded" class="fab-top-progress-arrow" />
 		</FloatingActionButton>
 	)}
 </aside>
@@ -205,78 +161,79 @@ const isHomeItemVisible = homeItem
 		right: auto
 		left: var(--fab-inline-offset)
 
-/* === 回顶按钮「绳子吊小动物」趣味样式 ===
-   沿用 FloatingActionButton 的显隐/滚动阈值逻辑，仅把 M3 FAB 外壳透明化，
-   换上原创吊挂 SVG：绳顶挂环为摆动支点，绳下吊小狐狸；
-   hover 时小动物轻跳示意可交互，点击播放「收绳」动画（见下方 <script>）。 */
-:global(.fab-top-doodle .m3-fab)
-	width: 3.5rem
-	height: 6.5rem /* 104px 容纳吊挂 SVG */
-	background: transparent
-	box-shadow: none
-	border-radius: 0
-	--m3e-state-color: transparent /* 取消 hover/focus 涟漪，避免透明底残留底色 */
+/* === 回顶按钮「滚动进度环」成熟方案样式 ===
+   沿用 FloatingActionButton 的显隐/滚动阈值逻辑，只换视觉：
+   圆形 surface 按钮 + SVG 圆环（轨道底 + primary 进度弧）+ 居中箭头。
+   进度弧随页面滚动填充，由 fab-controller 写 stroke-dashoffset。 */
+:global(.fab-top-progress .m3-fab)
+	position: relative
+	width: 3.25rem
+	height: 3.25rem /* 52px */
+	background: var(--surface)
+	box-shadow:
+		0 2px 8px rgb(0 0 0 / 0.12),
+		0 6px 20px rgb(0 0 0 / 0.10)
+	border-radius: 50%
+	transition:
+		transform 0.18s var(--m3e-easing-emphasized-decelerate),
+		box-shadow 0.18s var(--m3e-easing-emphasized-decelerate)
 
-:global(.fab-top-doodle .m3-fab:focus-visible)
+:global(.fab-top-progress:hover .m3-fab)
+	transform: scale(1.08)
+	box-shadow:
+		0 0 0 6px var(--primary-container),
+		0 6px 16px rgba(0, 0, 0, 0.18)
+
+:global(.fab-top-progress:active .m3-fab)
+	transform: scale(0.94)
+
+:global(.fab-top-progress .m3-fab:focus-visible)
 	outline: 2px solid var(--primary)
 	outline-offset: 2px
 
-:global(.fab-top-doodle-svg)
-	width: 3rem /* 48px */
-	height: 5.5rem /* 88px */
-	transform-origin: 50% 12% /* 挂环为支点 */
-	animation: m3e-fab-doodle-sway 3.6s ease-in-out infinite
+/* 进度环铺满按钮，z-index 高于按钮默认内容层 */
+:global(.fab-top-progress-ring)
+	position: absolute
+	inset: 0
+	width: 100%
+	height: 100%
+	transform: rotate(-90deg) /* 起点在 12 点方向 */
+	pointer-events: none
 
-:global(.fab-top-doodle:hover .fab-top-doodle-svg)
-	animation-duration: 1.5s /* hover 加快摆动以表可交互 */
+:global(.fab-top-progress-ring .ring-track)
+	stroke: var(--m3e-outline-variant)
+	stroke-width: 2.5
 
-:global(.fab-top-doodle .fab-top-doodle-animal)
-	transition: transform var(--m3e-duration-short) var(--m3e-easing-emphasized-decelerate)
+:global(.fab-top-progress-ring .ring-value)
+	stroke: var(--primary)
+	stroke-width: 2.5
+	stroke-linecap: round
+	stroke-dasharray: 125.66 /* 2π×r(20) */
+	stroke-dashoffset: 125.66 /* 初始空环，由滚动填充 */
+	transition: stroke-dashoffset 0.12s linear
 
-:global(.fab-top-doodle:hover .fab-top-doodle-animal)
-	transform: translateY(-0.1875rem)
+/* 居中箭头盖在进度环上 */
+:global(.fab-top-progress-arrow)
+	position: relative
+	z-index: 1
+	font-size: 1.25rem
+	color: var(--on-surface-variant)
+	transition: color 0.18s var(--m3e-easing-standard)
 
-/* 点击收绳：绳子缩回 + 小动物被拉向顶部（由下方事件委托添加 .is-reeling） */
-:global(.fab-top-doodle.is-reeling .fab-top-doodle-rope)
-	transform: scaleY(0)
-	transform-origin: 50% 8%
-	transition: transform 0.22s var(--m3e-easing-emphasized-accelerate)
-
-:global(.fab-top-doodle.is-reeling .fab-top-doodle-animal)
-	transform: translateY(-2.5rem) scale(0.5)
-	opacity: 0
-	transition:
-		transform 0.24s var(--m3e-easing-emphasized-accelerate),
-		opacity 0.18s var(--m3e-easing-standard)
-
-@keyframes m3e-fab-doodle-sway
-	0%, 100%
-		transform: rotate(-5deg)
-	50%
-		transform: rotate(5deg)
+:global(.fab-top-progress:hover .fab-top-progress-arrow)
+	color: var(--primary)
 
 @media (prefers-reduced-motion: reduce)
-	:global(.fab-top-doodle-svg)
-		animation: none
+	:global(.fab-top-progress-ring .ring-value)
+		transition: none
+
 </style>
 
 <script>
 	import { initFabController } from "@utils/fab-controller";
-	import { prefersReducedMotion } from "@utils/motion";
 
 	// 初始化 FAB 运行时状态机，支持直接加载与 Swup 导航
 	if (typeof window !== "undefined") {
 		initFabController();
 	}
-
-	// 回顶按钮「收绳」趣味动画：点击时绳子缩回、小动物被拉向顶部，
-	// 滚动动作由 __shironeFab.scrollToTop() 负责；用事件委托避免 Swup 重建丢失绑定。
-	document.addEventListener("click", (e) => {
-		const btn = (e.target as HTMLElement).closest<HTMLElement>("#fab-top-btn");
-		if (!btn || prefersReducedMotion()) return;
-		btn.classList.remove("is-reeling");
-		void btn.offsetHeight; // 强制 reflow，保证重复点击可重放动画
-		btn.classList.add("is-reeling");
-		window.setTimeout(() => btn.classList.remove("is-reeling"), 700);
-	});
 </script>

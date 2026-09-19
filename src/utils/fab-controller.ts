@@ -14,6 +14,9 @@ interface FabControllerState {
 	bannerHeight: number;
 }
 
+/** 进度环 SVG 圆周长：r=20，2π×20 ≈ 125.664（与 FloatingControls.astro CSS 同值） */
+const PROGRESS_RING_CIRC = 2 * Math.PI * 20;
+
 class FabController {
 	private state: FabControllerState = {
 		tocOpen: false,
@@ -76,11 +79,25 @@ class FabController {
 					topBtn.dataset.fabScrollAllowed = nextAllowed;
 					this.scheduleVisibilitySync();
 				}
+				this.updateProgressRing(topBtn, scrollTop);
 			}
 		};
 
 		window.addEventListener("scroll", handleScroll, { passive: true });
 		handleScroll();
+	}
+
+	/**
+	 * 回顶按钮进度环：scrollTop / 可滚高度 = 0..1，写进 .ring-value 的
+	 * stroke-dashoffset。圆周长 2π×r(20) ≈ 125.664（CSS 里同值）。
+	 */
+	private updateProgressRing(topBtn: HTMLElement, scrollTop: number): void {
+		const ring = topBtn.querySelector<SVGCircleElement>(".ring-value");
+		if (!ring) return;
+		const doc = document.documentElement;
+		const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+		const progress = Math.min(1, Math.max(0, scrollTop / max));
+		ring.style.strokeDashoffset = String(PROGRESS_RING_CIRC * (1 - progress));
 	}
 
 	private bindEvents(): void {
