@@ -4,7 +4,6 @@
 // 也满足「点文章进入真正列表」的预期）。prerender=false：需实时取数 + 分页。
 import PagePagination from "@components/atoms/blog/PagePagination.astro";
 import PostPage from "@components/organisms/PostPage.astro";
-import CategoryBar from "@components/organisms/CategoryBar.astro";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import { postListConfig } from "@/config/postListConfig";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
@@ -37,7 +36,6 @@ const buildPagerUrl = (p: number) => url(p === 1 ? "/posts/" : `/posts/?page=${p
 ---
 
 <MainGridLayout title="文章" page="posts">
-	<CategoryBar />
 	<PostPage page={page}></PostPage>
 	{page.lastPage > 1 && (
 		<div

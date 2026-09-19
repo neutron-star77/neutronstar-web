@@ -146,7 +146,14 @@ function isActive(link: (typeof links)[number]): boolean {
 			settingBtn.onclick = () => {
 				const settingPanel = document.getElementById("display-setting");
 				if (settingPanel) {
+					const willOpen = settingPanel.classList.contains("float-panel-closed");
 					settingPanel.classList.toggle("float-panel-closed");
+					// 与翻译面板互斥：本面板打开时广播，翻译面板收到后立即收起
+					if (willOpen) {
+						window.dispatchEvent(
+							new CustomEvent("top-float-panel:request-open", { detail: "display" }),
+						);
+					}
 				}
 			};
 		}

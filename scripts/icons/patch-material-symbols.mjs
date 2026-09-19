@@ -36,6 +36,14 @@ const wanted = [
 	"update-rounded","view-list-rounded","visibility-off-rounded","visibility-outline-rounded",
 	"visibility-rounded","volume-off-rounded","volume-up-rounded","wallpaper","waves-rounded",
 	"wb-sunny-outline-rounded","zoom-in-rounded","zoom-out-rounded",
+	// —— 导航菜单图标库（src/config/navIconLibrary.ts）同步追加 ——
+	"apps-rounded","archive-outline-rounded","call-rounded","cloud-outline-rounded",
+	"deployed-code-outline-rounded","favorite-outline-rounded","groups-rounded",
+	"info-outline-rounded","language","library-books-outline-rounded","mail-outline-rounded",
+	"map-outline-rounded","menu-book-outline-rounded","movie-outline-rounded",
+	"music-note-outline-rounded","notifications-outline-rounded","person-outline-rounded",
+	"photo-camera-outline-rounded","podcasts-rounded","rss-feed-rounded","settings-outline-rounded",
+	"share-rounded","star-outline-rounded","timeline-rounded","waving-hand-rounded",
 ];
 
 const iconsJson = JSON.parse(

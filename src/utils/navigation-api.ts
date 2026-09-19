@@ -15,10 +15,13 @@ export interface ApiNavItem {
 	href?: string;
 	visible?: boolean;
 	target?: "_self" | "_blank";
+	/** 后台图标选择器选的 iconify 名（如 material-symbols:home-outline-rounded）；
+	 *  缺省时按 href 匹配 LinkPresets 补默认图标。 */
+	icon?: string;
 	children?: ApiNavItem[];
 }
 
-/** API 导航项 → NavBarLink（按 href 匹配 LinkPresets 补 icon/pageKey） */
+/** API 导航项 → NavBarLink（自定义 icon 优先；否则按 href 匹配 LinkPresets 补 icon/pageKey） */
 export function apiNavToLinks(items: ApiNavItem[]): NavBarLink[] {
 	return items
 		.filter((item) => item.visible !== false && item.href)
@@ -30,7 +33,7 @@ export function apiNavToLinks(items: ApiNavItem[]): NavBarLink[] {
 			return {
 				name: item.label,
 				url: item.href,
-				icon: preset?.icon,
+				icon: item.icon || preset?.icon,
 				pageKey: preset?.pageKey ?? item.id,
 				external: item.target === "_blank",
 				children: item.children ? apiNavToLinks(item.children) : undefined,

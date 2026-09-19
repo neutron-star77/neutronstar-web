@@ -47,15 +47,29 @@ let currentLanguage = $state(SOURCE_TRANSLATE_LANG);
 let busy = $state(false);
 let hoverCloseTimer: number | null = null;
 
+// 面板互斥（与 DisplaySettings 无缝衔接）：任一面板打开时广播 name，
+// 另一面收到后立即关闭，避免鼠标在两个图标间滑动时旧面板残留重叠。
+const PANEL_EVENT = "top-float-panel:request-open";
+const PANEL_NAME = "translate";
+
 function openPanel() {
 	if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
 	hoverCloseTimer = null;
 	isOpen = true;
+	window.dispatchEvent(
+		new CustomEvent(PANEL_EVENT, { detail: PANEL_NAME }),
+	);
 }
 
 function scheduleClose() {
 	if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
 	hoverCloseTimer = window.setTimeout(() => (isOpen = false), 260);
+}
+
+function closeNow() {
+	if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
+	hoverCloseTimer = null;
+	isOpen = false;
 }
 
 function onContainerEnter() {
@@ -131,6 +145,11 @@ onMount(() => {
 	if (currentLanguage !== SOURCE_TRANSLATE_LANG) {
 		void applyTranslation(currentLanguage).catch(() => {});
 	}
+	// 顶栏另一枚图标（显示设置面板）打开时立即收起本面板
+	window.addEventListener(PANEL_EVENT, (e: Event) => {
+		const name = (e as CustomEvent<string>).detail;
+		if (name !== PANEL_NAME) closeNow();
+	});
 });
 </script>
 

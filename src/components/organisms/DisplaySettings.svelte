@@ -141,11 +141,18 @@ onMount(() => {
 	const trigger = document.getElementById("display-settings-switch");
 	const panel = document.getElementById("display-setting");
 	if (trigger && panel && window.matchMedia("(min-width: 1024px)").matches) {
+		// 面板互斥（与 TranslateSwitch 无缝衔接）：任一面板打开时广播 name，
+		// 另一面收到后立即清掉 260ms 关闭定时器并关闭，避免旧面板残留重叠。
+		const PANEL_EVENT = "top-float-panel:request-open";
+		const PANEL_NAME = "display";
 		let hoverCloseTimer: number | null = null;
 		const openNow = () => {
 			if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
 			hoverCloseTimer = null;
 			panel.classList.remove("float-panel-closed");
+			window.dispatchEvent(
+				new CustomEvent(PANEL_EVENT, { detail: PANEL_NAME }),
+			);
 		};
 		const scheduleClose = () => {
 			if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
@@ -154,10 +161,20 @@ onMount(() => {
 				260,
 			);
 		};
+		const closeNow = () => {
+			if (hoverCloseTimer) window.clearTimeout(hoverCloseTimer);
+			hoverCloseTimer = null;
+			panel.classList.add("float-panel-closed");
+		};
+		const onPeerOpen = (e: Event) => {
+			const name = (e as CustomEvent<string>).detail;
+			if (name !== PANEL_NAME) closeNow();
+		};
 		trigger.addEventListener("mouseenter", openNow);
 		trigger.addEventListener("mouseleave", scheduleClose);
 		panel.addEventListener("mouseenter", openNow);
 		panel.addEventListener("mouseleave", scheduleClose);
+		window.addEventListener(PANEL_EVENT, onPeerOpen);
 	}
 	const observer = new MutationObserver(() => {
 		dark = document.documentElement.classList.contains("dark");
