@@ -194,12 +194,20 @@ function AlbumCard({
               transition={spring.card}
             >
               <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10">
-                <img
-                  src={deriveVariants(photo.url)?.thumb ?? photo.url}
-                  alt={photo.caption || album.title}
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                {(() => {
+                  const coverUrl = deriveVariants(photo.url)?.thumb ?? photo.url;
+                  if (!coverUrl) {
+                    return <div className="absolute inset-0 w-full h-full bg-slate-200 dark:bg-slate-700 animate-pulse" />;
+                  }
+                  return (
+                    <img
+                      src={coverUrl}
+                      alt={photo.caption || album.title}
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  );
+                })()}
               </div>
             </motion.div>
           ))}
