@@ -5,16 +5,27 @@
  * 所以文本采集改为调用 BFF /api/posts 拉全量正文。
  *
  * 用法：node scripts/subset-font.mjs
- * 输出：src/assets/fonts/Yozai-Medium.subset.woff2
+ * 输出：src/assets/fonts/.subset/<basename>.subset.woff2
+ *       （astro.config.mjs resolveVariantSrc 会按此路径查找）
+ *
+ * 当前处理的本地字体：
+ *   - loli.woff2                  （CJK，~4.6MB）
+ *   - ZenMaruGothic-Medium.woff2  （西文 body，~1.5MB）
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, readFile } from "node:fs";
+import { join, dirname, basename, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import subsetFont from "subset-font";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "..");
 const API_BASE = process.env.PUBLIC_API_BASE ?? "https://bff.neutronstar.fun";
+
+/** 需要子集化的本地字体（与 fontConfig.ts 中 source: "local" 的 variants 对应） */
+const LOCAL_FONTS = [
+	"src/assets/fonts/loli.woff2",
+	"src/assets/fonts/ZenMaruGothic-Medium.woff2",
+];
 
 async function collectText() {
 	const charSet = new Set();
@@ -29,9 +40,10 @@ async function collectText() {
 	// 3. 从 API 拉全量已发布文章（含正文）
 	try {
 		console.log(`[subset] Fetching posts from ${API_BASE}/api/posts...`);
-		const list = await fetch(`${API_BASE}/api/posts?status=published&page=1&size=200`).then((r) => r.json());
-		console.log(`[subset] Got ${list.length} posts`);
-		for (const post of list) {
+		const list = await fetch(`${API_BASE}/api/posts?status=published&page=1&size=500`).then((r) => r.json());
+		const posts = Array.isArray(list) ? list : list?.items ?? [];
+		console.log(`[subset] Got ${posts.length} posts`);
+		for (const post of posts) {
 			const text = `${post.title ?? ""} ${post.description ?? ""} ${post.category ?? ""} ${(post.tags ?? []).join(" ")}`;
 			for (const ch of text) if (ch.charCodeAt(0) > 31) charSet.add(ch);
 			// 拉单篇正文
@@ -46,16 +58,15 @@ async function collectText() {
 		}
 	} catch (e) {
 		console.warn(`[subset] Failed to fetch posts: ${e.message}`);
+		console.warn("[subset] Falling back to i18n + config only (less complete charset)");
 	}
 
 	// 4. 扫描 i18n（中文词典为主，全扫也不贵）
 	const i18nDir = join(projectRoot, "src/i18n/languages");
 	if (existsSync(i18nDir)) {
-		const { readdir, readFile } = await import("node:fs/promises");
-		const files = await readdir(i18nDir);
-		for (const f of files) {
+		for (const f of readdirSync(i18nDir)) {
 			if (f.endsWith(".ts")) {
-				const text = await readFile(join(i18nDir, f), "utf8");
+				const text = readFileSync(join(i18nDir, f), "utf8");
 				for (const ch of text) if (ch.charCodeAt(0) > 31) charSet.add(ch);
 			}
 		}
@@ -64,11 +75,20 @@ async function collectText() {
 	// 5. 扫描 config（导航标题等）
 	const configDir = join(projectRoot, "src/config");
 	if (existsSync(configDir)) {
-		const { readdir, readFile } = await import("node:fs/promises");
-		const files = await readdir(configDir);
-		for (const f of files) {
+		for (const f of readdirSync(configDir)) {
 			if (f.endsWith(".ts")) {
-				const text = await readFile(join(configDir, f), "utf8");
+				const text = readFileSync(join(configDir, f), "utf8");
+				for (const ch of text) if (ch.charCodeAt(0) > 31) charSet.add(ch);
+			}
+		}
+	}
+
+	// 6. 扫描 data/（追番、友链等静态数据）
+	const dataDir = join(projectRoot, "src/data");
+	if (existsSync(dataDir)) {
+		for (const f of readdirSync(dataDir)) {
+			if (/\.(ts|js|json)$/.test(f)) {
+				const text = readFileSync(join(dataDir, f), "utf8");
 				for (const ch of text) if (ch.charCodeAt(0) > 31) charSet.add(ch);
 			}
 		}
@@ -78,32 +98,33 @@ async function collectText() {
 }
 
 async function main() {
-	const sourcePath = join(projectRoot, "src/assets/fonts/Yozai-Medium.ttf");
-	if (!existsSync(sourcePath)) {
-		console.error(`[subset] Source font not found: ${sourcePath}`);
-		process.exit(1);
-	}
-
 	const text = await collectText();
 	console.log(`[subset] Collected ${text.length} unique characters`);
 
-	// 保存字符集备查
 	const subsetDir = join(projectRoot, "src/assets/fonts/.subset");
 	mkdirSync(subsetDir, { recursive: true });
 	writeFileSync(join(subsetDir, "charset.txt"), text, "utf8");
 
-	const sourceFont = readFileSync(sourcePath);
-	const originalKB = (sourceFont.length / 1024).toFixed(0);
-	console.log(`[subset] Source: ${originalKB} KB, subsetting...`);
+	for (const rel of LOCAL_FONTS) {
+		const sourcePath = join(projectRoot, rel);
+		if (!existsSync(sourcePath)) {
+			console.warn(`[subset] Skip (not found): ${rel}`);
+			continue;
+		}
+		const name = basename(sourcePath, extname(sourcePath));
+		const outputPath = join(subsetDir, `${name}.subset.woff2`);
 
-	const subsetBuffer = await subsetFont(sourceFont, text, { targetFormat: "woff2" });
-	const outputPath = join(projectRoot, "src/assets/fonts/Yozai-Medium.subset.woff2");
-	writeFileSync(outputPath, subsetBuffer);
-	const subsetKB = (subsetBuffer.length / 1024).toFixed(0);
-	const reduction = ((1 - subsetBuffer.length / sourceFont.length) * 100).toFixed(1);
+		const sourceFont = readFileSync(sourcePath);
+		const originalKB = (sourceFont.length / 1024).toFixed(0);
+		console.log(`[subset] ${name}: source ${originalKB} KB, subsetting...`);
 
-	console.log(`[subset] Output: ${subsetKB} KB (-${reduction}%)`);
-	console.log(`[subset] Saved to: ${outputPath}`);
+		const subsetBuffer = await subsetFont(sourceFont, text, { targetFormat: "woff2" });
+		writeFileSync(outputPath, subsetBuffer);
+		const subsetKB = (subsetBuffer.length / 1024).toFixed(0);
+		const reduction = ((1 - subsetBuffer.length / sourceFont.length) * 100).toFixed(1);
+		console.log(`[subset] ${name}: ${originalKB} KB -> ${subsetKB} KB (-${reduction}%)`);
+	}
+	console.log("[subset] Done.");
 }
 
 main().catch((e) => {

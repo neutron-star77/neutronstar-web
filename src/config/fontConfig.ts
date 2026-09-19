@@ -66,7 +66,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 			],
 			fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 			display: "swap",
-			preload: false,
+			preload: true,
 		},
 
 		// ---------------------------------------------------------------------
@@ -86,7 +86,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 			],
 			fallback: ["system-ui", "sans-serif"],
 			display: "swap",
-			preload: false,
+			preload: true,
 		},
 
 		// ---------------------------------------------------------------------
@@ -128,7 +128,7 @@ export const fontConfig: FontConfig = withUserConfig("font", {
 	 * - Build 生产构建：自动执行子集裁剪，将几十兆大字体压缩为几百 KB 的专属子集，秒开加载。
 	 */
 	subsetting: {
-		enable: false, // 使用预生成子集（scripts/subset-font.mjs），不启用构建期自动子集
+		enable: true,
 		includeContent: true,
 		includeI18n: true,
 		includeConfig: true,
