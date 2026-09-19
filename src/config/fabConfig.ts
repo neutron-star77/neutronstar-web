@@ -32,6 +32,8 @@ export const fabConfig: FabConfig = withUserConfig("fab", {
 			type: "top",
 			enable: true,
 			devices: ["mobile", "tablet", "desktop"],
+			// 滚动深度占页面可滚高度 10% 即出现（按文档总高比例，非视口比例）
+			thresholdRatio: 10,
 		},
 		{
 			type: "toc",

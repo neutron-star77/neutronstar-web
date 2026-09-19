@@ -303,7 +303,9 @@ const stylePreviews = $derived(
 );
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 max-h-[80vh] overflow-y-auto overscroll-contain {className}">
+<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-64 max-w-[calc(100vw-2rem)] {className}">
+    <!-- 内层滚动容器：滚动条内嵌在面板 padding 内（对齐语言面板观感），外层保持 overflow-hidden -->
+    <div class="max-h-[80vh] overflow-y-auto overscroll-contain p-1.5">
     <PanelStack>
         <!-- 段一：主题配色（色相 + 风格九宫格 + Color Spec） -->
         <div class="p-4 flex flex-col gap-3">
@@ -460,6 +462,7 @@ const stylePreviews = $derived(
             </div>
         {/if}
     </PanelStack>
+    </div>
 </div>
 
 

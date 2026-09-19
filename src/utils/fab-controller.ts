@@ -71,7 +71,11 @@ class FabController {
 			const ratio = Number.isFinite(configuredRatio)
 				? configuredRatio
 				: this.state.bannerHeight;
-			const threshold = (window.innerHeight * ratio) / 100;
+			// thresholdRatio 语义 = 页面可滚高度的百分比（如 10 = 滚到页面 10% 即出现），
+			// 不再按视口高度算——短文章也能在滚一小段后就露出回顶按钮。
+			const doc = document.documentElement;
+			const scrollable = Math.max(1, doc.scrollHeight - window.innerHeight);
+			const threshold = (scrollable * ratio) / 100;
 
 			if (topBtn) {
 				const nextAllowed = String(scrollTop > threshold);

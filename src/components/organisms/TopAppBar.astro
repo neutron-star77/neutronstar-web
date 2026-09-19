@@ -141,6 +141,39 @@ function isActive(link: (typeof links)[number]): boolean {
 			};
 		}
 
+		// 滚动方向检测：向下滚隐藏顶栏、向上滚立即唤回（灵敏：6px 方向差即响应；
+		// 页面顶部 120px 内永远显示，避免刚进来就被藏掉）。
+		const nav = document.getElementById("navbar");
+		if (nav && !document.documentElement.dataset.topBarHideBound) {
+			document.documentElement.dataset.topBarHideBound = "true";
+			let lastY = window.scrollY;
+			let raf = 0;
+			const HIDE_DELTA = 6;
+			const TOP_REVEAL = 120;
+			const apply = () => {
+				raf = 0;
+				const y = window.scrollY;
+				const goingDown = y > lastY + HIDE_DELTA;
+				const goingUp = y < lastY - HIDE_DELTA;
+				if (y < TOP_REVEAL || goingUp) nav.classList.remove("navbar-hidden");
+				else if (goingDown) nav.classList.add("navbar-hidden");
+				lastY = y;
+			};
+			window.addEventListener(
+				"scroll",
+				() => {
+					if (raf) return;
+					raf = requestAnimationFrame(apply);
+				},
+				{ passive: true },
+			);
+			// swup 换页后回到顶部，顶栏复位显示
+			document.addEventListener("swup:page:view", () => {
+				lastY = 0;
+				nav.classList.remove("navbar-hidden");
+			});
+		}
+
 		const settingBtn = document.getElementById("display-settings-switch");
 		if (settingBtn) {
 			settingBtn.onclick = () => {
@@ -245,9 +278,21 @@ document.addEventListener('swup:content:replace', bindSearchTriggers);
 <style>
 	.top-app-bar {
 		transition:
+			transform 0.25s var(--m3e-easing-emphasized-accelerate),
 			background-color var(--m3e-duration-medium) var(--m3e-easing-standard),
 			box-shadow var(--m3e-duration-medium) var(--m3e-easing-standard),
 			color var(--m3e-duration-short) var(--m3e-easing-standard);
+	}
+
+	/* 向下滚动自动隐藏、向上滚动立即唤回（见 <script> 里的方向判定） */
+	.top-app-bar.navbar-hidden {
+		transform: translateY(-100%);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.top-app-bar {
+			transition: none;
+		}
 	}
 
 		.top-app-bar--transparent {
