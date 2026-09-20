@@ -108,7 +108,7 @@ export default function WalineComments({
 
   if (embedded) {
     return (
-      <div className={`kirameku-waline is-embedded ${className}`.trim()}>
+      <div className={`kirameku-waline is-embedded select-text ${className}`.trim()}>
         <div ref={mountRef} />
         {!ready && (
           <div className="flex justify-center py-8">
@@ -121,7 +121,7 @@ export default function WalineComments({
 
   return (
     <div
-      className={`kirameku-waline rounded-3xl bg-white/60 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl px-4 sm:px-6 md:px-8 py-5 sm:py-7 ${className}`.trim()}
+      className={`kirameku-waline select-text rounded-3xl bg-white/60 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl px-4 sm:px-6 md:px-8 py-5 sm:py-7 ${className}`.trim()}
     >
       <h2 className="kirameku-waline__title">
         <MessageCircleIcon />
