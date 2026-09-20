@@ -5,7 +5,7 @@
  *  - 按天分组；同日多条便利贴 absolute 堆叠（rotations 倾斜 + 奇偶 x 偏移）
  *  - 弹簧动画（stiffness 300 / damping 25），hover 回正上浮
  *  - 点击展开（遮罩 fixed inset-0 bg-black/20 backdrop-blur-sm z-40）
- *  - 「只看这条」进入 onlyView：此时才挂载评论区（CommentsThread kind=chatter）
+ *  - 「只看这条」进入 onlyView：此时才挂载评论区（Waline，path=/moments/<id>）
  *  - 图片网格（≤2 张两列，否则三列）+ 灯箱（复用本地 Lightbox）
  */
 
@@ -18,7 +18,7 @@ import { useRealtimeRefresh } from "../../lib/realtime";
 import { stackRotations } from "../../lib/variants";
 import type { Chatter } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
-import CommentsThread from "./CommentsThread";
+import WalineComments from "./WalineComments";
 
 /* ── 图标 ── */
 const Icon = {
@@ -351,7 +351,7 @@ export default function MomentsList() {
                             className="border-t border-slate-200/50 dark:border-white/5 px-3 md:px-5 py-4"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <CommentsThread kind="chatter" targetId={moment.id} embedded />
+                            <WalineComments path={`/moments/${moment.id}`} embedded />
                           </div>
                         )}
                       </motion.div>

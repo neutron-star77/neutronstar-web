@@ -1,0 +1,141 @@
+/* ============================================================================
+ * Waline 评论皮肤：Kirameku 玻璃风
+ * 作用域 .kirameku-waline（包裹在每个 WalineComments island 外层），
+ * 只覆盖 Waline 的 CSS 变量与卡片质感，不改其 DOM 结构。
+ * ========================================================================== */
+
+.kirameku-waline {
+  --waline-font-size: 0.92rem;
+  --waline-theme-color: #0ea5e9; /* sky-500 */
+  --waline-active-color: #0284c7; /* sky-600 */
+  --waline-color: #334155; /* slate-700 */
+  --waline-bg-color: transparent;
+  --waline-bg-color-light: rgba(255, 255, 255, 0.55);
+  --waline-bg-color-hover: rgba(255, 255, 255, 0.85);
+  --waline-border-color: rgba(148, 163, 184, 0.35);
+  --waline-disable-bg-color: rgba(255, 255, 255, 0.4);
+  --waline-disable-color: #94a3b8;
+  --waline-bq-color: rgba(255, 255, 255, 0.6);
+  --waline-info-bg-color: rgba(14, 165, 233, 0.08);
+  --waline-info-color: #64748b;
+  --waline-box-shadow: none;
+  --waline-avatar-radius: 50%;
+  color: var(--waline-color);
+}
+
+.dark .kirameku-waline {
+  --waline-theme-color: #38bdf8; /* sky-400 */
+  --waline-active-color: #7dd3fc; /* sky-300 */
+  --waline-color: #e2e8f0; /* slate-200 */
+  --waline-bg-color: transparent;
+  --waline-bg-color-light: rgba(30, 41, 59, 0.5);
+  --waline-bg-color-hover: rgba(30, 41, 59, 0.85);
+  --waline-border-color: rgba(255, 255, 255, 0.12);
+  --waline-disable-bg-color: rgba(30, 41, 59, 0.4);
+  --waline-disable-color: #64748b;
+  --waline-bq-color: rgba(255, 255, 255, 0.06);
+  --waline-info-bg-color: rgba(56, 189, 248, 0.12);
+  --waline-info-color: #94a3b8;
+}
+
+/* 玻璃面板 / 卡片 / 弹层 */
+.kirameku-waline .wl-panel,
+.kirameku-waline .wl-card,
+.kirameku-waline .wl-emoji-popup,
+.kirameku-waline .wl-gif-popup {
+  background: var(--waline-bg-color-light);
+  border: 1px solid var(--waline-border-color);
+  border-radius: 1rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.kirameku-waline .wl-panel {
+  padding: 1rem;
+}
+
+/* 输入框 / 编辑器 */
+.kirameku-waline .wl-header input,
+.kirameku-waline .wl-editor {
+  background: var(--waline-bg-color-light);
+  border: 1px solid var(--waline-border-color);
+  border-radius: 0.75rem;
+}
+
+.kirameku-waline .wl-editor:focus,
+.kirameku-waline .wl-header input:focus {
+  border-color: var(--waline-theme-color);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  outline: none;
+}
+
+/* 按钮 */
+.kirameku-waline .wl-btn {
+  border-radius: 999px;
+}
+
+.kirameku-waline .wl-btn.primary {
+  background: var(--waline-theme-color);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.28);
+}
+
+.kirameku-waline .wl-btn.primary:hover {
+  background: var(--waline-active-color);
+}
+
+/* 头像、引用、评论分隔 */
+.kirameku-waline .wl-avatar,
+.kirameku-waline .wl-user-avatar {
+  border-radius: 50%;
+}
+
+.kirameku-waline blockquote,
+.kirameku-waline .wl-quote {
+  background: var(--waline-bq-color);
+  border-left: 3px solid var(--waline-theme-color);
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.kirameku-waline .wl-comment {
+  border-top: 1px solid var(--waline-border-color);
+}
+
+.kirameku-waline .wl-content pre {
+  background: var(--waline-code-bg-color);
+  border-radius: 0.75rem;
+}
+
+/* 嵌入模式（说说 / 相册展开卡内）：去掉外层卡片留白，更紧凑 */
+.kirameku-waline.is-embedded {
+  --waline-font-size: 0.86rem;
+}
+
+.kirameku-waline.is-embedded .wl-panel {
+  padding: 0;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 标题（非嵌入时由 island 渲染） */
+.kirameku-waline__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.dark .kirameku-waline__title {
+  color: #f1f5f9;
+}
+
+.kirameku-waline__title-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #0ea5e9;
+}

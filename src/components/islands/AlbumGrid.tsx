@@ -19,6 +19,7 @@ import { useRealtimeRefresh } from "../../lib/realtime";
 import { apiGet } from "../../lib/api/client";
 import type { Album } from "../../lib/api/types";
 import Lightbox, { type LightboxPhoto } from "./Lightbox";
+import WalineComments from "./WalineComments";
 
 interface AlbumPhoto {
   id: string;
@@ -256,6 +257,11 @@ function AlbumCard({
                     <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
+              </div>
+
+              {/* 相册评论（Waline，展开时才挂载） */}
+              <div className="mt-2 border-t border-slate-200/50 dark:border-white/10 px-2 md:px-4 pt-4">
+                <WalineComments path={`/albums/${album.id}`} embedded />
               </div>
             </div>
           </motion.div>

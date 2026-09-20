@@ -1,7 +1,7 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
-import CommentsThread from "@components/islands/CommentsThread";
+import WalineComments from "@components/islands/WalineComments";
 import ReadingProgress from "@components/islands/ReadingProgress";
 import FloatingToc from "@components/islands/FloatingToc";
 import PostLikeButton from "@components/islands/PostLikeButton";
@@ -168,12 +168,10 @@ const cover = entry.data.image || "";
             </div>
         </article>
 
-        {/* 评论区（文章卡外） */}
-        {entry.postId && (
-            <div class="mt-8">
-                <CommentsThread client:load kind="post" targetId={entry.postId} />
-            </div>
-        )}
+        {/* 评论区（Waline，文章卡外） */}
+        <div class="mt-8">
+            <WalineComments client:load path={`/posts/${slug}`} />
+        </div>
     </div>
 </MainGridLayout>
 <LiveRefreshBanner client:load />
