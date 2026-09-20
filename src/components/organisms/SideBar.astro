@@ -226,6 +226,32 @@ const hasVisibleSticky = stickyWidgets.some(isVisible);
 			});
 	}
 
+	/**
+	 * 布局列联动：swup 导航后当前页无任何可见 widget（例如只保留 toc 时
+	 * 从文章页切到首页）→ main-grid 切到单列类并隐藏 aside；
+	 * 有可见 widget（切回文章页）→ 恢复双列类并显示 aside。
+	 * 两套完整类由 MainGridLayout 输出到 data-grid-sidebar / data-grid-nosidebar，
+	 * 与 SSR 判定共用，避免导航后残留空侧栏列。
+	 */
+	function syncGridLayout(): void {
+		const grid = document.getElementById("main-grid");
+		if (!grid) return;
+		const anyVisible = Array.from(
+			document.querySelectorAll<HTMLElement>("[data-sidebar-pages]"),
+		).some((widget) => !widget.classList.contains("hidden"));
+		const target = anyVisible
+			? grid.dataset.gridSidebar
+			: grid.dataset.gridNosidebar;
+		if (target && grid.className !== target) {
+			grid.className = target;
+		}
+		document
+			.querySelectorAll<HTMLElement>("#sidebar, #sidebar-secondary")
+			.forEach((aside) => {
+				aside.classList.toggle("hidden", !anyVisible);
+			});
+	}
+
 	// 代际计数：退场淡出 await 期间若又发生导航（sync 再次被调用），
 	// 旧回调在恢复点作废，由最新一次接管终态
 	let generation = 0;
@@ -250,6 +276,7 @@ const hasVisibleSticky = stickyWidgets.some(isVisible);
 
 		if (exiters.length === 0 && enterers.length === 0) {
 			collapseEmptyGroups();
+			syncGridLayout();
 			return;
 		}
 
@@ -257,6 +284,7 @@ const hasVisibleSticky = stickyWidgets.some(isVisible);
 			exiters.forEach((widget) => widget.classList.add("hidden"));
 			enterers.forEach((widget) => widget.classList.remove("hidden"));
 			collapseEmptyGroups();
+			syncGridLayout();
 			return;
 		}
 
@@ -266,6 +294,7 @@ const hasVisibleSticky = stickyWidgets.some(isVisible);
 
 		enterers.forEach((widget) => widget.classList.remove("hidden"));
 		collapseEmptyGroups();
+		syncGridLayout();
 
 		// 留存组件：从旧位置 FLIP 到新位置（退场让出的位移被平滑吸收）
 		// 入场组件：淡入上移，多个时 50ms 阶梯

@@ -1,4 +1,6 @@
 import { sidebarConfig } from "@/config/sidebarConfig";
+import type { SidebarPage } from "@/types/sidebarConfig";
+import { isWidgetVisibleOnPage } from "./sidebar-page";
 import { PAGE_WIDTH, PAGE_WIDTH_DUAL } from "../constants/constants";
 
 export interface ResponsiveSidebarConfig {
@@ -17,15 +19,24 @@ export interface ResponsiveSidebarConfig {
  *
  * @param sidebarOverrides 后台 site_config.sidebar_widgets 的运行时覆盖
  *   （与 SideBar.astro 同一口径：`override[type] ?? widget.enable`）。
- *   覆盖存在且最终启用的 widget 集合为空时 hasPrimary=false，
- *   整页退化为单列——后台把卡片全部关闭即等于关闭整个侧边栏展示。
+ * @param currentPage 当前页面（SidebarPage），用于按 widget.pages 过滤——
+ *   仅统计当前页面实际可见的 widget（如 toc 只在文章页），使非文章页在
+ *   「只保留目录」的配置下正确退化为单列。
+ * @param tocHeadingsCount 当前页标题数（toc 的渲染前提，与 SideBar.astro
+ *   的 `headings.length > 0` 同一口径；无标题文章不编排目录）。
+ *   覆盖存在且最终可见集合为空时 hasPrimary=false，整页退化为单列。
  */
 export function getResponsiveSidebarConfig(
 	sidebarOverrides?: Record<string, boolean> | null,
+	currentPage?: SidebarPage,
+	tocHeadingsCount = 0,
 ): ResponsiveSidebarConfig {
 	const widgets = sidebarConfig.enable
 		? sidebarConfig.components.filter(
-				(widget) => sidebarOverrides?.[widget.type] ?? widget.enable,
+				(widget) =>
+					(sidebarOverrides?.[widget.type] ?? widget.enable) &&
+					isWidgetVisibleOnPage(widget.pages, currentPage) &&
+					(widget.type !== "toc" || tocHeadingsCount > 0),
 			)
 		: [];
 	const inColumn = (column: "primary" | "secondary") =>

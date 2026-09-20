@@ -55,15 +55,31 @@ const {
 } = Astro.props;
 
 // 响应式侧栏配置（数据驱动布局）。
-// 传入后台 site_config.sidebar_widgets 运行时覆盖：全部卡片关闭时
-// hasPrimary=false，整页退化为单列且不再渲染侧边栏。
+// 传入后台 site_config.sidebar_widgets 运行时覆盖与当前页面标识：
+// 全部卡片关闭，或当前页无可见 widget（如非文章页只保留 toc 时）
+// → hasPrimary=false，整页退化为单列且不再渲染侧边栏。
 const { sidebar: sidebarOverrides } = await getSiteOverrides();
-const sidebarResponsive = getResponsiveSidebarConfig(sidebarOverrides);
+const sidebarResponsive = getResponsiveSidebarConfig(
+	sidebarOverrides,
+	page,
+	headings.length,
+);
 const gridClasses = generateGridClasses(sidebarResponsive);
 const sidebarClasses = generatePrimarySidebarClasses(sidebarResponsive);
 const secondarySidebarClasses =
 	generateSecondarySidebarClasses(sidebarResponsive);
 const mainContentClasses = generateMainContentClasses(sidebarResponsive);
+
+// 客户端（swup 导航后页面切换）需要在这两套网格类之间切换：
+// data-grid-sidebar = 当前页有侧栏时的完整类；data-grid-nosidebar = 单列类。
+// 与 SideBar.astro 的导航后卡片过滤联动，避免导航后布局列残留。
+const BASE_GRID_CLASSES =
+	"transition duration-[var(--m3e-duration-long)] w-full left-0 right-0 grid grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4";
+const gridWithSidebar = `${BASE_GRID_CLASSES} ${gridClasses}`;
+const gridNoSidebar = `${BASE_GRID_CLASSES} grid-cols-1`;
+const currentGridClasses = sidebarResponsive.hasPrimary
+	? gridWithSidebar
+	: gridNoSidebar;
 ---
 
 <Layout title={title} banner={banner} ogImage={ogImage} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} page={page}>
@@ -83,7 +99,7 @@ const mainContentClasses = generateMainContentClasses(sidebarResponsive);
 <div id="main-layout" class="absolute w-full z-30 pointer-events-none">
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
-		<div id="main-grid" class:list={["transition duration-[var(--m3e-duration-long)] w-full left-0 right-0 grid grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4", gridClasses]}>
+		<div id="main-grid" data-grid-sidebar={gridWithSidebar} data-grid-nosidebar={gridNoSidebar} class:list={[currentGridClasses]}>
 			{sidebarResponsive.hasPrimary && (
 				<SideBar class={sidebarClasses} currentPage={page} headings={headings}></SideBar>
 			)}
