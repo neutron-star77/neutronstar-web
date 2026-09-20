@@ -54,6 +54,8 @@ const EMPTY: SiteOverrides = {
 	musicWidget: null,
 };
 
+// 模块级短缓存：压同一 isolate 内多次取数；BFF 侧 revalidate 秒级清缓存后，
+// 这里 5s 即过期，后台保存后刷新基本即时可见（30s 太久，会吞掉失效钩子的实时性）。
 let cache: { expires: number; data: SiteOverrides } | null = null;
 
 function parseStringList(value: unknown): string[] | undefined {
@@ -72,9 +74,9 @@ function parseStringList(value: unknown): string[] | undefined {
 export async function getSiteOverrides(): Promise<SiteOverrides> {
 	if (cache && cache.expires > Date.now()) return cache.data;
 
-	const cfg = await apiGet<Record<string, unknown>>("/api/site-config", 60_000);
+	const cfg = await apiGet<Record<string, unknown>>("/api/site-config", 15_000);
 	if (!cfg) {
-		cache = { expires: Date.now() + 15_000, data: EMPTY };
+		cache = { expires: Date.now() + 5_000, data: EMPTY };
 		return EMPTY;
 	}
 
@@ -165,7 +167,7 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		umami,
 		musicWidget,
 	};
-	cache = { expires: Date.now() + 30_000, data };
+	cache = { expires: Date.now() + 5_000, data };
 	return data;
 }
 
