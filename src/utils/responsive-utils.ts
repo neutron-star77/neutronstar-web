@@ -14,10 +14,19 @@ export interface ResponsiveSidebarConfig {
  * - 1024px 以下：单列（grid-cols-1），侧栏与内容上下堆叠；
  * - 1024px 以上：两列（侧栏 --sidebar-width + 内容）；
  * - dual 编排且副栏有 widget 时，1280px（xl）起升为三列。
+ *
+ * @param sidebarOverrides 后台 site_config.sidebar_widgets 的运行时覆盖
+ *   （与 SideBar.astro 同一口径：`override[type] ?? widget.enable`）。
+ *   覆盖存在且最终启用的 widget 集合为空时 hasPrimary=false，
+ *   整页退化为单列——后台把卡片全部关闭即等于关闭整个侧边栏展示。
  */
-export function getResponsiveSidebarConfig(): ResponsiveSidebarConfig {
+export function getResponsiveSidebarConfig(
+	sidebarOverrides?: Record<string, boolean> | null,
+): ResponsiveSidebarConfig {
 	const widgets = sidebarConfig.enable
-		? sidebarConfig.components.filter((widget) => widget.enable)
+		? sidebarConfig.components.filter(
+				(widget) => sidebarOverrides?.[widget.type] ?? widget.enable,
+			)
 		: [];
 	const inColumn = (column: "primary" | "secondary") =>
 		widgets.filter((widget) => (widget.column ?? "primary") === column);
@@ -119,6 +128,10 @@ export function generateMainContentClasses(
 		"overflow-hidden",
 		"min-w-0",
 	];
+	// 无侧栏（后台全关）时整页单列，内容占满全宽，不再让位到 col-start-2
+	if (!config.hasPrimary) {
+		return base.join(" ");
+	}
 	if (isDualColumn(config)) {
 		base.push("lg:col-start-2", "xl:col-start-2");
 	} else if (config.side === "left") {

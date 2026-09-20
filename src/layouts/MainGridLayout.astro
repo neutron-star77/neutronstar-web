@@ -15,6 +15,7 @@ import {
 	getResponsiveSidebarConfig,
 	isDualColumn,
 } from "@utils/responsive-utils";
+import { getSiteOverrides } from "@utils/site-overrides";
 import type { MarkdownHeading } from "astro";
 import { contextMenuConfig } from "@/config";
 import type { SidebarPage } from "@/types/sidebarConfig";
@@ -53,8 +54,11 @@ const {
 	hasComments,
 } = Astro.props;
 
-// 响应式侧栏配置（数据驱动布局）
-const sidebarResponsive = getResponsiveSidebarConfig();
+// 响应式侧栏配置（数据驱动布局）。
+// 传入后台 site_config.sidebar_widgets 运行时覆盖：全部卡片关闭时
+// hasPrimary=false，整页退化为单列且不再渲染侧边栏。
+const { sidebar: sidebarOverrides } = await getSiteOverrides();
+const sidebarResponsive = getResponsiveSidebarConfig(sidebarOverrides);
 const gridClasses = generateGridClasses(sidebarResponsive);
 const sidebarClasses = generatePrimarySidebarClasses(sidebarResponsive);
 const secondarySidebarClasses =
@@ -80,8 +84,10 @@ const mainContentClasses = generateMainContentClasses(sidebarResponsive);
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
 		<div id="main-grid" class:list={["transition duration-[var(--m3e-duration-long)] w-full left-0 right-0 grid grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4", gridClasses]}>
-			<SideBar class={sidebarClasses} currentPage={page} headings={headings}></SideBar>
-			{isDualColumn(sidebarResponsive) && (
+			{sidebarResponsive.hasPrimary && (
+				<SideBar class={sidebarClasses} currentPage={page} headings={headings}></SideBar>
+			)}
+			{sidebarResponsive.hasPrimary && isDualColumn(sidebarResponsive) && (
 				<SideBar id="sidebar-secondary" column="secondary" class={secondarySidebarClasses} currentPage={page} headings={headings}></SideBar>
 			)}
 
