@@ -20,8 +20,10 @@ declare const __BUILD_ID__: string;
 
 const HOME_CACHE_TTL = 180;
 // 文章页正文不常变，点赞/评论数由客户端 island 拉取不进 SSR HTML；
-// 短 TTL 兜住失效钩子异常的最坏情况。
-const POST_CACHE_TTL = 60;
+// 短 TTL 兜住失效钩子异常的最坏情况。60s→10s：文章页 HTML 不在 revalidate
+// 精确清除范围（Cache API 不能枚举），改短 TTL 把"保存配置→文章页更新"
+// 的窗口从 60s 压到 10s；配合 SSE 实时广播体验接近秒级。
+const POST_CACHE_TTL = 10;
 
 /** 文章详情页路径（兼容不带尾斜杠的请求，缓存键统一规范化为带尾斜杠） */
 const POST_PATH_RE = /^\/posts\/([^/]+)\/?$/;
