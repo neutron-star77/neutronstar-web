@@ -40,7 +40,7 @@ async function collectText() {
 	// 3. 从 API 拉全量已发布文章（含正文）
 	try {
 		console.log(`[subset] Fetching posts from ${API_BASE}/api/posts...`);
-		const list = await fetch(`${API_BASE}/api/posts?status=published&page=1&size=500`).then((r) => r.json());
+		const list = await fetch(`${API_BASE}/api/posts?status=published&page=1&size=200`).then((r) => r.json());
 		const posts = Array.isArray(list) ? list : list?.items ?? [];
 		console.log(`[subset] Got ${posts.length} posts`);
 		for (const post of posts) {

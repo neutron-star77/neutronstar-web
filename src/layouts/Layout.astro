@@ -6,7 +6,7 @@ import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
 import { pathsEqual, toAbsoluteUrl, url } from "@utils/url-utils";
-import { getSiteIdentity, getUmamiOverride } from "@utils/site-overrides";
+import { getSiteIdentity, getSiteOverrides, getUmamiOverride } from "@utils/site-overrides";
 import {
 	expressiveCodeConfig,
 	profileConfig,
@@ -84,6 +84,11 @@ const hasMobileBanner = siteConfig.banner.src.mobile.length > 0;
 
 // P2：站名/副标题以后台 site_config 为准（site_title / site_description）
 // 后台显式置空（""）时保持为空，不再回退默认；仅未配置（null）时用前端默认。
+// 后台侧栏「音乐」开关关闭时，右下角悬浮音乐播放器一并不挂载
+// （侧栏卡片开关与悬浮播放器同属「音乐组件」，用户关音乐即全站不出现）
+const siteOverridesForMusic = await getSiteOverrides();
+const musicSidebarEnabled = siteOverridesForMusic.sidebar?.music !== false;
+
 const identity = await getSiteIdentity();
 const siteTitle = identity.title ?? siteConfig.title;
 const siteSubtitle = identity.description ?? siteConfig.subtitle;
@@ -299,7 +304,7 @@ html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel {
 	>
 		<ConfigCarrier></ConfigCarrier>
 		{umamiOptions && <UmamiRuntime />}
-		<BiliFloatPlayer client:only="react" />
+		{musicSidebarEnabled && <BiliFloatPlayer client:only="react" />}
 		{textureEnabled && (
 			<div
 				id="m3e-texture-canvas"

@@ -15,7 +15,10 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "..");
 const SOURCE_DIR = join(WEB_ROOT, "dist", "search-source");
 const OUTPUT_DIR = join(WEB_ROOT, "dist", "client", "pagefind");
-const API_BASE = process.env.VITE_API_BASE_URL || "https://bff.neutronstar.fun";
+const API_BASE =
+	process.env.PUBLIC_API_BASE ||
+	process.env.VITE_API_BASE_URL ||
+	"https://bff.neutronstar.fun";
 
 async function fetchAllPosts() {
 	const size = 200;

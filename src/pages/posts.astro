@@ -1,22 +1,27 @@
 ---
 // 文章列表页（/posts）：卡片网格 + 分页，区别于按年份分组的 /archive。
 // 导航「文章」直达本页，不再 301 → /archive（消除 swup/缓存对 3xx 的处理问题，
-// 也满足「点文章进入真正列表」的预期）。prerender=false：需实时取数 + 分页。
+// 也满足「点文章进入真正列表」的预期）。
+// 一代内网版静态化：构建期从 API 快照（存档定位；10 篇左右单页全览，查询参数分页不再生效）
+export async function getStaticPaths() {
+	await getArchivePage(1, 20);
+	return [{ params: {} }];
+}
 import PagePagination from "@components/atoms/blog/PagePagination.astro";
 import PostPage from "@components/organisms/PostPage.astro";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
-import { postListConfig } from "@/config/postListConfig";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { getArchivePage } from "@utils/content-utils";
 import { url } from "@utils/url-utils";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
-export const prerender = false;
+// 内网存档版：单页全览（文章量小，size=20 覆盖全部；查询参数分页在静态托管下不再生效）
+const STATIC_PAGE_SIZE = 20;
 
 const rawPage = Astro.url.searchParams.get("page");
 const pageNum = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
-const archive = await getArchivePage(pageNum, postListConfig.pageSize);
+const archive = await getArchivePage(pageNum, STATIC_PAGE_SIZE);
 const page = {
 	...archive,
 	data: archive.posts,

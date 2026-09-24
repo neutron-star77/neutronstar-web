@@ -1,28 +1,26 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import Markdown from "@components/content/Markdown.astro";
-import WalineComments from "@components/islands/WalineComments";
 import ReadingProgress from "@components/islands/ReadingProgress";
 import FloatingToc from "@components/islands/FloatingToc";
 import PostLikeButton from "@components/islands/PostLikeButton";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
-import LoadMoreContent from "@components/islands/LoadMoreContent";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
-import { getPostBySlug } from "@utils/content-utils";
+import { getPostBySlug, getSortedPosts } from "@utils/content-utils";
 import { apiUrl } from "@/lib/server/api";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
-import {
-	splitMarkdownByH2,
-	pickFirstScreenChunks,
-	extractOutline,
-} from "@utils/markdown-chunks.mjs";
+import { extractOutline } from "@utils/markdown-chunks.mjs";
 import { url } from "@utils/url-utils";
 import { getSiteIdentity } from "@utils/site-overrides";
 import { articleConfig, resolveArticleShareOptions } from "@/config/articleConfig";
 import { siteConfig } from "@/config";
 
-// Kirameku 风格文章详情页：封面 hero + 元信息行 + 点赞 + 阅读进度条 + 悬浮目录 + 评论
-export const prerender = false;
+// Kirameku 风格文章详情页：封面 hero + 元信息行 + 点赞 + 阅读进度条 + 悬浮目录
+// 一代内网版静态化：构建期从 API 快照全部文章（存档定位，内容变更后重新构建即可）
+export async function getStaticPaths() {
+	const posts = await getSortedPosts();
+	return posts.map((post) => ({ params: { slug: post.slug } }));
+}
 
 const { slug = "" } = Astro.params;
 const entry = await getPostBySlug(slug);
@@ -31,13 +29,10 @@ if (!entry) {
 	return Astro.redirect(url("/"));
 }
 
-// 长文分块渲染：162KB+ 的文章全量渲染会触发 Worker 1102。
-// 按 h2 切块，首屏只渲染累计 ~15KB 以内的前若干 chunk，后续由 LoadMoreContent 逐段加载。
+// 静态化（无 Worker 1102 限制）后全量渲染；长文分块加载仅限 SSR worker 场景
 const fullMarkdown = entry.body ?? "";
-const chunks = splitMarkdownByH2(fullMarkdown);
-const firstScreenCount = pickFirstScreenChunks(chunks);
-const isChunked = chunks.length > 1 && firstScreenCount < chunks.length;
-const firstScreenMarkdown = chunks.slice(0, firstScreenCount).join("\n\n");
+const isChunked = false;
+const firstScreenMarkdown = fullMarkdown;
 
 let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
 rendererPromise ??= siteMarkdownProcessor.createRenderer({});
@@ -144,12 +139,8 @@ const cover = entry.data.image || "";
 
                 <!-- 正文 -->
                 <Markdown class="post-content !max-w-none"><div set:html={html} /></Markdown>
-                {/* 长文分块加载：首屏之后的 chunk 由本 island 滚动时自动拉取 */}
-                {isChunked && (
-                  <LoadMoreContent client:visible slug={slug} totalChunks={chunks.length} />
-                )}
 
-                {/* 分享海报 */}
+                <!-- 分享海报 -->
                 {shareOptions && (
                     <div class="mt-8">
                         <ArticleShare
@@ -167,11 +158,6 @@ const cover = entry.data.image || "";
                 )}
             </div>
         </article>
-
-        {/* 评论区（Waline，文章卡外） */}
-        <div class="mt-8">
-            <WalineComments client:load path={`/posts/${slug}`} />
-        </div>
     </div>
 </MainGridLayout>
 <LiveRefreshBanner client:load />

@@ -7,7 +7,15 @@ import { getArchivePage } from "@utils/content-utils";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 
 // P2 数据换血：首页 SSR，文章来自 /bff/archive（BFF 边缘缓存 + 发布失效）
-export const prerender = false;
+// 一代内网版静态化：构建期从 API 快照首页与数字分页（存档定位）
+export async function getStaticPaths() {
+	const archive = await getArchivePage(1, postListConfig.pageSize);
+	const paths: { params: { page?: string } }[] = [{ params: { page: undefined } }];
+	for (let p = 2; p <= archive.lastPage; p++) {
+		paths.push({ params: { page: String(p) } });
+	}
+	return paths;
+}
 
 const rawPage = Astro.params.page;
 // 根级 catch-all 只允许「首页」与「/2/、/3/ 这类纯数字分页」。

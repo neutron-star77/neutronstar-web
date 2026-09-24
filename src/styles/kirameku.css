@@ -154,3 +154,21 @@
 .dark .kirameku-article .post-content th {
   background-color: #1e293b;
 }
+
+/* 时光河流归档页：河流线贯穿整个浏览器宽度（从左缘接到右缘），
+   突破主栏 max-width 与 .kirameku-page 的圆角裁切 */
+.kirameku-page--river {
+  /* 用户要求：本页背景透明度为 0 —— 面板渐变底色完全去掉，
+     河流与卡片直接浮在壁纸/页面背景上 */
+  overflow: visible;
+  background: transparent !important;
+  border-color: transparent;
+  box-shadow: none;
+}
+.kirameku-river-fullwidth {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+html:has(.kirameku-page--river) {
+  overflow-x: clip;
+}

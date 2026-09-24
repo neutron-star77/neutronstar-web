@@ -141,8 +141,8 @@ function isActive(link: (typeof links)[number]): boolean {
 			};
 		}
 
-		// 滚动方向检测：向下滚隐藏顶栏、向上滚立即唤回（灵敏：6px 方向差即响应；
-		// 页面顶部 120px 内永远显示，避免刚进来就被藏掉）。
+		// 滚动方向检测：向下滚隐藏顶栏、向上滚保持隐藏，
+		// 只有滚回距顶部 TOP_REVEAL 以内才重新唤回（页面顶部永远显示，避免刚进来就被藏掉）。
 		const nav = document.getElementById("navbar");
 		if (nav && !document.documentElement.dataset.topBarHideBound) {
 			document.documentElement.dataset.topBarHideBound = "true";
@@ -154,8 +154,7 @@ function isActive(link: (typeof links)[number]): boolean {
 				raf = 0;
 				const y = window.scrollY;
 				const goingDown = y > lastY + HIDE_DELTA;
-				const goingUp = y < lastY - HIDE_DELTA;
-				if (y < TOP_REVEAL || goingUp) nav.classList.remove("navbar-hidden");
+				if (y < TOP_REVEAL) nav.classList.remove("navbar-hidden");
 				else if (goingDown) nav.classList.add("navbar-hidden");
 				lastY = y;
 			};

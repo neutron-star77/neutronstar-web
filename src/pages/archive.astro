@@ -5,9 +5,13 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { getSortedPosts } from "@utils/content-utils";
 
-// Kirameku 风格「时光河流」归档页：SSR 全量文章下发，SVG 河流 + 横向拖拽。
+// Kirameku 风格「时光河流」归档页：静态化后构建期全量文章下发，SVG 河流 + 横向拖拽。
 // 原年度列表被替换；个人经历页 /timeline（data/timeline.ts）保持不变。
-export const prerender = false;
+// 一代内网版静态化：构建期从 API 快照全量文章（存档定位）
+export async function getStaticPaths() {
+	await getSortedPosts();
+	return [{ params: {} }];
+}
 
 const posts = await getSortedPosts();
 
@@ -25,7 +29,7 @@ const riverPosts: RiverPost[] = posts.map((p) => ({
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)} page="archive">
-    <div class="kirameku-page">
+    <div class="kirameku-page kirameku-page--river">
         <TimelineRiver posts={riverPosts} client:load />
     </div>
 </MainGridLayout>

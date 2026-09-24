@@ -211,6 +211,20 @@ export async function getArchivePage(
 	size: number,
 	filter: { tag?: string; category?: string } = {},
 ): Promise<ArchivePage> {
+	// 一代内网版（PUBLIC_API_BASE 指向 NAS 直连）：/api/posts 返回全量数组，本地切片分页；
+	// 公网 BFF 模式走 /bff/archive（边缘缓存 + 服务端分页，内网 FastAPI 无该端点）。
+	const apiBase =
+		(import.meta.env.PUBLIC_API_BASE ?? "").trim() ||
+		"https://bff.neutronstar.fun";
+	if (apiBase !== "https://bff.neutronstar.fun") {
+		const list = await apiGet<ApiPost[]>("/api/posts?status=published&page=1&size=200");
+		const all = (list ?? []).map(apiPostToEntry);
+		const total = all.length;
+		const start = (page - 1) * size;
+		const posts = all.slice(start, start + size);
+		for (const p of posts) p.url = getPostUrl(p);
+		return { posts, total, page, size, lastPage: Math.max(1, Math.ceil(total / size)) };
+	}
 	const params = new URLSearchParams({
 		page: String(page),
 		size: String(size),

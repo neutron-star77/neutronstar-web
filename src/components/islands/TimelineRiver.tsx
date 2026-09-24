@@ -144,7 +144,7 @@ export default function TimelineRiver({ posts }: { posts: RiverPost[] }) {
   );
 
   const CARD_W = isMobile ? 170 : 240;
-  const CARD_H = isMobile ? 180 : 230;
+  const CARD_H = isMobile ? 130 : 150;
   const CARD_GAP = isMobile ? 40 : 60;
   const RIVER_Y = isMobile ? 180 : 240;
   const SVG_TOP = -100;
@@ -233,7 +233,7 @@ export default function TimelineRiver({ posts }: { posts: RiverPost[] }) {
     <div>
       {header}
 
-      <div className="kirameku-river-scroll overflow-hidden pb-4 select-none">
+      <div className="kirameku-river-scroll kirameku-river-fullwidth overflow-hidden pb-4 select-none">
         <motion.div
           drag="x"
           dragMomentum
@@ -401,32 +401,7 @@ export default function TimelineRiver({ posts }: { posts: RiverPost[] }) {
                         isMobile ? "bg-white/80 dark:bg-slate-800/90" : "bg-white/60 dark:bg-slate-800/70 backdrop-blur-xl"
                       } hover:shadow-xl hover:-translate-y-0.5`}
                     >
-                      {post.cover ? (
-                        <div className="relative overflow-hidden" style={{ height: isMobile ? 70 : 100 }}>
-                          <img
-                            src={post.cover}
-                            alt=""
-                            loading="lazy"
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                          <div className="absolute bottom-1.5 left-2 md:bottom-2 md:left-3 flex items-center gap-1 text-white/80 text-[8px] md:text-[10px]">
-                            <ClockIcon className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                            {dateStr}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="relative bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center"
-                          style={{ height: isMobile ? 70 : 100 }}
-                        >
-                          <BookOpenIcon className="w-6 h-6 md:w-8 md:h-8 text-slate-300 dark:text-slate-600" />
-                          <span className="absolute bottom-1.5 left-2 md:bottom-2 md:left-3 text-[8px] md:text-[10px] text-slate-400">
-                            {dateStr}
-                          </span>
-                        </div>
-                      )}
-                      <div className="p-2 md:p-3">
+                      <div className="p-2 md:p-3 h-full flex flex-col">
                         <h3 className="text-[10px] md:text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2 mb-1 md:mb-1.5 group-hover:text-sky-500 transition-colors leading-snug">
                           {post.title}
                         </h3>
@@ -435,7 +410,7 @@ export default function TimelineRiver({ posts }: { posts: RiverPost[] }) {
                             {post.description}
                           </p>
                         )}
-                        <div className="flex items-center justify-between">
+                        <div className="mt-auto flex items-center justify-between">
                           {post.category ? (
                             <span className={`text-[7px] md:text-[9px] px-1 md:px-1.5 py-0.5 rounded-full font-medium ${catBg(post.category)} ${catText(post.category)}`}>
                               {post.category}
