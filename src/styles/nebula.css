@@ -269,3 +269,15 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 @media (min-width: 1650px) {
   .nb-latest { width: min(64rem, calc(100% - 2.5rem)); }
 }
+
+/* 目录面板：参考站式清透玻璃（白 7% + blur，不再深色实底） */
+.article-toc__card {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.14)) !important;
+  backdrop-filter: blur(12px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.2) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28) !important;
+}
+.article-toc__item.is-active {
+  background: rgba(125, 211, 252, 0.14) !important;
+}
