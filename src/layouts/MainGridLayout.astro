@@ -1,5 +1,4 @@
 ---
-import BannerStage from "@components/organisms/BannerStage.astro";
 import ContextMenu from "@components/organisms/ContextMenu.svelte";
 import FloatingControls from "@components/organisms/FloatingControls.astro";
 import Footer from "@components/organisms/Footer.astro";
@@ -91,9 +90,6 @@ const currentGridClasses = sidebarResponsive.hasPrimary
         <TopAppBar></TopAppBar>
     </div>
 </header>
-
-<!-- Banner -->
-<BannerStage page={page} title={title} description={description} date={bannerDate} />
 
 <!-- Main content -->
 <div id="main-layout" class="absolute w-full z-30 pointer-events-none">

@@ -1,0 +1,70 @@
+/* Shared text-first surface. Route components keep their content; this layer
+   removes decorative chrome and gives every page the same editorial measure. */
+:root {
+  --editorial-paper: #f7f6f2;
+  --editorial-ink: #242321;
+  --editorial-muted: #77736b;
+  --editorial-rule: rgba(36, 35, 33, .16);
+  --editorial-accent: #8a5737;
+  --editorial-width: 46rem;
+}
+
+html, body { background: var(--editorial-paper) !important; color: var(--editorial-ink); }
+body { font-family: Georgia, "Times New Roman", serif; }
+
+/* The old banner and floating theme chrome are intentionally quiet in the
+   editorial surface. Article and album media remain inside their content. */
+.banner-stage, #sidebar, #sidebar-secondary, .m3-floating-toc-panel,
+.floating-controls, #floating-controls { display: none !important; }
+#top-row { height: auto !important; max-width: var(--editorial-width) !important; padding: 0 !important; margin: 0 auto !important; }
+#navbar-wrapper { position: relative !important; }
+#navbar { position: relative !important; inset: auto !important; height: 4.75rem !important; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; border-bottom: 1px solid var(--editorial-rule); color: var(--editorial-ink) !important; }
+#navbar > div { height: 4.75rem !important; padding-inline: 0 !important; }
+#navbar img { display: none !important; }
+#navbar a, #navbar button { color: var(--editorial-ink) !important; background: transparent !important; box-shadow: none !important; }
+#navbar .top-app-bar__nav-link { height: auto !important; padding-inline: .5rem !important; font: 500 .72rem/1 var(--m3e-font-sans, Arial, sans-serif) !important; letter-spacing: .06em; }
+#navbar .top-app-bar__nav-link::after { display: none !important; }
+#navbar .top-app-bar__nav-link--active { text-decoration: underline; text-underline-offset: .45rem; text-decoration-thickness: 1px; }
+#navbar .top-app-bar__nav { gap: .35rem !important; }
+#navbar .top-app-bar__nav-group > button { font-weight: 500 !important; }
+#navbar [id="display-settings-switch"], #navbar [id="search-switch"], #navbar .top-app-bar__search-shell { display: none !important; }
+#navbar [id="nav-drawer-switch"] { display: none !important; }
+#main-layout { position: relative !important; top: auto !important; z-index: 1 !important; pointer-events: auto !important; }
+#main-layout > div { max-width: var(--editorial-width) !important; }
+#main-grid { display: block !important; max-width: var(--editorial-width) !important; padding: 0 !important; margin: 0 auto !important; }
+#main-content-column { width: 100% !important; max-width: none !important; }
+#content-wrapper { padding: 4.5rem 0 3rem !important; }
+
+/* Remove the visual card treatment without changing content structure. */
+.card-base, .m3-card, .m3-blog-postcard, .float-panel {
+  border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+  background: transparent !important; padding-inline: 0 !important;
+}
+.onload-animation { animation: none !important; }
+.editorial-data-list { border-top: 1px solid var(--editorial-rule); }
+.editorial-data-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(0, 2fr) 2rem; gap: 1rem; align-items: baseline; padding: 1rem 0; border-bottom: 1px solid var(--editorial-rule); color: var(--editorial-ink); text-decoration: none; }
+.editorial-data-row span, .editorial-data-row small { color: var(--editorial-muted); font-size: .85rem; }
+.editorial-data-row small { display: block; margin-top: .25rem; }
+.editorial-data-row:hover { color: var(--editorial-accent); }
+
+/* Shared text rhythm for route headings and links. */
+#swup-container h1, #swup-container h2, #swup-container h3 { color: var(--editorial-ink) !important; font-family: Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.02em; }
+#swup-container h1 { font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.05; }
+#swup-container h2 { font-size: clamp(1.35rem, 3vw, 2rem); line-height: 1.2; }
+#swup-container p, #swup-container li { color: var(--editorial-ink); line-height: 1.8; }
+#swup-container a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+#swup-container a:hover { color: var(--editorial-accent); }
+#swup-container :focus-visible, .editorial-nav :focus-visible { outline: 2px solid var(--editorial-accent); outline-offset: 4px; }
+
+/* Keep body images and album media, but remove page-level ornamental imagery. */
+#swup-container .banner, #swup-container [data-decorative="true"] { display: none !important; }
+
+@media (max-width: 1023px) {
+  #top-row, #main-layout > div, #main-grid { width: min(100% - 2rem, var(--editorial-width)) !important; }
+  #content-wrapper { padding-top: 3.5rem !important; }
+  #navbar [id="nav-drawer-switch"] { display: inline-flex !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

@@ -28,6 +28,7 @@
 @import "./image-bloom.css" layer(components);
 /* Kirameku 风格页面（说说/照片墙/时光河流/文章）：作用域自带，不影响其它页面 */
 @import "./kirameku.css";
+@import "./plain-text-editorial.css";
 
 @layer base {
     /* 全局正文色走主题变量：裸内容（未显式设色的文字/按钮）明暗自适应，

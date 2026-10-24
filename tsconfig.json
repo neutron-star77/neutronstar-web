@@ -3,7 +3,6 @@
   "include": [".astro/types.d.ts", "src/**/*"],
   "exclude": ["dist"],
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "strictNullChecks": true,
     "allowJs": false,
     "jsx": "react-jsx",

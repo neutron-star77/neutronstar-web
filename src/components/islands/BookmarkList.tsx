@@ -48,29 +48,21 @@ export default function BookmarkList() {
               <span className="text-xs text-on-surface-variant">{category.description}</span>
             )}
           </header>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="editorial-data-list">
             {category.sites.map((site) => (
               <a
                 key={site.id}
                 href={site.url}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="group flex items-center gap-3 rounded-m3 bg-surface-container p-4 shadow-elevation-1 transition hover:-translate-y-1 hover:shadow-elevation-2"
+                className="editorial-data-row"
               >
-                <img
-                  src={favicon(site)}
-                  alt=""
-                  width="40"
-                  height="40"
-                  loading="lazy"
-                  className="h-10 w-10 shrink-0 rounded-full bg-surface object-cover"
-                />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-on-surface">
+                  <span className="block truncate font-semibold">
                     {site.name}
                   </span>
                   {site.description && (
-                    <span className="block truncate text-xs text-on-surface-variant">
+                    <span className="block truncate text-xs">
                       {site.description}
                     </span>
                   )}

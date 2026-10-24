@@ -79,6 +79,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.12",
     "@iconify-json/simple-icons": "^1.2.95",
     "@swup/scroll-plugin": "3.3.2",
     "@types/react": "^19.2.0",

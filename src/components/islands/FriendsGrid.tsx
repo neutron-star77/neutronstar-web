@@ -29,30 +29,18 @@ export default function FriendsGrid() {
   if (!friends.length) return <p className="text-sm text-on-surface-variant">暂时还没有友链。</p>;
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="editorial-data-list">
       {friends.map((friend, index) => (
         <a
           key={friend.id}
           href={friend.url}
           target="_blank"
           rel="noreferrer"
-          className="group rounded-m3 bg-surface-container p-5 shadow-elevation-1 transition hover:-translate-y-2 hover:rotate-0 hover:shadow-elevation-2"
-          style={{ transform: `rotate(${[-1.5, 1, -0.75, 0.75][index % 4]}deg)` }}
+          className="editorial-data-row"
         >
-          <div className="flex items-center gap-3">
-            {friend.avatar ? (
-              <img src={friend.avatar} alt="" width="48" height="48" loading="lazy" className="h-12 w-12 rounded-full object-cover" />
-            ) : (
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-container font-semibold text-on-primary-container">
-                {friend.name.slice(0, 1)}
-              </span>
-            )}
-            <strong className="text-on-surface">{friend.name}</strong>
-          </div>
-          <p className="mt-5 text-sm text-on-surface-variant">{friend.description}</p>
-          <span className="mt-4 block text-xs text-primary opacity-0 transition group-hover:opacity-100">
-            访问站点 →
-          </span>
+          <strong>{friend.name}</strong>
+          <span>{friend.description}</span>
+          <span aria-hidden="true">↗</span>
         </a>
       ))}
     </div>

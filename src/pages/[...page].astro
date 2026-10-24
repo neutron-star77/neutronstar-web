@@ -1,42 +1,91 @@
 ---
-import Pagination from "@components/molecules/Pagination.astro";
-import PostPage from "@components/organisms/PostPage.astro";
-import { postListConfig } from "@/config/postListConfig";
-import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { getArchivePage } from "@utils/content-utils";
-import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import { postListConfig } from "@/config/postListConfig";
+import Layout from "../layouts/Layout.astro";
 
-// P2 数据换血：首页 SSR，文章来自 /bff/archive（BFF 边缘缓存 + 发布失效）
-// 一代内网版静态化：构建期从 API 快照首页与数字分页（存档定位）
 export async function getStaticPaths() {
 	const archive = await getArchivePage(1, postListConfig.pageSize);
 	const paths: { params: { page?: string } }[] = [{ params: { page: undefined } }];
-	for (let p = 2; p <= archive.lastPage; p++) {
-		paths.push({ params: { page: String(p) } });
-	}
+	for (let p = 2; p <= archive.lastPage; p += 1) paths.push({ params: { page: String(p) } });
 	return paths;
 }
 
 const rawPage = Astro.params.page;
-// 根级 catch-all 只允许「首页」与「/2/、/3/ 这类纯数字分页」。
-// 其余路径（如 /albums/xxx/、/foobar/）必须 404，否则 SSR 后 catch-all 会把未知 URL
-// 全部渲染成首页（软 404，污染 SEO 也让用户以为链接有效）。
-if (rawPage !== undefined && !/^\d+$/.test(String(rawPage))) {
-	return new Response("404 Not Found", {
-		status: 404,
-		headers: { "content-type": "text/plain; charset=utf-8" },
-	});
-}
-const pageNum = Math.max(1, Number.parseInt(rawPage ?? "1", 10) || 1);
-const archive = await getArchivePage(pageNum, postListConfig.pageSize);
-// PostPage 消费 page.data（与原版 astro Page 鸭子兼容）
-const page = { ...archive, data: archive.posts };
-
-const len = page.posts.length;
+if (rawPage !== undefined && !/^\d+$/.test(String(rawPage))) return new Response("404 Not Found", { status: 404 });
+const archive = await getArchivePage(Number.parseInt(rawPage ?? "1", 10) || 1, postListConfig.pageSize);
+const posts = archive.posts.slice(0, 4);
+const pageNumber = Number.parseInt(rawPage ?? "1", 10) || 1;
+const navItems = [
+	{ label: "文章", href: "/posts/" },
+	{ label: "图书", href: "/novel/" },
+	{ label: "相册", href: "/albums/" },
+	{ label: "说说", href: "/moments/" },
+];
 ---
 
-<MainGridLayout page="home">
-    <PostPage page={page}></PostPage>
-    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
-</MainGridLayout>
-<LiveRefreshBanner client:load />
+<Layout title="玄穹时序司" description="玄穹浩渺，时序奔流。" page="home">
+	<div class="sketch-home">
+		<header class="sketch-nav">
+			<a class="sketch-brand" href="/" aria-label="玄穹时序司首页"><span class="sketch-brand__mark" aria-hidden="true">玄</span><span>玄穹时序司</span></a>
+			<nav aria-label="主导航">{navItems.map((item) => <a href={item.href}>{item.label}</a>)}</nav>
+			<a class="sketch-index" href="/archive/">索引 <span aria-hidden="true">↗</span></a>
+		</header>
+
+		<main>
+			<section class="sketch-hero" aria-labelledby="sketch-title">
+				<div class="sketch-hero__copy">
+					<p class="sketch-kicker">PRIVATE ARCHIVE / 2026</p>
+					<h1 id="sketch-title">玄穹<br /><em>时序司</em></h1>
+					<p class="sketch-intro">玄穹浩渺，时序奔流。<br />记录生活、阅读与仍在发生的想法。</p>
+					<a class="sketch-enter" href="/posts/">进入文章 <span aria-hidden="true">↗</span></a>
+				</div>
+				<div class="sketch-hero__rule" aria-hidden="true"><span></span><span></span><span></span></div>
+			</section>
+
+			<section class="sketch-latest" aria-labelledby="latest-title">
+				<div class="sketch-section-head"><p class="sketch-kicker">LATEST NOTES</p><a href="/posts/">查看全部 <span aria-hidden="true">↗</span></a></div>
+				<div class="sketch-posts">{posts.map((post, index) => <article class="sketch-post"><span class="sketch-post__number">{String(index + 1).padStart(2, "0")}</span><div><p>{post.data.category || "记录"} · {post.data.published.toLocaleDateString("zh-CN")}</p><h2 id={index === 0 ? "latest-title" : undefined}><a href={`/posts/${post.slug}/`}>{post.data.title}</a></h2></div><span class="sketch-post__arrow" aria-hidden="true">↗</span></article>)}</div>
+			</section>
+		</main>
+		<footer class="sketch-footer"><span>玄穹浩渺，时序奔流。</span><span>© {new Date().getFullYear()} / PAGE {String(pageNumber).padStart(2, "0")}</span></footer>
+	</div>
+</Layout>
+
+<style is:global>
+	:root { --sketch-paper: #eee9df; --sketch-ink: #2d2923; --sketch-muted: #766f64; --sketch-rule: rgba(45, 41, 35, .18); --sketch-accent: #a2693e; }
+	.sketch-home { min-height: 100svh; overflow-x: clip; background: var(--sketch-paper); color: var(--sketch-ink); font-family: Georgia, "Times New Roman", serif; }
+	.sketch-nav, .sketch-hero, .sketch-latest, .sketch-footer { position: relative; width: min(1180px, calc(100% - 3rem)); margin-inline: auto; }
+	.sketch-nav { display: flex; align-items: center; justify-content: space-between; padding: 1.35rem 0; border-bottom: 1px solid var(--sketch-rule); font-family: var(--m3e-font-sans, Arial, sans-serif); }
+	.sketch-brand { display: inline-flex; align-items: center; gap: .65rem; color: inherit; font-size: .95rem; font-weight: 650; letter-spacing: .02em; text-decoration: none; }
+	.sketch-brand__mark { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border: 1px solid currentColor; border-radius: 50%; font-family: Georgia, serif; font-size: .86rem; }
+	.sketch-nav nav { display: flex; gap: 1.45rem; margin-left: auto; margin-right: 2.5rem; }
+	.sketch-nav nav a, .sketch-index { color: var(--sketch-muted); font-size: .74rem; letter-spacing: .08em; text-decoration: none; transition: color 180ms ease; }
+	.sketch-nav nav a:hover, .sketch-index:hover { color: var(--sketch-ink); }
+	.sketch-index { color: var(--sketch-ink); }
+	.sketch-hero { display: grid; grid-template-columns: minmax(240px, .72fr) minmax(0, 1.28fr); align-items: center; gap: clamp(2rem, 8vw, 8rem); min-height: calc(100svh - 5rem); padding: clamp(4rem, 9vh, 8rem) 0 clamp(5rem, 12vh, 9rem); }
+	.sketch-hero__copy { position: relative; z-index: 1; }
+	.sketch-kicker { margin: 0 0 1.4rem; color: var(--sketch-muted); font: 600 .65rem/1.2 var(--m3e-font-mono-family, monospace); letter-spacing: .2em; }
+	.sketch-hero h1 { margin: 0; font-size: clamp(4rem, 8vw, 8.2rem); font-weight: 400; letter-spacing: -.055em; line-height: .84; }
+	.sketch-hero h1 em { color: var(--sketch-accent); font-style: italic; }
+	.sketch-intro { margin: 2rem 0 2.25rem; color: var(--sketch-muted); font-size: clamp(1rem, 1.4vw, 1.2rem); line-height: 1.7; }
+	.sketch-enter { display: inline-flex; align-items: center; gap: .7rem; padding-bottom: .35rem; border-bottom: 1px solid currentColor; color: var(--sketch-ink); font-family: var(--m3e-font-sans, Arial, sans-serif); font-size: .76rem; letter-spacing: .08em; text-decoration: none; transition: gap 180ms ease, color 180ms ease; }
+	.sketch-enter:hover { gap: 1rem; color: var(--sketch-accent); }
+	.sketch-hero__rule { display: grid; gap: 1.25rem; align-content: center; min-height: 15rem; border-top: 1px solid var(--sketch-rule); border-bottom: 1px solid var(--sketch-rule); transform: rotate(2.5deg); }
+	.sketch-hero__rule span { display: block; width: 100%; height: 1px; background: var(--sketch-rule); }
+	.sketch-latest { padding: 1.25rem 0 5rem; border-top: 1px solid var(--sketch-rule); }
+	.sketch-section-head { display: flex; justify-content: space-between; align-items: baseline; }
+	.sketch-section-head .sketch-kicker { margin: 0; }
+	.sketch-section-head a { color: var(--sketch-muted); font-family: var(--m3e-font-sans, Arial, sans-serif); font-size: .72rem; text-decoration: none; }
+	.sketch-posts { border-top: 1px solid var(--sketch-rule); margin-top: 1.1rem; }
+	.sketch-post { display: grid; grid-template-columns: 3rem 1fr 2rem; align-items: center; gap: 1rem; min-height: 5.8rem; border-bottom: 1px solid var(--sketch-rule); }
+	.sketch-post__number { color: var(--sketch-accent); font: .7rem var(--m3e-font-mono-family, monospace); }
+	.sketch-post p { margin: 0 0 .35rem; color: var(--sketch-muted); font: .63rem var(--m3e-font-mono-family, monospace); letter-spacing: .05em; }
+	.sketch-post h2 { margin: 0; font-size: clamp(1.15rem, 2vw, 1.55rem); font-weight: 400; }
+	.sketch-post h2 a { color: inherit; text-decoration: none; }
+	.sketch-post h2 a:hover { color: var(--sketch-accent); }
+	.sketch-post__arrow { color: var(--sketch-muted); font-family: Arial, sans-serif; text-align: right; transition: transform 180ms ease, color 180ms ease; }
+	.sketch-post:hover .sketch-post__arrow { color: var(--sketch-accent); transform: translate(2px, -2px); }
+	.sketch-footer { display: flex; justify-content: space-between; padding: 1rem 0 1.5rem; color: var(--sketch-muted); border-top: 1px solid var(--sketch-rule); font: .65rem var(--m3e-font-mono-family, monospace); letter-spacing: .05em; }
+	@media (max-width: 760px) { .sketch-nav, .sketch-hero, .sketch-latest, .sketch-footer { width: min(100% - 1.5rem, 1180px); } .sketch-nav nav { gap: .75rem; margin-right: 0; } .sketch-nav nav a:nth-child(n+3) { display: none; } .sketch-index { display: none; } .sketch-hero { grid-template-columns: 1fr; gap: 3.5rem; min-height: auto; padding-top: 5rem; } .sketch-hero h1 { font-size: clamp(4rem, 20vw, 7rem); } .sketch-hero__rule { width: 92%; margin-left: auto; } .sketch-footer { flex-direction: column; gap: .45rem; } }
+	@media (prefers-reduced-motion: reduce) { .sketch-enter, .sketch-post__arrow { transition: none; } }
+</style>

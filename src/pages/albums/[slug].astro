@@ -1,13 +1,32 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import AlbumGrid from "@components/islands/AlbumGrid";
+import { apiGet } from "@/lib/server/api";
+import type { Album } from "@/lib/api/types";
 
-// P2 占位：相册详情并入 /albums/（island 内展开），旧链接重定向
-export function getStaticPaths() {
-	return [];
+function albumSlug(album: Pick<Album, "id" | "title">) {
+	return `${album.id}-${album.title
+		.toLowerCase()
+		.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")
+		.replace(/^-|-$/g, "")}`;
 }
+
+export async function getStaticPaths() {
+	const albums = (await apiGet<Album[]>("/api/albums")) ?? [];
+	return albums.map((album) => ({
+		params: { slug: albumSlug(album) },
+		props: { album },
+	}));
+}
+
+const album = Astro.props.album as Album | undefined;
 ---
 
-<MainGridLayout title="相册" page="albums">
+<MainGridLayout title={album?.title ?? "相册"} page="albums">
+    {!album && <p class="album-empty">相册不存在或暂未发布。</p>}
     <AlbumGrid client:load />
 </MainGridLayout>
+
+<style>
+	.album-empty { color: var(--on-surface-variant); margin: 2rem 0; }
+</style>
