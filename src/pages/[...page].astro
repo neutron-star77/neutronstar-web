@@ -36,15 +36,17 @@ const statsDisplay = [
 
 		<!-- 阶段二/三：胶囊标题条 + 玻璃面板 -->
 		<div class="nb-body" id="nb-body">
+			<LiquidGlass client:load radius={20} className="nb-capsule-wrap">
 			<header class="nb-capsule" role="banner">
 				<span class="nb-capsule__dot" aria-hidden="true"></span>
 				<strong>{siteTitle}</strong>
 				<span class="nb-capsule__sep">·</span>
 				<span>{tagline}</span>
 			</header>
+			</LiquidGlass>
 
 			<section class="nb-hero" aria-label="站点简介">
-				<LiquidGlass client:visible radius={16} className="nb-panel-wrap"><div class="nb-panel nb-profile">
+				<LiquidGlass client:load radius={16} className="nb-panel-wrap"><div class="nb-panel nb-profile">
 					<img class="nb-profile__avatar" src={siteConfig.avatar || "/avatar.svg"} alt="" width="76" height="76" loading="eager" />
 					<h1 class="nb-profile__name">{siteTitle}</h1>
 					<p class="nb-profile__bio">{siteConfig.subtitle || "个人博客"}</p>
@@ -55,7 +57,7 @@ const statsDisplay = [
 						<a href="/messages/">留言</a>
 					</nav>
 				</div>
-				</LiquidGlass><LiquidGlass client:visible radius={16} className="nb-panel-wrap"><div class="nb-panel nb-dash" aria-label="站点数据">
+				</LiquidGlass><LiquidGlass client:load radius={16} className="nb-panel-wrap"><div class="nb-panel nb-dash" aria-label="站点数据">
 					{statsDisplay.map((s) => (
 						<div class="nb-dash__cell"><strong>{s.value}</strong><span>{s.label}</span></div>
 					))}
@@ -71,6 +73,7 @@ const statsDisplay = [
 				<h2 id="nb-latest-title" class="nb-sr">最新文章</h2>
 				<div class="nb-posts">
 					{posts.map((post) => (
+						<LiquidGlass client:load radius={16}>
 						<article class="nb-post">
 							<p class="nb-post__meta">
 								{post.data.category || "记录"} · {post.data.published.toLocaleDateString("zh-CN")}
@@ -78,6 +81,7 @@ const statsDisplay = [
 							<h3 class="nb-post__title"><a href={`/posts/${post.slug}/`}>{post.data.title}</a></h3>
 							<p class="nb-post__excerpt">{post.data.description || ""}</p>
 						</article>
+						</LiquidGlass>
 					))}
 				</div>
 				<nav class="nb-pager" aria-label="分页">

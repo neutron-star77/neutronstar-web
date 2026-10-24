@@ -38,6 +38,12 @@ export interface LiquidGlassProps {
   displacement?: number;
   /** 额外背景模糊半径;0 表示不模糊。 */
   blur?: number;
+  /** 鼠标拖尾折射半径（CSS px,Nebula 默认 66）。 */
+  rippleRadius?: number;
+  /** 鼠标拖尾折射强度（0-1,Nebula 默认 0.34）。 */
+  rippleStrength?: number;
+  /** 拖尾寿命（ms,Nebula 默认 1100）。 */
+  rippleDuration?: number;
   className?: string;
   style?: CSSProperties;
 }
@@ -70,11 +76,15 @@ function shouldFallback(): boolean {
 /** 浏览器空闲时执行（无 requestIdleCallback 时退化为短延时）。 */
 function onIdle(cb: () => void): () => void {
   const w = window as Window & {
-    requestIdleCallback?: (callback: () => void) => number;
+    requestIdleCallback?: (
+      callback: () => void,
+      opts?: { timeout: number },
+    ) => number;
   };
   let cancel: () => void;
   if (typeof w.requestIdleCallback === 'function') {
-    const id = w.requestIdleCallback(cb);
+    // 星空背景的 rAF 循环会让主线程持续繁忙，idle 回调必须带 timeout 兜底
+    const id = w.requestIdleCallback(cb, { timeout: 1500 });
     cancel = () => w.cancelIdleCallback?.(id);
   } else {
     const id = window.setTimeout(cb, 200);
@@ -129,11 +139,16 @@ export default function LiquidGlass({
   thickness = DEFAULTS.thickness,
   displacement = DEFAULTS.displacement,
   blur = DEFAULTS.blur,
+  rippleRadius = 66,
+  rippleStrength = 0.34,
+  rippleDuration = 1100,
   className,
   style,
 }: LiquidGlassProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /** 渲染器物理像素缩放（拖尾坐标换算用）。 */
+  const rendererScaleRef = useRef(1);
   /** 共享 uniforms 对象（渲染器每帧读取）,初始化 effect 内创建。 */
   const uniformsRef = useRef<GlassUniforms | null>(null);
   /** 渲染器模块是否已加载（决定卸载时是否需要注销实例）。 */
@@ -167,6 +182,56 @@ export default function LiquidGlass({
     let lastBgWidth = 0;
     let lastBgHeight = 0;
     let bgBitmap: ImageBitmap | null = null;
+    let textureTimer = 0;
+
+    // —— 鼠标拖尾（Nebula 涟漪协议）——
+    type TrailPoint = { x: number; y: number; startedAt: number; strength: number };
+    const TRAIL_MIN_DISTANCE = 14;
+    let trailPoints: TrailPoint[] = [];
+    let lastTrailPoint: [number, number] | null = null;
+
+    const toCanvasPoint = (clientX: number, clientY: number): [number, number] | null => {
+      const el = containerRef.current;
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const scale = rendererScaleRef.current;
+      return [
+        (clientX - rect.left) * dpr * scale - (rect.width * dpr * scale) / 2,
+        (clientY - rect.top) * dpr * scale - (rect.height * dpr * scale) / 2,
+      ];
+    };
+    const addTrailPoint = (event: PointerEvent) => {
+      const point = toCanvasPoint(event.clientX, event.clientY);
+      if (!point) return;
+      if (lastTrailPoint) {
+        const dx = point[0] - lastTrailPoint[0];
+        const dy = point[1] - lastTrailPoint[1];
+        const dpr = window.devicePixelRatio || 1;
+        if (Math.hypot(dx, dy) < TRAIL_MIN_DISTANCE * dpr * rendererScaleRef.current) return;
+      }
+      lastTrailPoint = point;
+      trailPoints.push({ x: point[0], y: point[1], startedAt: performance.now(), strength: 1 });
+      if (trailPoints.length > 12) trailPoints.shift();
+    };
+    const resetTrailPoint = () => {
+      lastTrailPoint = null;
+    };
+    const updateTrailUniforms = () => {
+      const uniforms = uniformsRef.current;
+      if (!uniforms) return;
+      const now = performance.now();
+      const duration = Math.max(1, rippleDuration);
+      trailPoints = trailPoints.filter((p) => now - p.startedAt < duration);
+      for (let i = 0; i < 12; i++) {
+        const p = trailPoints[i];
+        uniforms.trailPoints[i] = p
+          ? [p.x, p.y, (now - p.startedAt) / duration, p.strength]
+          : [0, 0, 1, 0];
+      }
+      uniforms.trailRadius = rippleRadius * (window.devicePixelRatio || 1) * rendererScaleRef.current;
+      uniforms.trailStrength = rippleStrength;
+    };
 
     const uniforms: GlassUniforms = {
       resolution: [0, 0],
@@ -228,11 +293,11 @@ export default function LiquidGlass({
     };
 
     /** 采样页面背景 canvas（或内置兜底渐变）并上传为共享纹理。 */
-    const ensureBackgroundTexture = async (renderer: RendererModule): Promise<boolean> => {
+    const ensureBackgroundTexture = async (renderer: RendererModule, force = false): Promise<boolean> => {
       const bgCanvas = window.__nebulaBackgroundCanvas ?? null;
       if (bgCanvas && bgCanvas.width > 0 && bgCanvas.height > 0) {
         const resized =
-          bgCanvas.width !== lastBgWidth || bgCanvas.height !== lastBgHeight;
+          force || bgCanvas.width !== lastBgWidth || bgCanvas.height !== lastBgHeight;
         if (resized || !renderer.hasTexture(BG_TEXTURE_KEY)) {
           try {
             const next = await createImageBitmap(bgCanvas);
@@ -292,7 +357,8 @@ export default function LiquidGlass({
       let renderer: RendererModule;
       try {
         renderer = await import('../../lib/liquid-glass/liquidGlassRenderer');
-      } catch {
+      } catch (e) {
+        console.warn('[LiquidGlass] import failed', e);
         setMode('fallback');
         return;
       }
@@ -311,15 +377,22 @@ export default function LiquidGlass({
       uniforms.displacementScale = p.displacement;
       uniforms.blurRadius = p.blur;
 
+      try {
       instanceId = renderer.registerInstance(canvas, ctx2d, uniforms, BG_TEXTURE_KEY, () => {
         setCanvasVisible(true);
       });
+      } catch (e) { console.warn('[LiquidGlass] register failed', e); setMode('fallback'); return; }
       renderer.onContextLost(handleContextLost);
       renderer.onContextRestored(handleContextRestored);
 
       // registerInstance 内部会初始化 WebGL 并检测 renderScale,
       // 因此尺寸与物理像素参数必须在注册后计算。
+      rendererScaleRef.current = renderer.getRenderScale();
       syncCanvasSize(renderer);
+
+      container.addEventListener('pointerenter', addTrailPoint);
+      container.addEventListener('pointermove', addTrailPoint);
+      container.addEventListener('pointerleave', resetTrailPoint);
 
       resizeObserver = new ResizeObserver(() => {
         syncCanvasSize(renderer);
@@ -330,11 +403,18 @@ export default function LiquidGlass({
       // 每帧同步视口偏移（滚动/布局变化时折射采样位置跟随）
       const frameUpdate = () => {
         syncCanvasOffset(renderer);
+        updateTrailUniforms();
         frameId = requestAnimationFrame(frameUpdate);
       };
       frameId = requestAnimationFrame(frameUpdate);
 
       const textureReady = await ensureBackgroundTexture(renderer);
+      console.warn('[LiquidGlass] textureReady=', textureReady, 'instanceId=', instanceId, 'glassSize=', uniforms.glassSize);
+      // 星空画布是动态的：周期性强制重采样，让折射随背景流动
+      textureTimer = window.setInterval(() => {
+        if (disposed || !instanceId) return;
+        void ensureBackgroundTexture(renderer, true);
+      }, 1200);
       if (disposed) return;
       const [gw, gh] = uniforms.glassSize;
       if (textureReady && instanceId && gw >= 1 && gh >= 1) {
@@ -362,10 +442,15 @@ export default function LiquidGlass({
 
     return () => {
       disposed = true;
+      const containerEl = containerRef.current;
+      containerEl?.removeEventListener('pointerenter', addTrailPoint);
+      containerEl?.removeEventListener('pointermove', addTrailPoint);
+      containerEl?.removeEventListener('pointerleave', resetTrailPoint);
       observer?.disconnect();
       resizeObserver?.disconnect();
       if (idleCancel) idleCancel();
       if (frameId) cancelAnimationFrame(frameId);
+      window.clearInterval(textureTimer);
       // 渲染器从未加载过（不可见即卸载）就不必为注销而拉起整个模块
       if (rendererLoadedRef.current) {
         void (async () => {
@@ -400,7 +485,7 @@ export default function LiquidGlass({
     .join(' ');
 
   return (
-    <div className={shellClass} style={style}>
+    <div ref={containerRef} className={shellClass} style={style}>
       <canvas
         ref={canvasRef}
         className={
