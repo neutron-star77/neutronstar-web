@@ -1,0 +1,52 @@
+### Health
+GET http://localhost:8787/api/v1/health
+Accept: application/json
+
+### Profile
+GET http://localhost:8787/api/v1/profile
+Accept: application/json
+
+### Posts
+GET http://localhost:8787/api/v1/posts/example-post
+Accept: application/json
+
+### Albums
+GET http://localhost:8787/api/v1/albums?page=1&size=20
+Accept: application/json
+
+### Album photos
+GET http://localhost:8787/api/v1/albums/album_1/photos?page=1&size=50
+Accept: application/json
+
+### Comments
+GET http://localhost:8787/api/v1/comments?target_type=post&target_id=post_1&page=1&size=20
+Accept: application/json
+
+### Create comment
+POST http://localhost:8787/api/v1/comments
+Authorization: Bearer REPLACE_WITH_SESSION_TOKEN
+Idempotency-Key: REPLACE_WITH_UUID
+Content-Type: application/json
+
+{"target_type":"post","target_id":"post_1","body":"内容"}
+
+### Toggle like
+POST http://localhost:8787/api/v1/likes/toggle
+Authorization: Bearer REPLACE_WITH_SESSION_TOKEN
+Idempotency-Key: REPLACE_WITH_UUID
+Content-Type: application/json
+
+{"target_type":"post","target_id":"post_1"}
+
+### Reading progress
+GET http://localhost:8787/api/v1/reading-progress/book_1
+Authorization: Bearer REPLACE_WITH_SESSION_TOKEN
+Accept: application/json
+
+### Save reading progress
+PUT http://localhost:8787/api/v1/reading-progress/book_1
+Authorization: Bearer REPLACE_WITH_SESSION_TOKEN
+Idempotency-Key: REPLACE_WITH_UUID
+Content-Type: application/json
+
+{"locator":"epubcfi(/6/4[chapter01]!/4/2)","progress":0.42}
