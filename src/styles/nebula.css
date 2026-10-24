@@ -281,3 +281,31 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 .article-toc__item.is-active {
   background: rgba(125, 211, 252, 0.14) !important;
 }
+
+/* ── 用户反馈五轮：文章大背景框删除 + 正文卡更透 + 目录去滚动条 ── */
+/* 文章页外层大背景框（kirameku-page 玻璃）删除——正文卡直接浮在壁纸上 */
+.kirameku-page {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+/* 正文卡透明度下调（0.42 → 0.28） */
+.kirameku-article {
+  background: rgba(10, 14, 28, 0.28) !important;
+}
+/* 目录卡：清透玻璃；滚动条隐藏但保留滚动（看得清：文字提亮+投影） */
+.article-toc__card {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.14)) !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.article-toc__card::-webkit-scrollbar { display: none; }
+.article-toc__item {
+  color: #eef2fb !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.6);
+}
+.article-toc__item.is-active {
+  background: rgba(125, 211, 252, 0.16) !important;
+  color: var(--nebula-cyan, #7dd3fc) !important;
+}

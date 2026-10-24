@@ -82,6 +82,11 @@ function isActive(link: (typeof links)[number]): boolean {
 		<div class="flex items-center gap-1.5 md:gap-2 shrink-0">
 			<Search client:only="svelte"></Search>
 			<TranslateSwitch client:only="svelte"></TranslateSwitch>
+			<button id="theme-toggle" type="button" aria-label="切换日夜模式" title="切换日夜模式"
+				class="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]">
+				<Icon name="material-symbols:dark-mode-outline" class="text-[1.25rem] dark:hidden"></Icon>
+				<Icon name="material-symbols:light-mode-outline" class="hidden text-[1.25rem] dark:block"></Icon>
+			</button>
 			<IconButton id="nav-drawer-switch" label="Menu" class="shrink-0 lg:!hidden">
 				<Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
 			</IconButton>
@@ -337,6 +342,12 @@ if (document.readyState === 'loading') {
 	bindSearchTriggers();
 }
 document.addEventListener('swup:content:replace', bindSearchTriggers);
+
+// 日夜模式直切按钮：读当前 html.dark 状态取反，经 setTheme 持久化
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+	const isDark = document.documentElement.classList.contains('dark');
+	window.setTheme?.(isDark ? 'light' : 'dark');
+});
 </script>}
 
 <style>

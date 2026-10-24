@@ -187,6 +187,10 @@ export function setTheme(theme: LIGHT_DARK_MODE): void {
 	applyThemeToDocument(theme);
 }
 
+if (typeof window !== "undefined") {
+	(window as { setTheme?: unknown }).setTheme = setTheme;
+}
+
 export function getStoredTheme(): LIGHT_DARK_MODE {
 	return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
 }
