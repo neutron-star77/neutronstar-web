@@ -230,3 +230,42 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
 }
 .kirameku-waline.is-embedded { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+
+/* ── 文章排版对齐参考站（标题层级/间距/玻璃透明度可调）────────────── */
+.kirameku-article {
+  background: rgba(10, 14, 28, 0.32) !important; /* 透明度：调低更透 */
+  border-radius: 20px !important;
+}
+.kirameku-article h1 {
+  font-size: clamp(2.2rem, 5vw, 3.4rem) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.01em;
+}
+.kirameku-article :is(h2, h3) {
+  margin-top: 2.2rem !important;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12)) !important;
+}
+.kirameku-article :is(p, li) {
+  line-height: 1.95 !important;
+  margin-block: 0.9rem !important;
+}
+.kirameku-article blockquote {
+  border-left: 3px solid var(--nebula-cyan, #7dd3fc) !important;
+  background: rgba(125, 211, 252, 0.06) !important;
+  border-radius: 0 12px 12px 0 !important;
+  padding: 0.8rem 1.2rem !important;
+}
+/* 文章目录吸附锚点：挂在文章卡片容器上 */
+.kirameku-page { position: relative; }
+/* 吸附式文章目录：≥1650px 显示；右下浮动按钮仅窄屏兜底 */
+@media (min-width: 1650px) {
+  .floating-toc-toggle { display: none !important; }
+}
+@media (max-width: 1649.9px) {
+  .article-toc { display: none !important; }
+}
+/* 首页：文章卡在宽屏下略收窄给壁面呼吸（单行卡片） */
+@media (min-width: 1650px) {
+  .nb-latest { width: min(64rem, calc(100% - 2.5rem)); }
+}

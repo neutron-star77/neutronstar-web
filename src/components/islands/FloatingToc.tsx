@@ -90,7 +90,7 @@ export default function FloatingToc({ headings }: { headings: TocHeading[] }) {
         onClick={() => setShowToc((v) => !v)}
         title="目录"
         aria-label="目录"
-        className="fixed right-4 bottom-20 md:right-6 md:bottom-24 z-[10002] w-10 h-10 md:w-11 md:h-11 rounded-full bg-[rgba(10,14,28,0.55)] backdrop-blur-md border border-[rgba(255,255,255,0.14)] shadow-lg flex items-center justify-center text-[#e7ecf7] hover:bg-[rgba(20,26,44,0.7)] transition-all"
+        className="floating-toc-toggle fixed right-4 bottom-20 md:right-6 md:bottom-24 z-[10002] w-10 h-10 md:w-11 md:h-11 rounded-full bg-[rgba(10,14,28,0.55)] backdrop-blur-md border border-[rgba(255,255,255,0.14)] shadow-lg flex items-center justify-center text-[#e7ecf7] hover:bg-[rgba(20,26,44,0.7)] transition-all"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M4 6h16M4 12h10M4 18h14" />

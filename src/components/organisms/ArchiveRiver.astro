@@ -217,6 +217,11 @@ const items = ordered.map((post, i) => {
 		let startX = 0;
 		let startLeft = 0;
 
+		// 拖拽期间把 move/up 挂到 window（不用 setPointerCapture——它会把 click
+		// 重定向到滚动容器，导致卡片链接永远无法点击）
+		let winMove: ((e: PointerEvent) => void) | null = null;
+		let winUp: (() => void) | null = null;
+
 		vp.addEventListener("pointerdown", (e: PointerEvent) => {
 			if (e.pointerType === "touch") return; // 触屏走原生横向滚动
 			dragging = true;
@@ -224,28 +229,23 @@ const items = ordered.map((post, i) => {
 			startX = e.clientX;
 			startLeft = vp.scrollLeft;
 			vp.classList.add("is-dragging");
-			try {
-				vp.setPointerCapture(e.pointerId);
-			} catch {
-				/* 忽略捕获失败 */
-			}
-		});
 
-		vp.addEventListener("pointermove", (e: PointerEvent) => {
-			if (!dragging) return;
-			const dx = e.clientX - startX;
-			if (Math.abs(dx) > 6) moved = true;
-			vp.scrollLeft = startLeft - dx;
+			winMove = (we: PointerEvent) => {
+				if (!dragging) return;
+				const dx = we.clientX - startX;
+				if (Math.abs(dx) > 6) moved = true;
+				vp.scrollLeft = startLeft - dx;
+			};
+			winUp = () => {
+				dragging = false;
+				vp.classList.remove("is-dragging");
+				setTimeout(() => (moved = false), 60); // click 在 pointerup 之后派发，稍后复位
+				window.removeEventListener("pointermove", winMove!);
+				window.removeEventListener("pointerup", winUp!);
+			};
+			window.addEventListener("pointermove", winMove);
+			window.addEventListener("pointerup", winUp);
 		});
-
-		const endDrag = () => {
-			if (!dragging) return;
-			dragging = false;
-			vp.classList.remove("is-dragging");
-			setTimeout(() => (moved = false), 60); // click 在 pointerup 之后派发，稍后复位
-		};
-		vp.addEventListener("pointerup", endDrag);
-		vp.addEventListener("pointercancel", endDrag);
 
 		vp.addEventListener(
 			"click",
