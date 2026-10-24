@@ -40,3 +40,10 @@
 背景画布就绪；截图确认面板内可见云气折射光晕。
 排查工具：headless Edge 探针（水合状态/资源加载/console），其间定位
 requestIdleCallback 饿死与 ref 丢失两个静默失败。
+
+## 2026-10-24 再追加：壁纸打底（第二轮用户反馈）
+
+用户确认玻璃是真实的了，但背景缺一张真正的壁纸。更换为 JWST「宇宙悬崖」
+（Carina Nebula，NASA/STScI public domain，nebula-desktop.jpg 389KB）以 cover
+绘入背景画布，LiquidGlass 直接折射壁纸；nebula.css 加暗色遮罩+底部渐晕保可读。
+线上截图确认与 blog.starlitn.top 观感同型。web `04d75f4`。
