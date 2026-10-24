@@ -129,7 +129,7 @@ const statsDisplay = [
 </script>
 
 <style>
-	.nebula-home { min-height: 100svh; position: relative; z-index: 10; color: var(--nebula-ink); }
+	.nebula-home { min-height: 100svh; position: relative; z-index: 10; color: var(--nebula-ink); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.35); }
 	.nb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 	/* 阶段一：打字机 */
@@ -157,10 +157,10 @@ const statsDisplay = [
 
 	.nb-hero { display: grid; grid-template-columns: 3fr 2fr; gap: 1rem; margin-top: 1rem; }
 	.nb-panel {
-		background: var(--nebula-glass-fill); border: 1px solid var(--nebula-glass-border);
+		/* LiquidGlass 已渲染折射玻璃，面板本体保持全透明（双重玻璃会发闷） */
+		background: transparent; border: 1px solid var(--nebula-glass-border);
 		border-radius: 16px; padding: 1.5rem 1.6rem;
-		backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
-		box-shadow: inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 24px rgba(125,211,252,.05), 0 12px 32px rgba(0,0,0,.35);
+		box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 32px rgba(0,0,0,.25);
 	}
 	.nb-profile__avatar { width: 76px; height: 76px; border-radius: 50%; border: 1px solid var(--nebula-glass-border); }
 	.nb-profile__name { margin: .9rem 0 .3rem; font-size: 1.5rem; }
@@ -183,9 +183,8 @@ const statsDisplay = [
 	.nb-section-head a { color: var(--nebula-cyan) !important; font-size: .86rem; text-decoration: none; }
 	.nb-posts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 	.nb-post {
-		background: var(--nebula-glass-fill); border: 1px solid var(--nebula-glass-border);
+		background: transparent; border: 1px solid var(--nebula-glass-border);
 		border-radius: 16px; padding: 1.2rem 1.35rem; min-height: 9.5rem;
-		backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2);
 		transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
 		display: flex; flex-direction: column; gap: .45rem;
 	}
