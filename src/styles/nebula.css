@@ -141,3 +141,31 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 @media (prefers-reduced-motion: reduce) {
   .card-base, .editorial-data-row { transition: none !important; }
 }
+
+/* ── 内页玻璃大面板（MainGridLayout 内容列整体包 LiquidGlass）─────────
+   面板内的旧卡片容器全部透明化，避免双重玻璃发闷；正文文字提亮 + 投影
+   （壁纸上的可读性，用户反馈：正文字体太浅看得累）。 */
+.nb-page-wrap .card-base,
+.nb-page-wrap .m3-card,
+.nb-page-wrap .m3-blog-postcard,
+.nb-page-wrap .kirameku-article {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.nb-page-wrap, .nb-page-wrap p, .nb-page-wrap li, .nb-page-wrap td {
+  color: var(--nebula-ink);
+  text-shadow: 0 1px 7px rgba(0, 0, 0, 0.5);
+}
+.kirameku-article p, .kirameku-article li, .kirameku-article td, .kirameku-article blockquote {
+  color: #f3f6fd !important;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.kirameku-article h1, .kirameku-article h2, .kirameku-article h3, .kirameku-article h4,
+.nb-page-wrap h1, .nb-page-wrap h2, .nb-page-wrap h3 {
+  color: #fbfdff !important;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+.kirameku-article strong, .nb-page-wrap strong { color: #ffffff !important; }

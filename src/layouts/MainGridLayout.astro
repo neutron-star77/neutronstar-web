@@ -6,6 +6,7 @@ import RouteProgress from "@components/organisms/RouteProgress.svelte";
 import SideBar from "@components/organisms/SideBar.astro";
 import SiteNavigationDrawer from "@components/organisms/SiteNavigationDrawer.svelte";
 import TopAppBar from "@components/organisms/TopAppBar.astro";
+import LiquidGlass from "@components/islands/LiquidGlass";
 import {
 	generateGridClasses,
 	generateMainContentClasses,
@@ -118,7 +119,9 @@ const currentGridClasses = sidebarResponsive.hasPrimary
                     <div id="content-wrapper" class="onload-animation">
                         <!-- the overflow-hidden here prevent long text break the layout-->
                         <!-- make id different from windows.swup global property -->
+                        <LiquidGlass client:load radius={16} className="nb-page-wrap">
                         <slot></slot>
+                        </LiquidGlass>
                         <div class="footer col-span-2 onload-animation hidden lg:block">
                             <Footer></Footer>
                         </div>

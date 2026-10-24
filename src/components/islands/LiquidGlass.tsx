@@ -57,7 +57,7 @@ const GLASS_PRESET = {
   heightTransitionWidth: 10.0,
   sminSmoothing: 20.0,
   highlightWidth: 3.5, // CSS px,渲染时乘物理像素
-  overlayColor: [0.2, 0.26, 0.32, 1.0] as [number, number, number, number],
+  overlayColor: [0.2, 0.26, 0.32, 0.42] as [number, number, number, number], // alpha<1：玻璃更透（用户反馈面板不透明）
 };
 
 const DEFAULTS = { radius: 24, ior: 1.2, thickness: 38, displacement: 0.7, blur: 0 };
