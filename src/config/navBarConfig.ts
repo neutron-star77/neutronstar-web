@@ -97,11 +97,11 @@ export const LinkPresets: Record<string, NavBarLink> = {
 
 const defaultNavBarConfig: NavBarConfig = {
 	links: [
-		LinkPresets.Home,
-		LinkPresets.Archive,
-		LinkPresets.Friends,
-		LinkPresets.Moments,
-		LinkPresets.Albums,
+		{ ...LinkPresets.Home, name: "星轸" },
+		{ ...LinkPresets.Archive, name: "归墟" },
+		{ ...LinkPresets.Friends, name: "星邻" },
+		{ ...LinkPresets.Moments, name: "素笺" },
+		{ ...LinkPresets.Albums, name: "瑶影" },
 		// 用户要求：取消「更多」下拉；时间线/站点罗盘/项目已按要求移除
 		LinkPresets.About,
 	],
