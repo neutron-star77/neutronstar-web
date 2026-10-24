@@ -47,3 +47,14 @@ requestIdleCallback 饿死与 ref 丢失两个静默失败。
 （Carina Nebula，NASA/STScI public domain，nebula-desktop.jpg 389KB）以 cover
 绘入背景画布，LiquidGlass 直接折射壁纸；nebula.css 加暗色遮罩+底部渐晕保可读。
 线上截图确认与 blog.starlitn.top 观感同型。web `04d75f4`。
+
+## 2026-10-24 三轮：全站内页玻璃 + 正文字体提亮（用户反馈修正）
+
+- MainGridLayout 内容列整体包 LiquidGlass（client:load）→ 文章/列表/归档/相册/
+  说说/收藏/小说/留言/关于全部自动获得透明玻璃大面板，一改全站生效；
+- 面板内旧卡片容器（card-base/kirameku-article）透明化，消除双重玻璃；
+- overlayColor alpha 1.0 → 0.42（面板更透）；
+- 正文可读性修复：壁纸上文字提亮 #f3f6fd + 投影（用户反馈正文字体太浅看得累）；
+- 线上验证：文章详情/列表截图通过（web `89f4cd4`）。
+- 已知：文章封面图等引用旧 :8100 后端 /uploads 的资源在 v2 后端 404（同 ApiError
+  toast），随后端部署日解决。
