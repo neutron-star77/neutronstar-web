@@ -38,12 +38,20 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 #swup-container a:hover { color: var(--nebula-violet); }
 #swup-container :focus-visible { outline: 2px solid var(--nebula-cyan); outline-offset: 4px; }
 
-/* 星空画布（NebulaBackground.astro 注入） */
+/* 星云壁纸画布（NebulaBackground.astro 注入）+ 可读性遮罩 */
 #nebula-bg {
   position: fixed;
   inset: 0;
   z-index: -30;
   pointer-events: none;
+}
+#nebula-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 120%, rgba(2, 3, 10, 0.55) 0%, rgba(2, 3, 10, 0) 60%),
+    linear-gradient(rgba(3, 5, 14, 0.42), rgba(3, 5, 14, 0.42));
 }
 
 /* ── 玻璃卡：全站 .card-base 恢复玻璃质感（暗色半透明） ───────────── */
