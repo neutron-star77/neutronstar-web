@@ -23,9 +23,24 @@
 }
 
 /* ── 全局基底：深空底色，压过 editorial 的纸面 ───────────────────── */
-html, body {
+/* 兜底底色只放 html；body 必须透明——否则 body 背景画在 z:-30 的壁纸画布之上，
+   卡片之间就全是深色渐变（这正是"卡片周边还是黑的"的根因） */
+html {
   background: radial-gradient(120% 90% at 70% -10%, #101838 0%, var(--nebula-bg-mid) 38%, var(--nebula-bg-deep) 78%) !important;
+}
+body {
+  background: transparent !important;
   color: var(--nebula-ink);
+}
+/* 可读性遮罩：独立 fixed 层（canvas 是替换元素，::after 不生效） */
+#nebula-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -29;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 120%, rgba(2, 3, 10, 0.5) 0%, rgba(2, 3, 10, 0) 60%),
+    linear-gradient(rgba(3, 5, 14, 0.32), rgba(3, 5, 14, 0.32));
 }
 body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei", sans-serif; }
 
@@ -45,14 +60,7 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
   z-index: -30;
   pointer-events: none;
 }
-#nebula-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(120% 90% at 50% 120%, rgba(2, 3, 10, 0.55) 0%, rgba(2, 3, 10, 0) 60%),
-    linear-gradient(rgba(3, 5, 14, 0.42), rgba(3, 5, 14, 0.42));
-}
+
 
 /* ── 玻璃卡：全站 .card-base 恢复玻璃质感（暗色半透明） ───────────── */
 .card-base, .m3-card, .m3-blog-postcard, .float-panel {
