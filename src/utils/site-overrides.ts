@@ -9,6 +9,11 @@
  *  - sidebar_widgets JSON：{ profile: true, announcement: true, categories: true, tags: true, stats: true, calendar: true }
  *  - umami          JSON：{ enable: bool, websiteId: string, scriptUrl: string, shareUrl: string }
  *  - music_widget   JSON：{ enabled: bool, title: string, subtitle: string, url: string }（外链卡片）
+ *  - home_card_ratio 字符串：首页文章卡「文字 | 图片」两栏占比，如 "3:2" 或 "0.6/0.4"，
+ *    默认 "3:2"；非法值（非 数字[:/]数字、<=0）解析时静默回退默认。
+ *
+ * 后台修改方式：后台「站点配置」页（site_config KV）维护 key=home_card_ratio，
+ * 经 /api/site-config 读写；BFF revalidate 清缓存后本模块 5s 短缓存过期即生效。
  */
 import { apiGet } from "@/lib/server/api";
 
@@ -43,6 +48,8 @@ export interface SiteOverrides {
 	sidebar: Record<string, boolean> | null;
 	umami: UmamiOverride | null;
 	musicWidget: MusicWidgetOverride | null;
+	/** 原始字符串（如 "3:2" / "0.6/0.4"）；后台未配置为 null。解析用 parseHomeCardRatio */
+	homeCardRatio: string | null;
 }
 
 const EMPTY: SiteOverrides = {
@@ -52,7 +59,47 @@ const EMPTY: SiteOverrides = {
 	sidebar: null,
 	umami: null,
 	musicWidget: null,
+	homeCardRatio: null,
 };
+
+/** 首页文章卡占比默认值：文字 3 : 图片 2 */
+const DEFAULT_HOME_CARD_RATIO = { left: 3, right: 2 } as const;
+
+export interface HomeCardRatio {
+	/** 归一化文字（左）占比 0~1 */
+	left: number;
+	/** 归一化图片（右）占比 0~1 */
+	right: number;
+	/** 可直接用于 grid-template-columns 的值，如 "3fr 2fr" */
+	columns: string;
+}
+
+/**
+ * 解析后台 home_card_ratio（首页文章卡「文字 | 图片」占比）。
+ * 接受 "3:2" 或 "0.6/0.4"（分隔符 : / 均可，允许小数与空白）；
+ * 非法（格式不符 / 非有限正数）一律回退默认 "3:2"。
+ */
+export function parseHomeCardRatio(raw: unknown): HomeCardRatio {
+	const fallback = (): HomeCardRatio => {
+		const { left, right } = DEFAULT_HOME_CARD_RATIO;
+		const sum = left + right;
+		return { left: left / sum, right: right / sum, columns: `${left}fr ${right}fr` };
+	};
+	if (typeof raw !== "string") return fallback();
+	const m = /^\s*(\d+(?:\.\d+)?)\s*[:\/]\s*(\d+(?:\.\d+)?)\s*$/.exec(raw);
+	if (!m) return fallback();
+	const left = Number(m[1]);
+	const right = Number(m[2]);
+	if (!Number.isFinite(left) || !Number.isFinite(right) || left <= 0 || right <= 0) {
+		return fallback();
+	}
+	const sum = left + right;
+	return {
+		left: left / sum,
+		right: right / sum,
+		columns: `${left}fr ${right}fr`,
+	};
+}
 
 // 模块级短缓存：压同一 isolate 内多次取数；BFF 侧 revalidate 秒级清缓存后，
 // 这里 5s 即过期，后台保存后刷新基本即时可见（30s 太久，会吞掉失效钩子的实时性）。
@@ -166,6 +213,8 @@ export async function getSiteOverrides(): Promise<SiteOverrides> {
 		sidebar,
 		umami,
 		musicWidget,
+		// 占比字符串原样透传，非法值由 parseHomeCardRatio 回退默认
+		homeCardRatio: typeof cfg.home_card_ratio === "string" ? cfg.home_card_ratio : null,
 	};
 	cache = { expires: Date.now() + 5_000, data };
 	return data;

@@ -32,7 +32,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { apiGet } from "../../lib/api/client";
+import { ApiError, apiGet } from "../../lib/api/client";
 
 /** gcore.jsdelivr 在大陆可达性最好（坑 6.2.10），音频仓按 bvid 命名 */
 const AUDIO_BASE =
@@ -250,6 +250,11 @@ export default function BiliFloatPlayer() {
 				setPhase("ready");
 			} catch (e) {
 				if (!alive) return;
+				// 后台未配置 music_widget（404）属正常形态：静默关闭悬浮播放器，不弹错误
+				if (e instanceof ApiError && e.status === 404) {
+					setPhase("off");
+					return;
+				}
 				setErrorMsg(String(e));
 				setPhase("error");
 			}

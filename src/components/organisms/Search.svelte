@@ -153,7 +153,7 @@ $: if (initialized && keywordMobile) {
 }
 </script>
 
-<!-- 桌面搜索：SearchBar 分子（40px 图标按钮，hover/点击展开成胶囊搜索条） -->
+<!-- 桌面搜索：SearchBar 分子（40px 放大镜按钮，点击展开成玻璃搜索条，Esc/点外部收起） -->
 <SearchBar
     bind:value={keywordDesktop}
     id="search-input-desktop"

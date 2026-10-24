@@ -1,9 +1,10 @@
 <script lang="ts">
 /**
- * M3E SearchBar — 导航栏折叠式胶囊搜索条分子。
- * 折叠时为 40px 图标按钮，点击后展开为
- * w-48 胶囊输入条，失焦延迟自动折叠。value / expanded 可双向绑定，
- * 展开折叠交互细节全部内聚在此，Search 有机体只负责搜索与结果面板。
+ * M3E SearchBar — 导航栏折叠式玻璃搜索条分子。
+ * 折叠时为 40px 放大镜按钮，点击后从按钮位置丝滑展开为玻璃搜索条
+ * （宽度过渡 + cubic-bezier 曲线），Esc / 点击外部收起，收起后焦点归还放大镜。
+ * value / expanded 可双向绑定，展开折叠交互细节内聚在此，
+ * Search 有机体只负责搜索与结果下拉面板。
  */
 import Icon from "@iconify/svelte";
 
@@ -25,22 +26,44 @@ let {
 	oncollapse?: () => void;
 } = $props();
 
+let shellEl: HTMLDivElement | undefined = $state();
+let toggleEl: HTMLButtonElement | undefined = $state();
 let blurTimer: ReturnType<typeof setTimeout>;
 
 const expand = (): void => {
+	if (expanded) return;
+	clearTimeout(blurTimer);
 	expanded = true;
+	// 等输入框宽度过渡/可聚焦后接管焦点（键盘可达）
 	setTimeout(() => {
-		const input = document.getElementById(id) as HTMLInputElement;
-		input?.focus();
+		document.getElementById(id)?.focus();
 	}, 0);
+};
+
+const collapse = (): void => {
+	if (!expanded) return;
+	expanded = false;
+	oncollapse();
+	// 焦点归还放大镜按钮，键盘用户不丢失位置
+	toggleEl?.focus();
+};
+
+// 放大镜 = 开关：折叠时展开、展开时收起（顺带清掉失焦折叠定时器）
+const toggle = (): void => {
+	clearTimeout(blurTimer);
+	if (expanded) collapse();
+	else expand();
 };
 
 // 失焦后延迟折叠，允许搜索结果点击先执行
 const handleBlur = (): void => {
+	clearTimeout(blurTimer);
 	blurTimer = setTimeout(() => {
-		expanded = false;
-		oncollapse();
-	}, 200);
+		if (expanded) {
+			expanded = false;
+			oncollapse();
+		}
+	}, 250);
 };
 
 const handleFocus = (): void => {
@@ -48,43 +71,72 @@ const handleFocus = (): void => {
 	onfocus();
 };
 
-// Twilight 式：桌面悬停即展开胶囊、移出收回（点击/聚焦行为保留）
-function onMouseEnter(): void {
-	expand();
+// Esc 随时收起（输入框/放大镜上均生效）
+function handleKeydown(event: KeyboardEvent): void {
+	if (event.key === "Escape") {
+		event.preventDefault();
+		event.stopPropagation();
+		collapse();
+	}
 }
-function onMouseLeave(): void {
-	if (!window.matchMedia("(min-width: 1024px)").matches) return;
-	expanded = false;
-	oncollapse();
-}
+
+// 点击外部收起（展开期间监听，含 results 面板以外的任意位置）
+$effect(() => {
+	if (!expanded) return;
+	const onDocClick = (event: MouseEvent) => {
+		if (shellEl && !shellEl.contains(event.target as Node)) {
+			clearTimeout(blurTimer);
+			expanded = false;
+			oncollapse();
+		}
+	};
+	document.addEventListener("click", onDocClick);
+	return () => document.removeEventListener("click", onDocClick);
+});
 </script>
 
-<div class="hidden lg:block relative w-10 h-10 shrink-0" onmouseenter={onMouseEnter}>
+<div id="search-bar" class="hidden lg:block relative w-10 h-10 shrink-0">
     <div
-        class="m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 h-10 top-app-bar__search-shell
-               {expanded ? 'top-app-bar__search-shell--expanded w-48 bg-(--surface-container-high)' : 'w-10 bg-transparent'}"
-        onclick={() => {
-            if (!expanded) expand();
-        }}
-        onmouseleave={onMouseLeave}
+        bind:this={shellEl}
+        class="top-app-bar__search-shell m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] h-10
+               {expanded
+                   ? 'top-app-bar__search-shell--expanded top-app-bar__search-shell--glass w-64'
+                   : 'w-10'}"
+        role="search"
     >
-        <Icon
-            icon="material-symbols:search"
-            class="pointer-events-none shrink-0 text-[1.25rem] transition-all
-                   {expanded
-                       ? 'ml-3 text-[var(--on-surface-variant)]'
-                       : 'mx-auto text-[var(--on-surface)]'}"
-        ></Icon>
+        <button
+            bind:this={toggleEl}
+            type="button"
+            aria-label="Search"
+            aria-expanded={expanded}
+            onkeydown={handleKeydown}
+            onclick={toggle}
+            class="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--on-surface)] transition-colors"
+        >
+            <Icon icon="material-symbols:search" class="pointer-events-none shrink-0 text-[1.25rem]"></Icon>
+        </button>
         <input
             {id}
             {name}
             {placeholder}
             bind:value
             tabindex={expanded ? 0 : -1}
+            aria-hidden={!expanded}
             onfocus={handleFocus}
             onblur={handleBlur}
-            class="h-full bg-transparent outline-0 text-(--on-surface) caret-(--primary) transition-all
-                   {expanded ? 'w-32 pl-2 opacity-100' : 'w-0 opacity-0'}"
+            onkeydown={handleKeydown}
+            class="h-full min-w-0 bg-transparent outline-0 text-(--on-surface) caret-(--primary) transition-all duration-200
+                   {expanded ? 'w-[12.5rem] pl-1 pr-3 opacity-100' : 'w-0 px-0 opacity-0'}"
         />
     </div>
 </div>
+
+<style>
+	/* 展开态 = 导航栏内玻璃搜索条（--nebula-* 令牌优先，回退同值） */
+	.top-app-bar__search-shell--glass {
+		background: var(--nebula-glass-fill, rgba(255, 255, 255, 0.08));
+		border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12));
+		backdrop-filter: blur(var(--nebula-glass-blur, 12px)) saturate(1.3);
+		-webkit-backdrop-filter: blur(var(--nebula-glass-blur, 12px)) saturate(1.3);
+	}
+</style>
