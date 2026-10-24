@@ -58,3 +58,22 @@ requestIdleCallback 饿死与 ref 丢失两个静默失败。
 - 线上验证：文章详情/列表截图通过（web `89f4cd4`）。
 - 已知：文章封面图等引用旧 :8100 后端 /uploads 的资源在 v2 后端 404（同 ApiError
   toast），随后端部署日解决。
+
+## 2026-10-24 四轮：导航/首页卡片/内页玻璃/文字（用户标注图反馈）
+
+- TopAppBar：滑动胶囊指示器（hover/激活跟随）、删除调色板、搜索重设计
+  （放大镜展开玻璃搜索条 + Pagefind 下拉）、背景统一 nebula 透明令牌；
+- 导航全局化：TopAppBar 从 MainGridLayout 上移至 Layout（含首页全站渲染）；
+- 首页文章卡改「文字|图片」双容器（封面缺失渐变占位），左右占比经
+  site_config key=home_card_ratio 后台可调（默认 3:2，移动端图上文下）；
+- MainGridLayout 内容列包 LiquidGlass（全内页透明玻璃大面板），
+  内层卡片透明化，overlayColor alpha 1.0→0.42，正文/meta 文字提亮+投影；
+- BiliFloatPlayer：music_widget 404 静默关闭（ApiError toast 消失）；
+- web `6b9ceb1`+`89f4cd4`+`11b4393`+`06485c3` CI 全绿，线上截图比对通过。
+
+NAS 侧（主仓文档）：5 容器迁入自定义 docker 网络 neutronstar（容器名互连，
+根治 IP 漂移）；backend/waline/v2-api 数据库地址全部改容器名；
+v2-api 的 .env 在排障中被截断，已按 config.py 默认+容器凭据重建（ADMIN_TOKEN
+已轮换，新值在 NAS /share/.../neutronstar-v2/.admin-token）；旧后端容器
+恢复 8100 端口映射，内网后台恢复可达。教训（坑大全 6.7.3b/6.7.3c）：
+①busybox sed -i 对 bind 单文件会截断；②容器重建不继承网络接入，需重新 connect。
