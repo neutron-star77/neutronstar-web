@@ -88,15 +88,15 @@ const tagline = "玄穹浩渺，时序奔流。";
 
 	.nb-body, .nb-latest, .nb-footer { width: min(72rem, calc(100% - 2.5rem)); margin-inline: auto; }
 
-	.nb-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 1.6rem 0 1rem; }
+	.nb-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2rem 0 1.25rem; }
 	.nb-kicker { font: 600 .72rem/1 var(--m3e-font-sans, Arial, sans-serif); letter-spacing: .14em; color: var(--nebula-ink-muted); margin: 0; }
 	.nb-section-head a { color: var(--nebula-cyan) !important; font-size: .86rem; text-decoration: none; }
-	.nb-posts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+	.nb-posts { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 	/* 双容器卡：左文字 | 右图片；占比由后台 home_card_ratio 注入 --nb-card-cols（如 "3fr 2fr"）
 	   玻璃质感全部来自 LiquidGlass 渲染器，卡片本体全透明 */
 	.nb-post {
 		background: transparent; border: 1px solid var(--nebula-glass-border);
-		border-radius: 16px; padding: 1.2rem 1.35rem; min-height: 9.5rem;
+		border-radius: 16px; padding: 1.5rem 1.75rem; min-height: 10rem;
 		transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
 		display: grid; grid-template-columns: var(--nb-card-cols, 3fr 2fr);
 		gap: .3rem 1.1rem; align-items: stretch;

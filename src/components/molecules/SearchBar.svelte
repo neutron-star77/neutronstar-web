@@ -101,7 +101,7 @@ $effect(() => {
 });
 </script>
 
-<div id="search-bar" class="hidden lg:block relative w-10 h-10 shrink-0">
+<div id="search-bar" class="hidden lg:flex relative h-10 shrink-0 items-center">
     <div
         bind:this={shellEl}
         onmouseenter={() => { clearTimeout(blurTimer); expand(false); }}
@@ -111,7 +111,7 @@ $effect(() => {
           if (input && input.value) return;
           blurTimer = setTimeout(() => { if (expanded) collapse(); }, 180);
         }}
-        class="top-app-bar__search-shell m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] h-10
+        class="top-app-bar__search-shell m3-state-layer relative flex items-center overflow-hidden rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] h-10
                {expanded
                    ? 'top-app-bar__search-shell--expanded top-app-bar__search-shell--glass w-64'
                    : 'w-10'}"
