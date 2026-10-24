@@ -1,0 +1,99 @@
+/* Waline 评论区 · plain-text editorial 皮肤。
+   只在 .kirameku-waline 作用域内覆盖 Waline 默认样式：
+   暖纸面、发丝线、衬线标题、极简按钮，与全站 editorial 令牌一致。 */
+
+.kirameku-waline {
+  --waline-theme-color: var(--editorial-accent, #8a5737);
+  --waline-active-color: var(--editorial-ink, #242321);
+  --waline-bgcolor: transparent;
+  --waline-info-bgcolor: transparent;
+  --waline-border-color: var(--editorial-rule, rgba(36, 35, 33, .16));
+  --waline-disable-bgcolor: transparent;
+  --waline-color: var(--editorial-ink, #242321);
+  --waline-badge-color: var(--editorial-accent, #8a5737);
+  --waline-info-color: var(--editorial-muted, #77736b);
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--editorial-rule, rgba(36, 35, 33, .16));
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--editorial-ink, #242321);
+}
+
+.kirameku-waline__title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 1.25rem !important;
+  font: 400 1.15rem/1.2 Georgia, "Times New Roman", serif !important;
+  letter-spacing: -.01em;
+  color: var(--editorial-ink, #242321) !important;
+}
+.kirameku-waline__title-icon { width: 1.05rem; height: 1.05rem; color: var(--editorial-accent, #8a5737); }
+
+/* 编辑区：透明底 + 发丝线，聚焦只加深边框 */
+.kirameku-waline .wl-panel,
+.kirameku-waline .wl-editor {
+  background: transparent !important;
+  border: 1px solid var(--editorial-rule, rgba(36, 35, 33, .16)) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--editorial-ink, #242321);
+}
+.kirameku-waline .wl-editor:focus { border-color: var(--editorial-accent, #8a5737) !important; outline: none !important; }
+.kirameku-waline .wl-header-item label { color: var(--editorial-muted, #77736b); }
+.kirameku-waline .wl-header-item input {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--editorial-rule, rgba(36, 35, 33, .16)) !important;
+  border-radius: 0 !important;
+  color: var(--editorial-ink, #242321);
+}
+
+/* 按钮：主 = 墨底纸字，次 = 发丝线描边 */
+.kirameku-waline .wl-btn {
+  border: 1px solid var(--editorial-rule, rgba(36, 35, 33, .16)) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--editorial-ink, #242321) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  box-shadow: none !important;
+  transition: color .2s ease, border-color .2s ease;
+}
+.kirameku-waline .wl-btn:hover { border-color: var(--editorial-accent, #8a5737) !important; color: var(--editorial-accent, #8a5737) !important; }
+.kirameku-waline .wl-btn.primary {
+  background: var(--editorial-ink, #242321) !important;
+  border-color: var(--editorial-ink, #242321) !important;
+  color: var(--editorial-paper, #f7f6f2) !important;
+}
+.kirameku-waline .wl-btn.primary:hover { background: var(--editorial-accent, #8a5737) !important; border-color: var(--editorial-accent, #8a5737) !important; color: var(--editorial-paper, #f7f6f2) !important; }
+
+/* 评论列表：行间发丝线，去卡片化 */
+.kirameku-waline .wl-card,
+.kirameku-waline .wl-item {
+  border: 0 !important;
+  border-bottom: 1px solid var(--editorial-rule, rgba(36, 35, 33, .16)) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-block: 1.1rem !important;
+}
+.kirameku-waline .wl-card:last-child { border-bottom: 0 !important; }
+.kirameku-waline .wl-head .wl-nick,
+.kirameku-waline .wl-user { color: var(--editorial-ink, #242321) !important; font-weight: 600; }
+.kirameku-waline .wl-content { color: var(--editorial-ink, #242321); line-height: 1.75; }
+.kirameku-waline .wl-time,
+.kirameku-waline .wl-meta head,
+.kirameku-waline .wl-meta { color: var(--editorial-muted, #77736b) !important; font-size: .8rem; }
+.kirameku-waline .wl-avatar,
+.kirameku-waline .wl-user img,
+.kirameku-waline .wl-user avatar {
+  border-radius: 2px !important;
+  filter: grayscale(12%);
+}
+.kirameku-waline a { color: var(--editorial-accent, #8a5737); }
+.kirameku-waline .wl-power { color: var(--editorial-muted, #77736b) !important; opacity: .6; }
+.kirameku-waline .wl-power a { color: var(--editorial-muted, #77736b) !important; }
+
+/* 加载态与外框（非嵌入模式） */
+.kirameku-waline.is-embedded { margin-top: 1.25rem; padding-top: 0; border-top: 0; }
+.kirameku-waline .wl-count { color: var(--editorial-muted, #77736b) !important; }

@@ -5,6 +5,7 @@ import ReadingProgress from "@components/islands/ReadingProgress";
 import FloatingToc from "@components/islands/FloatingToc";
 import PostLikeButton from "@components/islands/PostLikeButton";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
+import WalineComments from "@components/islands/WalineComments";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
 import { getPostBySlug, getSortedPosts } from "@utils/content-utils";
 import { apiUrl } from "@/lib/server/api";
@@ -158,6 +159,9 @@ const cover = entry.data.image || "";
                 )}
             </div>
         </article>
+
+        {/* 评论区（Waline，文本化皮肤） */}
+        <WalineComments client:load path={`/posts/${slug}`} />
     </div>
 </MainGridLayout>
 <LiveRefreshBanner client:load />

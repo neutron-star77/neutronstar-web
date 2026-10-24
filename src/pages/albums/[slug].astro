@@ -1,5 +1,6 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
+import WalineComments from "@components/islands/WalineComments";
 import AlbumGrid from "@components/islands/AlbumGrid";
 import { apiGet } from "@/lib/server/api";
 import type { Album } from "@/lib/api/types";
@@ -25,6 +26,7 @@ const album = Astro.props.album as Album | undefined;
 <MainGridLayout title={album?.title ?? "相册"} page="albums">
     {!album && <p class="album-empty">相册不存在或暂未发布。</p>}
     <AlbumGrid client:load />
+    {album && <WalineComments client:load path={`/albums/${albumSlug(album)}`} title="相册留言" />}
 </MainGridLayout>
 
 <style>
