@@ -41,15 +41,28 @@ const fullMarkdown = entry.body ?? "";
 const isChunked = false;
 const firstScreenMarkdown = fullMarkdown;
 
-let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
-rendererPromise ??= siteMarkdownProcessor.createRenderer({});
-const renderer = await rendererPromise;
-const { code: renderedHtml } = await renderer.render(firstScreenMarkdown, {
-	frontmatter: entry.data as unknown as Record<string, unknown>,
-});
+// v2 后端直供渲染好的 content_html：直接 set:html（markdown 管道仅在无 html 时回退）
+const upstreamHtml = entry.contentHtml ?? "";
+let renderedHtml = "";
+let headings: { depth: number; text: string; slug: string }[] = [];
+if (upstreamHtml) {
+	renderedHtml = upstreamHtml;
+	const re = new RegExp("<h([234])[^>]*id=\"([^\"]*)\"[^>]*>(?:<strong>)?([\\s\\S]*?)(?:<\\/strong>)?<\\/h\\1>", "g");
+	for (const m of upstreamHtml.matchAll(re)) {
+		headings.push({ depth: Number(m[1]), text: m[3].replace(/<[^>]*>/g, "").trim(), slug: m[2] });
+	}
+} else {
+	let rendererPromise: ReturnType<typeof siteMarkdownProcessor.createRenderer> | null = null;
+	rendererPromise ??= siteMarkdownProcessor.createRenderer({});
+	const renderer = await rendererPromise;
+	const { code: rendered } = await renderer.render(firstScreenMarkdown, {
+		frontmatter: entry.data as unknown as Record<string, unknown>,
+	});
+	renderedHtml = rendered;
 
-// TOC 全量提取：正则从 markdown 抓 h2-h4，slug 规则与 rehype-slug 一致。
-const headings = extractOutline(fullMarkdown);
+	// TOC 全量提取：正则从 markdown 抓 h2-h4，slug 规则与 rehype-slug 一致。
+	headings = extractOutline(fullMarkdown);
+}
 
 // 纯文字阅读版（窄内嵌套 + 每字 ruby 注音）：slug 命中配置才启用，其余文章零影响
 const pinyinReading = articleConfig.pinyinReading.slugs.includes(slug);

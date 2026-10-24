@@ -7,10 +7,47 @@ import { i18n } from "@i18n/translation";
 ---
 
 <MainGridLayout title={i18n(I18nKey.albums)} page="albums">
-	<div class="editorial-page editorial-albums"><div class="editorial-action"><AuthButton client:load /></div><AlbumGrid client:visible /></div>
+	<div class="nebula-albums">
+		<div class="nb-al-action"><AuthButton client:load /></div>
+
+		<!-- 页头：kicker → 超大标题「瑶影」→ 副标题（壁纸上直接排版） -->
+		<header class="nb-al-head">
+			<p class="nb-al-kicker">IMAGES</p>
+			<h1 class="nb-al-title">瑶影</h1>
+			<p class="nb-al-desc">分享好看的图片</p>
+		</header>
+
+		<AlbumGrid client:visible />
+	</div>
 </MainGridLayout>
 
-<style>
-	.editorial-page { position: relative; }
-	.editorial-action { position: absolute; top: -.6rem; right: 0; z-index: 2; }
+<style is:global>
+	.nebula-albums { position: relative; z-index: 10; color: var(--nebula-ink); padding-block: 0.5rem 2rem; }
+
+	/* 页头：kicker 小字（字距拉开）→ 超大标题 → 副标题 */
+	.nb-al-head { margin-bottom: 2.2rem; }
+	.nb-al-kicker {
+		margin: 0 0 0.7rem;
+		font: 600 0.72rem/1 var(--m3e-font-sans, Arial, sans-serif);
+		letter-spacing: 0.22em;
+		color: var(--nebula-ink-muted);
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+	}
+	.nb-al-title {
+		margin: 0;
+		font-size: clamp(2.5rem, 6vw, 4.5rem);
+		font-weight: 800;
+		line-height: 1.1;
+		color: var(--nebula-ink);
+		text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+	}
+	.nb-al-desc {
+		margin: 0.8rem 0 0;
+		font-size: 0.95rem;
+		color: var(--nebula-ink-muted);
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+	}
+
+	/* 右上角登录按钮：避开 fixed 导航（内容列整体已 top 5.5rem，这里微调对齐页头） */
+	.nb-al-action { position: absolute; top: 0; right: 0; z-index: 2; }
 </style>

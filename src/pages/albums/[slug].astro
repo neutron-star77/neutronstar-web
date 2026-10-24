@@ -1,16 +1,10 @@
 ---
 import MainGridLayout from "../../layouts/MainGridLayout.astro";
 import WalineComments from "@components/islands/WalineComments";
-import AlbumGrid from "@components/islands/AlbumGrid";
+import AlbumDetail from "@components/islands/AlbumDetail";
 import { apiGet } from "@/lib/server/api";
+import { albumSlug } from "@/lib/album-slug";
 import type { Album } from "@/lib/api/types";
-
-function albumSlug(album: Pick<Album, "id" | "title">) {
-	return `${album.id}-${album.title
-		.toLowerCase()
-		.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")
-		.replace(/^-|-$/g, "")}`;
-}
 
 export async function getStaticPaths() {
 	const albums = (await apiGet<Album[]>("/api/albums")) ?? [];
@@ -21,14 +15,68 @@ export async function getStaticPaths() {
 }
 
 const album = Astro.props.album as Album | undefined;
+const backHref = "/albums/";
 ---
 
 <MainGridLayout title={album?.title ?? "相册"} page="albums">
-    {!album && <p class="album-empty">相册不存在或暂未发布。</p>}
-    <AlbumGrid client:load />
-    {album && <WalineComments client:load path={`/albums/${albumSlug(album)}`} title="相册留言" />}
+	{!album && <p class="nb-alb-empty">相册不存在或暂未发布。</p>}
+	{album && (
+		<div class="nebula-album-detail">
+			<!-- 头部：返回按钮 + 相册名 + 描述（壁纸上直接排版） -->
+			<header class="nb-alb-head">
+				<a class="nb-alb-back" href={backHref} aria-label="返回相册列表">
+					<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="m15 18-6-6 6-6" />
+					</svg>
+					<span>返回相册</span>
+				</a>
+				<h1 class="nb-alb-title">{album.title}</h1>
+				{album.description && <p class="nb-alb-desc">{album.description}</p>}
+			</header>
+
+			<!-- CSS columns 瀑布流照片墙 + 灯箱（island） -->
+			<AlbumDetail client:load albumId={album.id} />
+
+			<WalineComments client:load path={`/albums/${albumSlug(album)}`} title="相册留言" />
+		</div>
+	)}
 </MainGridLayout>
 
-<style>
-	.album-empty { color: var(--on-surface-variant); margin: 2rem 0; }
+<style is:global>
+	.nebula-album-detail { position: relative; z-index: 10; color: var(--nebula-ink); padding-block: 0.5rem 2rem; display: flex; flex-direction: column; gap: 1.8rem; }
+	.nb-alb-empty { color: var(--nebula-ink-muted); margin: 2rem 0; }
+
+	.nb-alb-back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		width: fit-content;
+		padding: 0.35rem 0.85rem;
+		border-radius: 999px;
+		font-size: 0.82rem;
+		color: var(--nebula-ink-muted);
+		text-decoration: none;
+		background: rgba(255, 255, 255, 0.06);
+		border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12));
+		backdrop-filter: blur(var(--nebula-glass-blur, 12px));
+		-webkit-backdrop-filter: blur(var(--nebula-glass-blur, 12px));
+		text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+		transition: color 0.2s ease, border-color 0.2s ease;
+	}
+	.nb-alb-back:hover { color: var(--nebula-cyan); border-color: var(--nebula-cyan); }
+
+	.nb-alb-title {
+		margin: 0.9rem 0 0;
+		font-size: clamp(1.8rem, 4vw, 2.8rem);
+		font-weight: 800;
+		line-height: 1.2;
+		color: var(--nebula-ink);
+		text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+	}
+	.nb-alb-desc {
+		margin: 0.6rem 0 0;
+		font-size: 0.92rem;
+		color: var(--nebula-ink-muted);
+		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+	}
 </style>

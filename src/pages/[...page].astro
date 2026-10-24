@@ -83,6 +83,8 @@ const tagline = "玄穹浩渺，时序奔流。";
 	.nb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 	.nb-body, .nb-latest, .nb-footer { width: min(72rem, calc(100% - 2.5rem)); margin-inline: auto; }
+	/* 全局导航为 fixed 悬浮：首页内容下移让位 */
+	.nb-body { margin-top: 5.75rem; }
 
 	.nb-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2rem 0 1.25rem; }
 	.nb-kicker { font: 600 .72rem/1 var(--m3e-font-sans, Arial, sans-serif); letter-spacing: .14em; color: var(--nebula-ink-muted); margin: 0; }

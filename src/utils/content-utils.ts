@@ -26,6 +26,7 @@ export interface ApiPost {
 	views: number;
 	likes: number;
 	word_count: number;
+	content_html: string;
 	reading_time: number;
 	font_id: number | null;
 	font_name: string;
@@ -66,6 +67,7 @@ export interface PostEntry {
 	/** 后端主键（评论等多态关联要用数字 id，slug 只能做路由） */
 	postId?: number;
 	body?: string;
+	contentHtml?: string;
 	/** API 文章的封面等资源全是远程 URL，无 filePath */
 	filePath?: undefined;
 	data: PostData;
@@ -255,6 +257,7 @@ export async function getPostBySlug(slug: string): Promise<PostEntry | null> {
 	if (!post) return null;
 	const entry = apiPostToEntry(post);
 	entry.body = post.content ?? "";
+	entry.contentHtml = (post as { content_html?: string }).content_html ?? "";
 	entry.url = getPostUrl(entry);
 	return entry;
 }
