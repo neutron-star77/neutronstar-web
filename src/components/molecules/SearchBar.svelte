@@ -54,6 +54,7 @@ const toggle = (): void => {
 	if (expanded) collapse();
 	else expand();
 };
+// 保留：点击放大镜在展开后等价于聚焦输入框
 
 // 失焦后延迟折叠，允许搜索结果点击先执行
 const handleBlur = (): void => {
@@ -98,6 +99,12 @@ $effect(() => {
 <div id="search-bar" class="hidden lg:block relative w-10 h-10 shrink-0">
     <div
         bind:this={shellEl}
+        onmouseenter={() => { clearTimeout(blurTimer); expand(); }}
+        onmouseleave={() => {
+          // 悬停离开即收起（Nebula 交互）；输入框聚焦中则不收
+          if (document.activeElement === document.getElementById(id)) return;
+          blurTimer = setTimeout(() => { if (expanded) { expanded = false; oncollapse(); } }, 200);
+        }}
         class="top-app-bar__search-shell m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] h-10
                {expanded
                    ? 'top-app-bar__search-shell--expanded top-app-bar__search-shell--glass w-64'

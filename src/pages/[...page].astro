@@ -1,6 +1,5 @@
 ---
 import { getArchivePage } from "@utils/content-utils";
-import { getSiteStats } from "@utils/site-stats";
 import { getSiteOverrides, parseHomeCardRatio } from "@utils/site-overrides";
 import { postListConfig } from "@/config/postListConfig";
 import { siteConfig } from "@/config/siteConfig";
@@ -19,57 +18,17 @@ if (rawPage !== undefined && !/^\d+$/.test(String(rawPage))) return new Response
 const archive = await getArchivePage(Number.parseInt(rawPage ?? "1", 10) || 1, postListConfig.pageSize);
 const posts = archive.posts.slice(0, 6);
 const pageNumber = Number.parseInt(rawPage ?? "1", 10) || 1;
-const stats = await getSiteStats();
 // 首页文章卡「文字 | 图片」占比：后台 site_config key=home_card_ratio（经 /api/site-config 设置），
 // 未配置/非法值由 parseHomeCardRatio 回退默认 "3:2"
 const siteOverrides = await getSiteOverrides();
 const cardRatio = parseHomeCardRatio(siteOverrides.homeCardRatio);
 const siteTitle = siteConfig.title || "Neutronstar";
 const tagline = "玄穹浩渺，时序奔流。";
-const statsDisplay = [
-	{ label: "文章", value: String(stats.posts) },
-	{ label: "说说", value: String(stats.moments) },
-	{ label: "字数", value: stats.words >= 10000 ? `${(stats.words / 10000).toFixed(1)}w` : String(stats.words) },
-	{ label: "运行天数", value: String(stats.days) },
-];
 ---
 
 <Layout title={siteTitle} description={tagline} page="home">
 	<div class="nebula-home">
-		<!-- 阶段一：打字机（reduced-motion / 回访直接跳过） -->
-		<div class="nb-type" id="nb-type" aria-hidden="true"><p class="nb-type__line"><span id="nb-type-text"></span><span class="nb-caret"></span></p></div>
-
-		<!-- 阶段二/三：胶囊标题条 + 玻璃面板 -->
-		<div class="nb-body" id="nb-body">
-			<LiquidGlass client:load radius={20} className="nb-capsule-wrap">
-			<header class="nb-capsule" role="banner">
-				<span class="nb-capsule__dot" aria-hidden="true"></span>
-				<strong>{siteTitle}</strong>
-				<span class="nb-capsule__sep">·</span>
-				<span>{tagline}</span>
-			</header>
-			</LiquidGlass>
-
-			<section class="nb-hero" aria-label="站点简介">
-				<LiquidGlass client:load radius={16} className="nb-panel-wrap"><div class="nb-panel nb-profile">
-					<img class="nb-profile__avatar" src={siteConfig.avatar || "/avatar.svg"} alt="" width="76" height="76" loading="eager" />
-					<h1 class="nb-profile__name">{siteTitle}</h1>
-					<p class="nb-profile__bio">{siteConfig.subtitle || "个人博客"}</p>
-					<nav class="nb-profile__links" aria-label="快捷入口">
-						<a href="/posts/">文章</a>
-						<a href="/albums/">相册</a>
-						<a href="/novel/">书架</a>
-						<a href="/messages/">留言</a>
-					</nav>
-				</div>
-				</LiquidGlass><LiquidGlass client:load radius={16} className="nb-panel-wrap"><div class="nb-panel nb-dash" aria-label="站点数据">
-					{statsDisplay.map((s) => (
-						<div class="nb-dash__cell"><strong>{s.value}</strong><span>{s.label}</span></div>
-					))}
-					<p class="nb-dash__foot">最近更新 {stats.lastActivity ? stats.lastActivity.slice(0, 10) : "—"}</p>
-				</div></LiquidGlass>
-			</section>
-
+		<div class="nb-body is-ready">
 			<section class="nb-latest" aria-labelledby="nb-latest-title">
 				<div class="nb-section-head">
 					<p class="nb-kicker">LATEST NOTES</p>
@@ -123,90 +82,18 @@ const statsDisplay = [
 	</div>
 </Layout>
 
-<script>
-	// 三段入场（Nebula index）：打字机 → 下滑胶囊 → 面板渐显。
-	// reduced-motion 或同会话回访直接呈现最终态。
-	const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-	const typed = sessionStorage.getItem("nebula-intro") === "1";
-	const typeBox = document.getElementById("nb-type");
-	const body = document.getElementById("nb-body");
-	const text = document.getElementById("nb-type-text");
-	const line = "玄穹浩渺，时序奔流。";
-
-	if (reduced || typed) {
-		typeBox?.remove();
-		body?.classList.add("is-ready");
-	} else {
-		let i = 0;
-		const tick = () => {
-			if (text) text.textContent = line.slice(0, ++i);
-			if (i < line.length) setTimeout(tick, 110);
-			else setTimeout(finish, 420);
-		};
-		const finish = () => {
-			sessionStorage.setItem("nebula-intro", "1");
-			typeBox?.classList.add("is-done");
-			body?.classList.add("is-ready");
-		};
-		setTimeout(tick, 350);
-	}
-</script>
-
 <style>
 	.nebula-home { min-height: 100svh; position: relative; z-index: 10; color: var(--nebula-ink); text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.35); }
 	.nb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-	/* 阶段一：打字机 */
-	.nb-type { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; background: transparent; font: 600 2rem/1.4 Georgia, "Zen Maru Gothic", serif; letter-spacing: .12em; transition: opacity .6s ease; }
-	.nb-type.is-done { opacity: 0; pointer-events: none; }
-	.nb-type__line { margin: 0; }
-	.nb-caret { display: inline-block; width: 2px; height: 1.4em; margin-left: 4px; background: var(--nebula-cyan); animation: nb-blink 1s steps(2) infinite; vertical-align: -0.2em; }
-	@keyframes nb-blink { 50% { opacity: 0; } }
+	.nb-body, .nb-latest, .nb-footer { width: min(72rem, calc(100% - 2.5rem)); margin-inline: auto; }
 
-	/* 阶段二/三 */
-	.nb-body { opacity: 0; transform: translateY(26px); transition: opacity .85s ease, transform .85s ease; }
-	.nb-body.is-ready { opacity: 1; transform: none; }
-	.nb-capsule, .nb-hero, .nb-latest, .nb-footer { width: min(72rem, calc(100% - 2.5rem)); margin-inline: auto; }
-	.nb-capsule {
-		display: flex; align-items: center; gap: .7rem;
-		padding: .95rem 1.4rem; margin-top: 1.1rem;
-		background: var(--nebula-glass-fill); border: 1px solid var(--nebula-glass-border);
-		border-radius: 20px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-		box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 32px rgba(0,0,0,.35);
-	}
-	.nb-capsule__dot { width: 8px; height: 8px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 8px #60a5fa; }
-	.nb-capsule strong { font-size: 1.02rem; letter-spacing: .02em; }
-	.nb-capsule__sep { color: var(--nebula-ink-muted); }
-	.nb-capsule > span:last-child { color: var(--nebula-ink-muted); }
-
-	.nb-hero { display: grid; grid-template-columns: 3fr 2fr; gap: 1rem; margin-top: 1rem; }
-	.nb-panel {
-		/* LiquidGlass 已渲染折射玻璃，面板本体保持全透明（双重玻璃会发闷） */
-		background: transparent; border: 1px solid var(--nebula-glass-border);
-		border-radius: 16px; padding: 1.5rem 1.6rem;
-		box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 12px 32px rgba(0,0,0,.25);
-	}
-	.nb-profile__avatar { width: 76px; height: 76px; border-radius: 50%; border: 1px solid var(--nebula-glass-border); }
-	.nb-profile__name { margin: .9rem 0 .3rem; font-size: 1.5rem; }
-	.nb-profile__bio { color: var(--nebula-ink-muted); }
-	.nb-profile__links { display: flex; gap: .6rem; margin-top: 1.1rem; flex-wrap: wrap; }
-	.nb-profile__links a {
-		padding: .38rem .9rem; border: 1px solid var(--nebula-glass-border); border-radius: 999px;
-		color: var(--nebula-ink) !important; text-decoration: none; font-size: .86rem;
-		transition: border-color .2s ease, color .2s ease;
-	}
-	.nb-profile__links a:hover { border-color: var(--nebula-cyan); color: var(--nebula-cyan) !important; }
-	.nb-dash { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; align-content: center; }
-	.nb-dash__cell { border: 1px solid var(--nebula-glass-border); border-radius: 12px; padding: .8rem 1rem; }
-	.nb-dash__cell strong { display: block; font-size: 1.45rem; color: var(--nebula-gold); }
-	.nb-dash__cell span { color: var(--nebula-ink-muted); font-size: .8rem; }
-	.nb-dash__foot { grid-column: 1 / -1; margin: 0; color: var(--nebula-ink-muted); font-size: .78rem; }
-
-	.nb-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2rem 0 1rem; }
+	.nb-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 1.6rem 0 1rem; }
 	.nb-kicker { font: 600 .72rem/1 var(--m3e-font-sans, Arial, sans-serif); letter-spacing: .14em; color: var(--nebula-ink-muted); margin: 0; }
 	.nb-section-head a { color: var(--nebula-cyan) !important; font-size: .86rem; text-decoration: none; }
 	.nb-posts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-	/* 双容器卡：左文字 | 右图片；占比由后台 home_card_ratio 注入 --nb-card-cols（如 "3fr 2fr"） */
+	/* 双容器卡：左文字 | 右图片；占比由后台 home_card_ratio 注入 --nb-card-cols（如 "3fr 2fr"）
+	   玻璃质感全部来自 LiquidGlass 渲染器，卡片本体全透明 */
 	.nb-post {
 		background: transparent; border: 1px solid var(--nebula-glass-border);
 		border-radius: 16px; padding: 1.2rem 1.35rem; min-height: 9.5rem;
@@ -216,17 +103,18 @@ const statsDisplay = [
 	}
 	.nb-post:hover { border-color: rgba(96, 165, 250, .7); transform: translateY(-3px); box-shadow: 0 14px 36px rgba(0,0,0,.4); }
 	.nb-post__body { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
-	.nb-post__meta { margin: 0; color: var(--nebula-ink-muted); font-size: .78rem; letter-spacing: .05em; }
+	.nb-post__meta { margin: 0; color: #dfe6f5; font-size: .78rem; letter-spacing: .05em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
 	.nb-post__title { margin: 0; font-size: 1.22rem; line-height: 1.35; }
 	.nb-post__title a { color: var(--nebula-ink) !important; text-decoration: none; }
 	.nb-post__title a:hover { color: var(--nebula-cyan) !important; }
-	.nb-post__excerpt { margin: 0; color: var(--nebula-ink-muted); font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+	.nb-post__excerpt { margin: 0; color: #dfe6f5; font-size: .88rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
 	.nb-post__foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
 	.nb-post__tags { display: flex; flex-wrap: wrap; gap: .35rem; min-width: 0; }
 	.nb-post__tag {
-		font-size: .72rem; color: var(--nebula-ink-muted);
+		font-size: .72rem; color: #e6ebf7;
 		border: 1px solid var(--nebula-glass-border); border-radius: 999px; padding: .12rem .55rem;
 		white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 8rem;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
 	}
 	.nb-post__go { color: var(--nebula-cyan) !important; text-decoration: none; font-size: 1.05rem; line-height: 1; flex-shrink: 0; transition: transform .2s ease; }
 	.nb-post__go:hover { transform: translateX(3px); }
@@ -246,14 +134,9 @@ const statsDisplay = [
 	.nb-footer { display: flex; justify-content: space-between; gap: 1rem; padding: 2.2rem 0 1.6rem; color: var(--nebula-ink-muted); font-size: .8rem; }
 
 	@media (max-width: 900px) {
-		.nb-hero, .nb-posts { grid-template-columns: 1fr; }
+		.nb-posts { grid-template-columns: 1fr; }
 		/* 移动端文章卡恒为单列：图上文下，忽略后台占比 */
 		.nb-post { grid-template-columns: 1fr; padding: 1rem; }
 		.nb-post__media { order: -1; min-height: 9.5rem; }
-		.nb-capsule > span:last-child { display: none; }
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.nb-body { opacity: 1; transform: none; transition: none; }
-		.nb-caret { animation: none; }
 	}
 </style>

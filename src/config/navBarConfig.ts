@@ -103,20 +103,11 @@ const defaultNavBarConfig: NavBarConfig = {
 		LinkPresets.Moments,
 		LinkPresets.Compass,
 		LinkPresets.Albums,
-		{
-			name: i18n(I18nKey.more),
-			icon: "material-symbols:apps-rounded",
-			children: [
-				...(timelineConfig.enable ? [LinkPresets.Timeline] : []),
-				...(projectsConfig.enable ? [LinkPresets.Projects] : []),
-				// 分类/标签入口不进导航菜单（避免菜单项过多），预设已登记指向独立页面，
-				// 需要时取消注释即可
-				// LinkPresets.Categories,
-				// LinkPresets.Tags,
-				LinkPresets.About,
-				LinkPresets.GitHub,
-			],
-		},
+		// 用户要求：取消「更多」下拉，全部提升为一级菜单
+		...(timelineConfig.enable ? [LinkPresets.Timeline] : []),
+		...(projectsConfig.enable ? [LinkPresets.Projects] : []),
+		LinkPresets.About,
+		LinkPresets.GitHub,
 	],
 };
 
