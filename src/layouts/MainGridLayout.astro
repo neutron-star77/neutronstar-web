@@ -5,7 +5,6 @@ import Footer from "@components/organisms/Footer.astro";
 import RouteProgress from "@components/organisms/RouteProgress.svelte";
 import SideBar from "@components/organisms/SideBar.astro";
 import SiteNavigationDrawer from "@components/organisms/SiteNavigationDrawer.svelte";
-import TopAppBar from "@components/organisms/TopAppBar.astro";
 import LiquidGlass from "@components/islands/LiquidGlass";
 import {
 	generateGridClasses,
@@ -84,13 +83,7 @@ const currentGridClasses = sidebarResponsive.hasPrimary
 
 <Layout title={title} banner={banner} ogImage={ogImage} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} page={page}>
 
-<!-- Navbar -->
 <slot slot="head" name="head"></slot>
-<header id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
-    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
-        <TopAppBar></TopAppBar>
-    </div>
-</header>
 
 <!-- Main content -->
 <div id="main-layout" class="absolute w-full z-30 pointer-events-none">
