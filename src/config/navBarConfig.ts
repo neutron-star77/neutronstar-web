@@ -104,7 +104,6 @@ const defaultNavBarConfig: NavBarConfig = {
 		LinkPresets.Albums,
 		// 用户要求：取消「更多」下拉；时间线/站点罗盘/项目已按要求移除
 		LinkPresets.About,
-		LinkPresets.GitHub,
 	],
 };
 

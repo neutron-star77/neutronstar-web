@@ -176,7 +176,7 @@ onMount(() => {
 	</button>
 
 	<div
-		class={["float-panel absolute top-full right-0 pt-2 w-64 max-w-[calc(100vw-2rem)] transition-all", !isOpen ? "float-panel-closed" : ""].join(" ")}
+		class={["float-panel absolute top-full left-0 pt-2 w-64 max-w-[calc(100vw-2rem)] transition-all", !isOpen ? "float-panel-closed" : ""].join(" ")}
 	>
 		<div class="p-2">
 			<div class="px-3 py-2 text-sm font-medium text-[var(--primary)]">
