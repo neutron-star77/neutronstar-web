@@ -76,6 +76,9 @@ const cover = entry.data.image || "";
     <FloatingToc client:load headings={headings} />
 
     <div class="kirameku-page">
+        <nav class="nb-back" aria-label="返回">
+            <a href="/posts/">◀ 返回文章列表</a>
+        </nav>
         <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿挪作他处 -->
         <article
             class:list={[
@@ -227,4 +230,17 @@ const cover = entry.data.image || "";
 	user-select: none;
 	pointer-events: none;
 }
+</style>
+
+<style>
+	.nb-back { max-width: 72rem; margin: 0 auto 1rem; }
+	.nb-back a {
+		display: inline-block; padding: .45rem 1.1rem;
+		border: 1px solid var(--nebula-glass-border, rgba(255,255,255,.12));
+		border-radius: 999px; background: var(--nebula-glass-fill, rgba(255,255,255,.08));
+		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+		color: var(--nebula-ink, #e7ecf7) !important; text-decoration: none !important; font-size: .85rem;
+		transition: border-color .2s ease, color .2s ease;
+	}
+	.nb-back a:hover { border-color: var(--nebula-cyan, #7dd3fc); color: var(--nebula-cyan, #7dd3fc) !important; }
 </style>

@@ -2,6 +2,7 @@
 import { Font } from "astro:assets";
 import Snackbar from "@components/atoms/overlay/Snackbar.svelte";
 import BiliFloatPlayer from "@components/islands/BiliFloatPlayer";
+import NebulaBackground from "@components/organisms/NebulaBackground.astro";
 import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
@@ -118,7 +119,7 @@ const hasMonoFont =
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="bg-[var(--page-bg)] transition text-[14px] md:text-[16px]">
+<html lang={siteLang} class="dark bg-[var(--page-bg)] transition text-[14px] md:text-[16px]">
 	<head>
 		<style is:inline>@layer properties, theme, base, components, utilities;</style>
 
@@ -302,6 +303,7 @@ html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel {
 		data-banner-has-desktop={String(hasDesktopBanner)}
 		data-banner-has-mobile={String(hasMobileBanner)}
 	>
+		<NebulaBackground />
 		<ConfigCarrier></ConfigCarrier>
 		{umamiOptions && <UmamiRuntime />}
 		{musicSidebarEnabled && <BiliFloatPlayer client:only="react" />}

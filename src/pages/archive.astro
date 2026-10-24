@@ -1,5 +1,6 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import ArchiveRiver from "@components/organisms/ArchiveRiver.astro";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { getSortedPosts } from "@utils/content-utils";
@@ -9,17 +10,33 @@ const posts = await getSortedPosts();
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)} page="archive">
-	<div class="editorial-archive">
-		{posts.map((post) => <article><time datetime={post.data.published.toISOString()}>{post.data.published.toLocaleDateString("zh-CN")}</time><div><p>{post.data.category || "记录"}</p><h2><a href={`/posts/${post.slug}/`}>{post.data.title}</a></h2>{post.data.description && <span>{post.data.description}</span>}</div></article>)}
+	<div class="nebula-archive">
+		<header class="nb-arch-head">
+			<p class="nb-arch-kicker">ARCHIVE · RIVER OF TIME</p>
+			<h1 class="nb-arch-title">时光河流</h1>
+			<p class="nb-arch-desc">共 {posts.length} 篇文章 · 按住拖拽，沿星河回溯每一段记录。</p>
+		</header>
+		<ArchiveRiver posts={posts} />
 	</div>
 </MainGridLayout>
 
 <style>
-	.editorial-archive { border-top: 1px solid var(--editorial-rule); }
-	.editorial-archive article { display: grid; grid-template-columns: 7rem 1fr; gap: 1rem; padding: 1.35rem 0; border-bottom: 1px solid var(--editorial-rule); }
-	.editorial-archive time, .editorial-archive p { margin: 0; color: var(--editorial-muted); font: .68rem/1.4 var(--m3e-font-mono-family, monospace); }
-	.editorial-archive h2 { margin: .3rem 0; font-size: 1.35rem; }
-	.editorial-archive h2 a { text-decoration: none; }
-	.editorial-archive span { color: var(--editorial-muted); font-size: .9rem; }
-	@media (max-width: 600px) { .editorial-archive article { grid-template-columns: 1fr; gap: .45rem; } }
+	.nebula-archive { position: relative; z-index: 10; color: var(--nebula-ink); padding-block: 1rem 2rem; }
+
+	/* Nebula 页头：小字距 kicker + clamp 大标题 */
+	.nb-arch-head { margin-bottom: 1.2rem; }
+	.nb-arch-kicker {
+		margin: 0 0 .55rem;
+		font: 600 .72rem/1 var(--m3e-font-sans, Arial, sans-serif);
+		letter-spacing: .14em;
+		color: var(--nebula-ink-muted);
+	}
+	.nb-arch-title {
+		margin: 0;
+		font-size: clamp(1.7rem, 4vw, 2.6rem);
+		font-weight: 800;
+		line-height: 1.2;
+		color: var(--nebula-ink);
+	}
+	.nb-arch-desc { margin: .5rem 0 0; color: var(--nebula-ink-muted); font-size: .9rem; }
 </style>

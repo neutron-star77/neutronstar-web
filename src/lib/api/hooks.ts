@@ -37,6 +37,19 @@ export function useAlbums() {
   return useSWR<Album[]>(["albums"], () => apiGet<Album[]>("/api/albums"), opts);
 }
 
+/** 友链条目（BFF `/api/friend-links`；原 FriendsGrid 内联定义，提取至此共用） */
+export interface FriendLink {
+  id: number;
+  name: string;
+  url: string;
+  avatar: string;
+  description: string;
+}
+
+export function useFriendLinks() {
+  return useSWR<FriendLink[]>(["friend-links"], () => apiGet<FriendLink[]>("/api/friend-links"), opts);
+}
+
 export function useMessages({ page = 1, size = 20 }: { page?: number; size?: number } = {}) {
   return useSWR<Message[]>(
     ["messages", page, size],

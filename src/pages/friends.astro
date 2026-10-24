@@ -1,12 +1,241 @@
 ---
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import FriendsGrid from "@components/islands/FriendsGrid";
+import FriendTank from "@components/islands/FriendTank";
+import { siteConfig, profileConfig } from "@/config";
+import { resolveImageAsset } from "@utils/asset-utils";
+import { url } from "@utils/url-utils";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
-// P2/P3：友链页静态壳 + FriendsGrid island（客户端拉取 /api/friend-links）
+// P2/P3 → Nebula 复刻：友链页 = 页头 + 鱼缸（FriendTank island，client:visible，含 3 列卡网格）
+// + 交换友链说明大卡。数据链路不变：客户端经 BFF 拉 /api/friend-links（lib/api/hooks.ts 共用）。
+const avatarAsset = await resolveImageAsset(profileConfig.avatar ?? "");
+const siteAvatar = typeof avatarAsset === "string" ? avatarAsset : avatarAsset.src;
 ---
 
 <MainGridLayout title={i18n(I18nKey.friends)} page="friends">
-    <FriendsGrid client:load />
+    <div class="nebula-friends">
+        <header class="nb-fr-head">
+            <p class="nb-fr-kicker">FRIENDS · STELLAR AQUARIUM</p>
+            <h1 class="nb-fr-title">友链星海</h1>
+            <p class="nb-fr-desc">每一枚头像，都是一尾游进这片星海的小鱼。点它，去它们的星球看看。</p>
+        </header>
+
+        <FriendTank client:visible />
+
+        <section class="nb-fr-exchange" aria-label="交换友链">
+            <div class="nb-fr-site">
+                <img
+                    class="nb-fr-site-avatar"
+                    src={siteAvatar}
+                    alt={`${siteConfig.title} 头像`}
+                    width="72"
+                    height="72"
+                    loading="lazy"
+                />
+                <div class="nb-fr-site-info">
+                    <h2 class="nb-fr-site-name">{siteConfig.title}</h2>
+                    <p class="nb-fr-site-url">{siteConfig.site}</p>
+                    <p class="nb-fr-site-bio">{profileConfig.bio}</p>
+                </div>
+            </div>
+            <div class="nb-fr-rules">
+                <h3 class="nb-fr-rules-title">申请友链</h3>
+                <ul class="nb-fr-rules-list">
+                    <li>站点可正常访问，内容为原创向的独立博客 / 个人主页；</li>
+                    <li>请先在本站站点添加对方友链，再提交申请；</li>
+                    <li>申请时提供：站名、站点链接、头像（72px 以上方形图）、一句简介；</li>
+                    <li>站点含违法、侵权或大量搬运内容的不予收录；</li>
+                    <li>链接失效超过一个月会被请出鱼缸，恢复后随时欢迎回来。</li>
+                </ul>
+                <p class="nb-fr-contact">
+                    申请入口：<a href={url("/messages/")}>留言板</a> 或任意文章评论区。
+                </p>
+            </div>
+        </section>
+    </div>
 </MainGridLayout>
+
+<style is:global>
+    /* ── 页头（kicker + clamp 大标题，与 archive 同构） ─────────────── */
+    .nebula-friends { position: relative; z-index: 10; color: var(--nebula-ink); padding-block: 1rem 2rem; display: flex; flex-direction: column; gap: 1.4rem; }
+    .nb-fr-head { margin-bottom: 0.2rem; }
+    .nb-fr-kicker {
+        margin: 0 0 0.55rem;
+        font: 600 0.72rem/1 var(--m3e-font-sans, Arial, sans-serif);
+        letter-spacing: 0.14em;
+        color: var(--nebula-ink-muted);
+    }
+    .nb-fr-title {
+        margin: 0;
+        font-size: clamp(1.7rem, 4vw, 2.6rem);
+        font-weight: 800;
+        line-height: 1.2;
+        color: var(--nebula-ink);
+    }
+    .nb-fr-desc { margin: 0.5rem 0 0; color: var(--nebula-ink-muted); font-size: 0.9rem; }
+
+    /* ── 鱼缸玻璃容器（规格：高 55vh / min 320px，圆角 24；颜色一律走 nebula 令牌） ── */
+    .friend-tank {
+        position: relative;
+        height: 55vh;
+        min-height: 320px;
+        border-radius: 24px;
+        background: var(--nebula-glass-fill);
+        border: 1px solid var(--nebula-glass-border);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 0 32px rgba(125, 211, 252, 0.06),
+            0 12px 32px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+        -webkit-backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+        overflow: hidden;
+    }
+    .tank-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        color: var(--nebula-ink-muted);
+        font-size: 0.9rem;
+        text-align: center;
+        padding-inline: 1rem;
+    }
+
+    /* 鱼（72px 圆头像）：基点定位，transform 由 rAF 接管做弹性漂浮 */
+    .tank-fish {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-decoration: none;
+        will-change: transform;
+        cursor: pointer;
+    }
+    .tank-fish-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 1px solid var(--nebula-glass-border);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.10), 0 8px 20px rgba(0, 0, 0, 0.35);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .tank-fish-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .tank-fish:hover .tank-fish-avatar,
+    .tank-fish:focus-visible .tank-fish-avatar {
+        transform: scale(1.12);
+        border-color: var(--nebula-cyan);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.22), 0 10px 24px rgba(0, 0, 0, 0.4);
+    }
+    .tank-fish-tag {
+        margin-top: 0.45rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        color: var(--nebula-ink);
+        background: rgba(11, 16, 38, 0.72);
+        border: 1px solid var(--nebula-glass-border);
+        opacity: 0;
+        translate: 0 -4px;
+        transition: opacity 0.2s ease, translate 0.2s ease;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+    .tank-fish:hover .tank-fish-tag,
+    .tank-fish:focus-visible .tank-fish-tag { opacity: 1; translate: 0 0; }
+
+    /* ── 3 列友链卡网格：左头像 + 名称/bio + 右箭头，hover 边框变 cyan ── */
+    .friend-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .friend-card {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 1rem 1.1rem;
+        border-radius: var(--nebula-glass-radius);
+        background: var(--nebula-glass-fill);
+        border: 1px solid var(--nebula-glass-border);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 8px 24px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+        -webkit-backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+        text-decoration: none;
+        color: var(--nebula-ink);
+        transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .friend-card:hover {
+        border-color: var(--nebula-cyan);
+        transform: translateY(-2px);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 28px rgba(0, 0, 0, 0.34);
+    }
+    .friend-card-avatar {
+        width: 48px;
+        height: 48px;
+        flex: none;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--nebula-glass-border);
+    }
+    .friend-card-text { display: flex; flex-direction: column; min-width: 0; gap: 0.2rem; }
+    .friend-card-name { font-size: 0.95rem; font-weight: 700; color: var(--nebula-ink); }
+    .friend-card-bio {
+        font-size: 0.8rem;
+        color: var(--nebula-ink-muted);
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .friend-card-arrow { margin-left: auto; flex: none; color: var(--nebula-ink-muted); transition: color 0.2s ease, translate 0.2s ease; }
+    .friend-card:hover .friend-card-arrow { color: var(--nebula-cyan); translate: 2px -2px; }
+
+    /* ── 交换友链说明大卡 ──────────────────────────────────────────── */
+    .nb-fr-exchange {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: 1.4rem;
+        padding: 1.5rem;
+        border-radius: 20px;
+        background: var(--nebula-glass-fill);
+        border: 1px solid var(--nebula-glass-border);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 0 32px rgba(167, 139, 250, 0.05),
+            0 12px 32px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+        -webkit-backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.25);
+    }
+    .nb-fr-site { display: flex; align-items: flex-start; gap: 1rem; min-width: 0; }
+    .nb-fr-site-avatar {
+        width: 72px;
+        height: 72px;
+        flex: none;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--nebula-glass-border);
+        box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.10);
+    }
+    .nb-fr-site-info { min-width: 0; }
+    .nb-fr-site-name { margin: 0 0 0.3rem; font-size: 1.1rem; font-weight: 800; color: var(--nebula-ink); }
+    .nb-fr-site-url { margin: 0 0 0.4rem; font-size: 0.8rem; color: var(--nebula-cyan); word-break: break-all; }
+    .nb-fr-site-bio { margin: 0; font-size: 0.85rem; color: var(--nebula-ink-muted); }
+    .nb-fr-rules-title { margin: 0 0 0.6rem; font-size: 1rem; font-weight: 700; color: var(--nebula-ink); }
+    .nb-fr-rules-list { margin: 0 0 0.8rem; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .nb-fr-rules-list li { font-size: 0.85rem; color: var(--nebula-ink-muted); line-height: 1.7; }
+    .nb-fr-rules-list li::marker { color: var(--nebula-cyan); }
+    .nb-fr-contact { margin: 0; font-size: 0.85rem; color: var(--nebula-ink-muted); }
+    .nb-fr-contact a { color: var(--nebula-cyan); }
+
+    /* ── 响应式：<768px 网格与交换卡降单列（规格：源码无中间档） ────── */
+    @media (max-width: 768px) {
+        .friend-cards { grid-template-columns: 1fr; }
+        .nb-fr-exchange { grid-template-columns: 1fr; }
+    }
+
+    /* ── 可访问性：减少动效时去掉过渡 ─────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+        .friend-card, .friend-card-arrow, .tank-fish-avatar, .tank-fish-tag { transition: none !important; }
+    }
+</style>

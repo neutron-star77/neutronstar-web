@@ -1,36 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
-import { apiGet } from "../../lib/api/client";
+import { useFriendLinks } from "../../lib/api/hooks";
 import { useRealtimeRefresh } from "../../lib/realtime";
 
-interface FriendLink {
-  id: number;
-  name: string;
-  url: string;
-  avatar: string;
-  description: string;
-}
-
+// 旧版友链列表 island（friends.astro 已改用 FriendTank；本文件暂留，待主控统一清理）。
+// 拉取逻辑已提取到 lib/api/hooks.ts 的 useFriendLinks（SWR + SSE 实时），不再自带一套。
 export default function FriendsGrid() {
-  const [friends, setFriends] = useState<FriendLink[]>([]);
-  const [error, setError] = useState(false);
+  const { data, error, isLoading } = useFriendLinks();
+  useRealtimeRefresh(["friend-links"]);
 
-  const load = useCallback(() => {
-    apiGet<FriendLink[]>("/api/friend-links")
-      .then(setFriends)
-      .catch(() => setError(true));
-  }, []);
-
-  useEffect(load, [load]);
-
-  // P4 实时：后台增删友链 → 广播 friends 频道 → 这里用非 SWR 数据源，走 onChange 回调重拉
-  useRealtimeRefresh(["friend-links"], load);
+  const friends = data ?? [];
 
   if (error) return <p className="text-sm text-on-surface-variant">友链暂时无法加载。</p>;
-  if (!friends.length) return <p className="text-sm text-on-surface-variant">暂时还没有友链。</p>;
+  if (!isLoading && !friends.length) return <p className="text-sm text-on-surface-variant">暂时还没有友链。</p>;
 
   return (
     <div className="editorial-data-list">
-      {friends.map((friend, index) => (
+      {friends.map((friend) => (
         <a
           key={friend.id}
           href={friend.url}

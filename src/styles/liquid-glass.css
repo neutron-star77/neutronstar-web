@@ -1,0 +1,52 @@
+/*
+ * 液态玻璃 island 基础样式
+ *
+ * .liquid-glass-shell  渲染路径的容器：底层 WebGL 折射 canvas + 上层内容
+ * .glass-fallback      降级路径：无 WebGL / prefers-reduced-motion / 低内存设备
+ *                      时用 backdrop-filter 模拟磨砂玻璃,保证内容永远可读
+ */
+
+.liquid-glass-shell {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--liquid-glass-radius, 24px);
+}
+
+.liquid-glass-shell__canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  /* 首帧渲染完成前保持透明,避免出现空白闪烁 */
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+
+.liquid-glass-shell__canvas--visible {
+  opacity: 1;
+}
+
+.liquid-glass-shell__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* 降级路径：CSS 磨砂玻璃,不依赖任何 JS/WebGL */
+.glass-fallback {
+  background: rgba(13, 18, 38, 0.42);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-shell__canvas {
+    transition: none;
+  }
+}

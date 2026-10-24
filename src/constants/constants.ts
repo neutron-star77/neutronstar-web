@@ -1,7 +1,7 @@
 export const LIGHT_MODE = "light",
 	DARK_MODE = "dark",
 	AUTO_MODE = "auto";
-export const DEFAULT_THEME = AUTO_MODE;
+export const DEFAULT_THEME = DARK_MODE; // Nebula 暗色优先
 export const THEME_CHANGE_EVENT = "shirone:theme-change";
 
 export const WALLPAPER_MODE_KEY = "wallpaper-mode";
