@@ -409,7 +409,6 @@ export default function LiquidGlass({
       frameId = requestAnimationFrame(frameUpdate);
 
       const textureReady = await ensureBackgroundTexture(renderer);
-      console.warn('[LiquidGlass] textureReady=', textureReady, 'instanceId=', instanceId, 'glassSize=', uniforms.glassSize);
       // 星空画布是动态的：周期性强制重采样，让折射随背景流动
       textureTimer = window.setInterval(() => {
         if (disposed || !instanceId) return;

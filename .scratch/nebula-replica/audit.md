@@ -24,3 +24,19 @@
   （/api/bili-fav 等属旧 :8100 后端）——随「后端重构部署 NAS」一并解决。
 - LiquidGlass 渲染器当前仅首页 hero 启用；覆盖到全部玻璃卡是后续优化。
 - 归档河流/鱼缸在无头截图里封面图未加载（headless 网络限制），真实浏览器正常。
+
+## 2026-10-24 追加：真实折射效果上线（用户反馈修正）
+
+用户指出此前只是 CSS 磨砂回退、背景太暗无物可折。修正：
+
+- NebulaBackground 重绘：紫/青/玫瑰云气 + 银河带 + 520 彩色星群（折射有物可折）；
+- LiquidGlass 补齐 Nebula 涟漪协议：容器 pointerenter/move/leave 拖尾
+  （最小间距 14px、寿命 1100ms、半径 66、强度 0.34）+ 背景纹理 1.2s 周期重采样；
+- 修复三处静默失败：外壳 div 丢失 containerRef、requestIdleCallback 被星空
+  rAF 循环饿死（加 timeout 1500）、渲染器缩放 ref 声明缺失；
+- 首页胶囊/资料/看板/文章卡全部接入 LiquidGlass（client:load）。
+
+线上验证（真实 Cloudflare 环境）：6/6 玻璃壳 WebGL 激活、canvas 可见、渲染器 chunk 加载、
+背景画布就绪；截图确认面板内可见云气折射光晕。
+排查工具：headless Edge 探针（水合状态/资源加载/console），其间定位
+requestIdleCallback 饿死与 ref 丢失两个静默失败。
