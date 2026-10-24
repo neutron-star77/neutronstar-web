@@ -118,7 +118,15 @@ const tagline = "玄穹浩渺，时序奔流。";
 	}
 	.nb-post__go { color: var(--nebula-cyan) !important; text-decoration: none; font-size: 1.05rem; line-height: 1; flex-shrink: 0; transition: transform .2s ease; }
 	.nb-post__go:hover { transform: translateX(3px); }
-	.nb-post__media { position: relative; border-radius: 16px; overflow: hidden; min-height: 9rem; border: 1px solid var(--nebula-glass-border); }
+	.nb-post__media {
+		position: relative; border-radius: 16px; overflow: hidden; min-height: 9rem; border: 1px solid var(--nebula-glass-border);
+		/* 封面加载失败（如旧后端 /uploads 404）时露出渐变兜底而非破图 */
+		background:
+			radial-gradient(120% 120% at 15% 10%, rgba(96, 165, 250, .3), transparent 55%),
+			radial-gradient(110% 110% at 85% 90%, rgba(167, 139, 250, .22), transparent 60%),
+			linear-gradient(150deg, rgba(30, 41, 59, .8), rgba(15, 23, 42, .9));
+	}
+	.nb-post__img { object-fit: cover; }
 	.nb-post__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 	/* 无封面占位：深空渐变 + 标题首字母，替代破图 */
 	.nb-post__ph {
