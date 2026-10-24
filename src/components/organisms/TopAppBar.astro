@@ -36,21 +36,12 @@ function isActive(link: (typeof links)[number]): boolean {
 <div
 	id="navbar"
 	class:list={[
-		"top-app-bar top-app-bar__glass fixed top-0 left-0 right-0 z-50 onload-animation transition",
+		"top-app-bar top-app-bar__glass fixed top-2 left-1/2 -translate-x-1/2 z-50 w-fit max-w-[calc(100vw-1.5rem)] onload-animation transition",
 		className,
 	]}
 >
-	<div class="relative max-w-[var(--page-width)] mx-auto h-[4.5rem] px-3 md:px-5 flex items-center gap-1">
-		{/* Mizuki 式站点徽标：图标 + 标题，点击回首页（置左，导航链接紧跟其后） */}
-		<a
-			href={url("/")}
-			class="m3-state-layer relative flex h-10 shrink-0 items-center gap-2 rounded-lg px-2 font-bold text-[var(--on-surface)] transition-colors hover:text-[var(--primary)]"
-			aria-label={siteTitle}
-		>
-			<img src={url("/logo/icon.webp")} alt="" class="h-7 w-7 rounded-lg object-contain" loading="lazy" />
-			<span class="hidden sm:block">{siteTitle}</span>
-		</a>
-		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-1 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-2"]} aria-label="Main navigation">
+	<div class="relative h-[4.5rem] px-4 md:px-5 flex items-center gap-1">
+		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-0.5 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-2"]} aria-label="Main navigation">
 			{/* 丝滑滑动指示器：hover/激活项之间的玻璃胶囊（位置由脚本计算，见 <script>） */}
 			<span class="top-app-bar__nav-pill" data-nav-pill aria-hidden="true"></span>
 			{links.map((link) => {
@@ -60,7 +51,7 @@ function isActive(link: (typeof links)[number]): boolean {
 					<div class="top-app-bar__nav-group" data-nav-group>
 						{link.children ? (
 							<button class:list={[
-								"top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-3 text-sm font-bold text-[var(--on-surface-variant)] transition-colors hover:text-[var(--on-surface)]",
+								"top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[0.8rem] font-bold text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]",
 								active && "top-app-bar__nav-link--active",
 							]} aria-expanded="false">
 								{link.icon && <Icon name={link.icon} class="text-[1.1rem]"></Icon>}
@@ -70,7 +61,7 @@ function isActive(link: (typeof links)[number]): boolean {
 						) : (
 							<a href={href} target={link.external ? "_blank" : undefined} rel={link.external ? "noopener noreferrer" : undefined}
 								aria-current={active ? "page" : undefined} data-nav-key={link.pageKey ?? ""}
-								class:list={["top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-3 text-sm font-bold text-[var(--on-surface-variant)] transition-colors hover:text-[var(--on-surface)]", active && "top-app-bar__nav-link--active"]}>
+								class:list={["top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[0.8rem] font-bold text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]", active && "top-app-bar__nav-link--active"]}>
 								{link.icon && <Icon name={link.icon} class="text-[1.1rem]"></Icon>}{link.name}
 								{link.external && <Icon name="material-symbols:arrow-outward-rounded" class="ml-1 text-[0.875rem]"></Icon>}
 							</a>
@@ -350,6 +341,7 @@ document.addEventListener('swup:content:replace', bindSearchTriggers);
 
 <style>
 	/* 背景透明统一：导航栏胶囊 = 透明玻璃（--nebula-* 令牌优先，回退同值） */
+	.top-app-bar__nav-link { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
 	.top-app-bar__glass {
 		background: var(--nebula-glass-fill, rgba(255, 255, 255, 0.08));
 		border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12));

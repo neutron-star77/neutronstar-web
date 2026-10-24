@@ -73,7 +73,10 @@ function closeNow() {
 }
 
 function onContainerEnter() {
-	if (window.matchMedia("(min-width: 1024px)").matches) openPanel();
+	if (window.matchMedia("(min-width: 1024px)").matches) {
+		window.dispatchEvent(new CustomEvent("nb:translate-opened"));
+		openPanel();
+	}
 }
 
 function onContainerLeave() {

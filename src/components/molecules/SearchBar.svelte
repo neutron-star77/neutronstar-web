@@ -30,29 +30,30 @@ let shellEl: HTMLDivElement | undefined = $state();
 let toggleEl: HTMLButtonElement | undefined = $state();
 let blurTimer: ReturnType<typeof setTimeout>;
 
-const expand = (): void => {
+const expand = (focusInput = true): void => {
 	if (expanded) return;
 	clearTimeout(blurTimer);
 	expanded = true;
-	// 等输入框宽度过渡/可聚焦后接管焦点（键盘可达）
-	setTimeout(() => {
-		document.getElementById(id)?.focus();
-	}, 0);
+	window.dispatchEvent(new CustomEvent("nb:search-expanded"));
+	if (focusInput) {
+		// 等输入框宽度过渡/可聚焦后接管焦点（键盘可达）
+		setTimeout(() => {
+			document.getElementById(id)?.focus();
+		}, 0);
+	}
 };
 
 const collapse = (): void => {
 	if (!expanded) return;
 	expanded = false;
 	oncollapse();
-	// 焦点归还放大镜按钮，键盘用户不丢失位置
-	toggleEl?.focus();
 };
 
 // 放大镜 = 开关：折叠时展开、展开时收起（顺带清掉失焦折叠定时器）
 const toggle = (): void => {
 	clearTimeout(blurTimer);
 	if (expanded) collapse();
-	else expand();
+	else expand(true);
 };
 // 保留：点击放大镜在展开后等价于聚焦输入框
 
@@ -60,10 +61,7 @@ const toggle = (): void => {
 const handleBlur = (): void => {
 	clearTimeout(blurTimer);
 	blurTimer = setTimeout(() => {
-		if (expanded) {
-			expanded = false;
-			oncollapse();
-		}
+		if (expanded) collapse();
 	}, 250);
 };
 
@@ -80,6 +78,13 @@ function handleKeydown(event: KeyboardEvent): void {
 		collapse();
 	}
 }
+
+// 语言切换面板打开时收起搜索（互斥，避免动画互相遮挡）
+$effect(() => {
+	const onTranslate = () => { if (expanded) collapse(); };
+	window.addEventListener("nb:translate-opened", onTranslate);
+	return () => window.removeEventListener("nb:translate-opened", onTranslate);
+});
 
 // 点击外部收起（展开期间监听，含 results 面板以外的任意位置）
 $effect(() => {
@@ -99,11 +104,12 @@ $effect(() => {
 <div id="search-bar" class="hidden lg:block relative w-10 h-10 shrink-0">
     <div
         bind:this={shellEl}
-        onmouseenter={() => { clearTimeout(blurTimer); expand(); }}
+        onmouseenter={() => { clearTimeout(blurTimer); expand(false); }}
         onmouseleave={() => {
-          // 悬停离开即收起（Nebula 交互）；输入框聚焦中则不收
-          if (document.activeElement === document.getElementById(id)) return;
-          blurTimer = setTimeout(() => { if (expanded) { expanded = false; oncollapse(); } }, 200);
+          // 悬停离开即收起；仅当用户已输入内容（正在搜索）才保持
+          const input = document.getElementById(id);
+          if (input && input.value) return;
+          blurTimer = setTimeout(() => { if (expanded) collapse(); }, 180);
         }}
         class="top-app-bar__search-shell m3-state-layer absolute right-0 top-0 flex items-center overflow-hidden rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] h-10
                {expanded

@@ -24,7 +24,13 @@ export async function getStaticPaths() {
 }
 
 const { slug = "" } = Astro.params;
-const entry = await getPostBySlug(slug);
+// 构建期 BFF 冷启动/后端瞬时重启可能让单篇取数失败——重试一次，
+// 否则会静默 301 回首页，文章页凭空消失（2026-10-24 实测踩坑）
+let entry = await getPostBySlug(slug);
+if (!entry) {
+	await new Promise((resolve) => setTimeout(resolve, 1500));
+	entry = await getPostBySlug(slug);
+}
 
 if (!entry) {
 	return Astro.redirect(url("/"));

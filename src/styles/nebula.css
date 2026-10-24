@@ -78,20 +78,27 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 }
 
 /* editorial 隐藏的装饰层维持隐藏，但恢复顶栏/侧栏显示 */
-#top-row, #navbar-wrapper, #navbar, #navbar > div { background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
+#top-row, #navbar-wrapper { background: transparent !important; box-shadow: none !important; }
+/* 导航 = 居中悬浮玻璃胶囊（自适应菜单宽度；fixed 被 editorial 的 relative !important
+   覆盖过，这里用同权重抢回来） */
 #navbar {
-  position: relative !important;
-  inset: auto !important;
+  position: fixed !important;
+  top: 0.5rem !important;
+  left: 50% !important;
+  right: auto !important;
+  /* 居中由 Tailwind 的 translate 属性完成；此处不能再叠加 transform（会双重平移） */
+  width: fit-content !important;
+  max-width: calc(100vw - 1.5rem) !important;
   height: 4.25rem !important;
-  max-width: 72rem !important;
-  margin: 1rem auto 0 !important;
-  padding-inline: 1.25rem !important;
-  background: var(--nebula-glass-fill) !important;
+  margin: 0 !important;
+  padding-inline: 1.1rem !important;
+  background: rgba(10, 14, 28, 0.5) !important;
   border: 1px solid var(--nebula-glass-border) !important;
   border-radius: 999px !important;
-  backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.3) !important;
-  -webkit-backdrop-filter: blur(var(--nebula-glass-blur)) saturate(1.3) !important;
+  backdrop-filter: blur(12px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.3) !important;
   color: var(--nebula-ink) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3) !important;
 }
 #navbar img { display: block !important; }
 #navbar a, #navbar button { color: var(--nebula-ink) !important; }
@@ -187,3 +194,39 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 .nb-page-wrap .m3-blog-postmeta__item svg,
 .nb-page-wrap .m3-blog-tagbadge svg { background: transparent !important; }
 .nb-page-wrap .m3-blog-tagbadge__text { color: #eef2fb !important; }
+
+/* ── 文章页三卡拆分（用户反馈：正文卡不好看 → 透明度可调的深色玻璃；
+      评论区单独一卡；右侧目录单独一卡）───────────────────────────── */
+/* 主卡（封面+标题+正文）：深色玻璃，圆角一致，透明度 0.42 可整值微调 */
+.kirameku-article {
+  background: rgba(10, 14, 28, 0.42) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12)) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
+}
+.kirameku-article :is(h1, h2, h3, h4) {
+  color: #fbfdff !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.kirameku-article :is(p, li, td, th, blockquote, figcaption) {
+  color: #e8edf8 !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.55);
+}
+.kirameku-article :is(strong, b) { color: #ffffff !important; }
+.kirameku-article [class*="text-slate-"] { color: #dfe6f5 !important; }
+
+/* 评论区：独立玻璃卡 */
+.kirameku-waline {
+  background: rgba(10, 14, 28, 0.42) !important;
+  border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12)) !important;
+  border-radius: 20px !important;
+  padding: 1.5rem 1.6rem !important;
+  margin-top: 1.25rem !important;
+  border-top: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12)) !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
+}
+.kirameku-waline.is-embedded { background: transparent !important; border: 0 !important; box-shadow: none !important; }
