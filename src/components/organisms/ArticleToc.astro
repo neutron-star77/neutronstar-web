@@ -1,0 +1,115 @@
+---
+/**
+ * ArticleToc —— 文章目录：固定吸附在文章卡片左上方（宽屏 ≥1650px 显示，
+ * 窄屏隐藏——由右下浮动目录按钮兜底）。玻璃令牌样式；滚动监听高亮当前节。
+ */
+interface Props {
+  headings: { depth: number; text: string; slug: string }[];
+}
+const { headings } = Astro.props;
+---
+
+{headings.length > 0 && (
+    <aside class="article-toc" aria-label="文章目录">
+        <div class="article-toc__card">
+            <h3 class="article-toc__title">目录</h3>
+            <nav class="article-toc__nav">
+                {headings.map((h) => (
+                    <button
+                        type="button"
+                        class:list={["article-toc__item", `article-toc__item--d${h.depth}`]}
+                        data-target={h.slug}
+                    >
+                        {h.text}
+                    </button>
+                ))}
+            </nav>
+        </div>
+    </aside>
+)}
+
+<script>
+    const toc = document.querySelector(".article-toc");
+    if (toc) {
+        const items = [...toc.querySelectorAll<HTMLButtonElement>(".article-toc__item")];
+        const targets = items
+            .map((b) => ({ b, el: document.getElementById(b.dataset.target || "") }))
+            .filter((t) => t.el);
+        const onScroll = () => {
+            let current = targets.length ? targets[targets.length - 1] : null;
+            for (const t of targets) {
+                if (t.el.getBoundingClientRect().top <= 140) current = t;
+                else break;
+            }
+            for (const t of targets) t.b.classList.toggle("is-active", current?.el === t.el);
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+        toc.addEventListener("click", (e) => {
+            const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".article-toc__item");
+            if (!btn) return;
+            const el = document.getElementById(btn.dataset.target || "");
+            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+    }
+</script>
+
+<style>
+    .article-toc {
+        /* fixed：不受 .kirameku-page overflow:hidden 裁剪；
+           水平位置 = 视口中线 - 文章卡半宽(36rem) - 间隙(1rem) - 自身宽(14rem) */
+        position: fixed;
+        left: calc(50% - 51rem);
+        top: 9.5rem;
+        width: 14rem;
+        z-index: 30;
+    }
+    .article-toc__card {
+        background: rgba(10, 14, 28, 0.45);
+        border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12));
+        border-radius: 16px;
+        backdrop-filter: blur(12px) saturate(1.2);
+        -webkit-backdrop-filter: blur(12px) saturate(1.2);
+        padding: 0.9rem 0.6rem;
+        max-height: 72vh;
+        overflow-y: auto;
+        position: sticky;
+        top: 9.5rem;
+    }
+    .article-toc__title {
+        margin: 0 0 0.5rem;
+        padding-left: 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--nebula-ink-muted, #9aa4bf);
+        letter-spacing: 0.08em;
+    }
+    .article-toc__item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        border-radius: 8px;
+        padding: 0.32rem 0.6rem;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: var(--nebula-ink-muted, #9aa4bf);
+        cursor: pointer;
+        transition: color 0.15s ease, background 0.15s ease;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .article-toc__item--d2 { padding-left: 0.6rem; color: var(--nebula-ink, #e7ecf7); }
+    .article-toc__item--d3 { padding-left: 1.2rem; }
+    .article-toc__item--d4 { padding-left: 1.8rem; }
+    .article-toc__item:hover { color: var(--nebula-cyan, #7dd3fc); }
+    .article-toc__item.is-active {
+        color: var(--nebula-cyan, #7dd3fc);
+        background: rgba(125, 211, 252, 0.1);
+    }
+    @media (max-width: 1649px) {
+        .article-toc { display: none; }
+    }
+</style>
