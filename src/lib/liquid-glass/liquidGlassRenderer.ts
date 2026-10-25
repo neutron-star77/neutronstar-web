@@ -783,12 +783,13 @@ export function loadImage(url: string): Promise<ImageSource> {
   let loader: Promise<ImageSource>
 
   if (typeof createImageBitmap !== 'undefined') {
-    // createImageBitmap 路径：fetch → blob → 后台线程解码
-    // 指定 imageOrientation:'flipY' 让 bitmap 上下翻转,
-    // 这样 uploadTexture 时对 ImageBitmap 不设 UNPACK_FLIP_Y 就能得到正确的 WebGL 纹理朝向。
+    // createImageBitmap 路径：fetch → blob → 后台线程解码。
+    // 注意：不指定 imageOrientation（其支持度/语义随浏览器版本漂移，曾是玻璃内
+    // 背景上下颠倒的根因）——统一在 uploadTexture 里用 UNPACK_FLIP_Y_WEBGL 翻转，
+    // 保证纹理恒为 GL 底部原点约定，与着色器 v_screenTexCoord.y = 1-uv.y 配对。
     loader = fetch(corsUrl, { mode: 'cors' })
       .then((res) => res.blob())
-      .then((blob) => createImageBitmap(blob, { imageOrientation: 'flipY' }))
+      .then((blob) => createImageBitmap(blob))
       .catch(() => loadImageFallback(corsUrl)) // 任意环节失败则回退
   } else {
     loader = loadImageFallback(corsUrl)
@@ -814,11 +815,9 @@ export function uploadTexture(url: string, image: ImageSource): boolean {
   const srcH = 'naturalHeight' in image ? image.naturalHeight : image.height
 
   gl.bindTexture(gl.TEXTURE_2D, texture)
-  // HTMLImageElement 需要 FLIP_Y 翻转(原点左上→左下);
-  // ImageBitmap 已在 createImageBitmap 时指定 imageOrientation:'flipY' 处理,
-  // 这里统一设 true 即可(如果 ImageBitmap 未翻转,则在创建时已处理)。
-  const isImageBitmap = typeof ImageBitmap !== 'undefined' && image instanceof ImageBitmap
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, isImageBitmap ? false : true)
+  // 统一上传约定：无论 HTMLImageElement 还是 ImageBitmap 都设 FLIP_Y，
+  // 纹理恒为 GL 底部原点（v=0 = 图像底边），配对着色器的 1-uv.y 采样。
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image as TexImageSource)
 
   // Non-power-of-2 纹理参数
