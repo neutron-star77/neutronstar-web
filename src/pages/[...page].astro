@@ -8,6 +8,10 @@ import LiquidGlass from "@components/islands/LiquidGlass";
 
 export async function getStaticPaths() {
 	const archive = await getArchivePage(1, postListConfig.pageSize);
+	if (!archive.posts.length) {
+		// 构建期取数失败必须硬失败，防止静默上线无文章卡的空首页
+		throw new Error("[[...page]] 构建期文章列表为空——数据源取数失败，中止部署");
+	}
 	const paths: { params: { page?: string } }[] = [{ params: { page: undefined } }];
 	for (let p = 2; p <= archive.lastPage; p += 1) paths.push({ params: { page: String(p) } });
 	return paths;

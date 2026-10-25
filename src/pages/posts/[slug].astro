@@ -21,6 +21,10 @@ import { siteConfig } from "@/config";
 // 一代内网版静态化：构建期从 API 快照全部文章（存档定位，内容变更后重新构建即可）
 export async function getStaticPaths() {
 	const posts = await getSortedPosts();
+	if (!posts.length) {
+		// 构建期取数失败（BFF/后端瞬时故障）必须硬失败，防止静默上线无文章的空站
+		throw new Error("[posts/[slug]] 构建期文章列表为空——数据源取数失败，中止部署");
+	}
 	return posts.map((post) => ({ params: { slug: post.slug } }));
 }
 
