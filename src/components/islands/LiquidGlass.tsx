@@ -300,7 +300,9 @@ export default function LiquidGlass({
           force || bgCanvas.width !== lastBgWidth || bgCanvas.height !== lastBgHeight;
         if (resized || !renderer.hasTexture(BG_TEXTURE_KEY)) {
           try {
-            const next = await createImageBitmap(bgCanvas);
+            // imageOrientation:'flipY'：WebGL 上传端 UNPACK_FLIP_Y 对 ImageBitmap 源会被规范忽略，
+            // 方向必须在创建位图时定格为 GL 底部原点，配对着色器采样 v=1-uv.y。
+            const next = await createImageBitmap(bgCanvas, { imageOrientation: 'flipY' });
             if (disposed) {
               next.close();
               return false;
@@ -320,7 +322,7 @@ export default function LiquidGlass({
       if (!renderer.hasTexture(BG_TEXTURE_KEY)) {
         try {
           const fallbackCanvas = createDeepSpaceTexture();
-          const bitmap = await createImageBitmap(fallbackCanvas);
+          const bitmap = await createImageBitmap(fallbackCanvas, { imageOrientation: 'flipY' });
           if (disposed) {
             bitmap.close();
             return false;
