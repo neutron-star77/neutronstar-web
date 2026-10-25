@@ -4,6 +4,8 @@ import Snackbar from "@components/atoms/overlay/Snackbar.svelte";
 import BiliFloatPlayer from "@components/islands/BiliFloatPlayer";
 import NebulaBackground from "@components/organisms/NebulaBackground.astro";
 import TopAppBar from "@components/organisms/TopAppBar.astro";
+import FloatingControls from "@components/organisms/FloatingControls.astro";
+import SiteNavigationDrawer from "@components/organisms/SiteNavigationDrawer.svelte";
 import ConfigCarrier from "@components/system/ConfigCarrier.astro";
 import UmamiRuntime from "@components/system/UmamiRuntime.astro";
 import { resolveAsset } from "@utils/asset-utils";
@@ -45,9 +47,11 @@ interface Props {
 	lang?: string;
 	setOGTypeArticle?: boolean;
 	page?: SidebarPage;
+	/** 当前页评论区是否可用（FloatingControls 的评论直达 FAB 用） */
+	hasComments?: boolean;
 }
 
-let { title, banner, ogImage, description, lang, setOGTypeArticle, page } =
+let { title, banner, ogImage, description, lang, setOGTypeArticle, page, hasComments } =
 	Astro.props;
 
 const initialPage =
@@ -324,6 +328,8 @@ html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel {
 		<Snackbar client:only="svelte"></Snackbar>
 		<slot />
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
+		<FloatingControls page={page} hasComments={hasComments} />
+		<SiteNavigationDrawer client:load />
 	</body>
 </html>
 

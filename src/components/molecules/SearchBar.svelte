@@ -6,6 +6,7 @@
  * value / expanded 可双向绑定，展开折叠交互细节内聚在此，
  * Search 有机体只负责搜索与结果下拉面板。
  */
+import { GLYPHS } from "@utils/glyphs";
 import Icon from "@iconify/svelte";
 
 let {
@@ -126,7 +127,7 @@ $effect(() => {
             onclick={toggle}
             class="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--on-surface)] transition-colors"
         >
-            <Icon icon="material-symbols:search" class="pointer-events-none shrink-0 text-[1.25rem]"></Icon>
+            <span class="glyph-live pointer-events-none shrink-0" style="width:1.25rem;height:1.25rem" aria-hidden="true">{@html GLYPHS.search}</span>
         </button>
         <input
             {id}

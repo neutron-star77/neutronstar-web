@@ -1,4 +1,5 @@
 <script lang="ts">
+import { GLYPHS } from "@utils/glyphs";
 import IconButton from "@components/atoms/action/IconButton.svelte";
 import SearchPanel from "@components/atoms/blog/SearchPanel.svelte";
 import SearchBar from "@components/molecules/SearchBar.svelte";
@@ -165,14 +166,17 @@ $: if (initialized && keywordMobile) {
 
 <!-- toggle btn for phone/tablet view -->
 <IconButton
-    icon="material-symbols:search"
     label="Search Panel"
     id="search-switch"
     size="small"
     shape="round"
     onclick={togglePanel}
     class="lg:!hidden !w-10 !h-10 active:scale-90 !text-[1.25rem]"
-/>
+>
+    {#snippet children()}
+        <span class="glyph-live" style="width:1.25rem;height:1.25rem" aria-hidden="true">{@html GLYPHS.search}</span>
+    {/snippet}
+</IconButton>
 
 <!-- search panel（blog/SearchPanel 原子；开合由调用方 classList 控制，与 DisplaySettings 同款） -->
 <SearchPanel

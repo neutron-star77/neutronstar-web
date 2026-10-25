@@ -309,3 +309,91 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
   background: rgba(125, 211, 252, 0.16) !important;
   color: var(--nebula-cyan, #7dd3fc) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * 灵动字形图标系统（kombai/selects 风，2026-10-25）
+ * —— 呼吸感 idle + 弹性 hover 辉光，配 NavGlyph.astro / GLYPHS 使用
+ * ═══════════════════════════════════════════════════════════════ */
+.glyph-live {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition:
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.3s ease;
+}
+.glyph-live > svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  animation: glyph-breathe 3.8s var(--glyph-delay, 0s) ease-in-out infinite;
+}
+/* 光晕层：贴在图标身后，随呼吸脉动 */
+.glyph-live::after {
+  content: "";
+  position: absolute;
+  inset: -58%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(125, 211, 252, 0.42), rgba(125, 211, 252, 0) 72%);
+  opacity: 0.13;
+  animation: glyph-halo 3.8s var(--glyph-delay, 0s) ease-in-out infinite;
+  pointer-events: none;
+}
+/* hover：弹跳放大 + 轻旋 + 青色辉光（自身或所在交互容器命中都算） */
+.glyph-live:hover,
+:is(a, button):hover .glyph-live {
+  transform: scale(1.26) rotate(-8deg);
+  filter: drop-shadow(0 0 7px rgba(125, 211, 252, 0.85));
+}
+.glyph-live:hover::after,
+:is(a, button):hover .glyph-live::after {
+  opacity: 0.55;
+  animation: none;
+}
+/* 激活导航项：常亮微光 */
+.glyph-live.is-lit > svg {
+  filter: drop-shadow(0 0 5px rgba(125, 211, 252, 0.75));
+}
+.glyph-live.is-lit::after {
+  opacity: 0.4;
+}
+@keyframes glyph-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.07) translateY(-0.5px); }
+}
+@keyframes glyph-halo {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.32; }
+}
+
+/* FloatingToc（右下悬浮目录）：≥1650px 时左侧吸附目录在场，按钮与面板整体退场 */
+@media (min-width: 1650px) {
+  .ftoc-el { display: none !important; }
+}
+/* 展开面板滚动条：透明轨道 + 半透明细滑块，看得清又不抢戏 */
+.ftoc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.ftoc-scroll::-webkit-scrollbar { width: 5px; }
+.ftoc-scroll::-webkit-scrollbar-track { background: transparent; }
+.ftoc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+}
+.ftoc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.48); }
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-live > svg,
+  .glyph-live::after { animation: none; }
+  .glyph-live { transition: none; }
+}
+
+/* 日夜切换按钮：按 html.dark 显隐（Tailwind dark: 变体在 prop 透传场景不生效，这里全局兜底） */
+#theme-toggle .theme-icon-sun { display: none; }
+html.dark #theme-toggle .theme-icon-sun { display: inline-flex; }
+html.dark #theme-toggle .theme-icon-moon { display: none; }

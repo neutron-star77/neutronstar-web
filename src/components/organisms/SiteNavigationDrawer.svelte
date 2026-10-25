@@ -6,6 +6,7 @@
  * 链接由 Swup 自动接管，点击后收起抽屉；高亮与当前路由/分类筛选同步。
  */
 import Icon from "@iconify/svelte";
+import { GLYPHS, glyphForPage } from "@utils/glyphs";
 import { resolveNavBarLinks, resolvePageKey } from "@utils/nav-utils";
 import { fetchNavigation } from "@utils/navigation-api";
 import { url } from "@utils/url-utils";
@@ -123,7 +124,7 @@ let drawerEl: HTMLElement | undefined = $state();
 				{#if item.children}
 					<div class="site-drawer__group">
 						<button type="button" class="site-drawer__group-head" class:site-drawer__item--active={item.children.some((child) => activePrimary === child.value)} onclick={() => toggleGroup(item.value)} aria-expanded={openGroups[item.value] ?? false}>
-							{#if item.icon}<span class="site-drawer__group-icon" aria-hidden="true"><Icon icon={item.icon} /></span>{/if}
+							<span class="glyph-live" style="width:1.3rem;height:1.3rem" aria-hidden="true">{@html GLYPHS[glyphForPage(item.pageKey)]}</span>
 							<span class="site-drawer__group-label">{item.label}</span>
 							<Icon class={openGroups[item.value] ? "site-drawer__group-arrow site-drawer__group-arrow--open" : "site-drawer__group-arrow"} icon="material-symbols:keyboard-arrow-down" />
 						</button>
@@ -131,7 +132,7 @@ let drawerEl: HTMLElement | undefined = $state();
 							<div class="site-drawer__group-body">
 								{#each item.children as child (child.value)}
 									<a href={child.href} class="site-drawer__item site-drawer__item--child" class:site-drawer__item--active={activePrimary === child.value} aria-current={activePrimary === child.value ? "page" : undefined} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} onclick={handleNavClick}>
-										{#if child.icon}<span class="site-drawer__item-icon" aria-hidden="true"><Icon icon={child.icon} /></span>{/if}
+										<span class="glyph-live" style="width:1.25rem;height:1.25rem" aria-hidden="true">{@html GLYPHS[glyphForPage(child.pageKey)]}</span>
 										<span class="site-drawer__item-label">{child.label}</span>
 									</a>
 								{/each}
@@ -140,7 +141,7 @@ let drawerEl: HTMLElement | undefined = $state();
 					</div>
 				{:else if item.href}
 					<a href={item.href} class="site-drawer__item" class:site-drawer__item--active={activePrimary === item.value} aria-current={activePrimary === item.value ? "page" : undefined} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined} onclick={handleNavClick}>
-						{#if item.icon}<span class="site-drawer__item-icon" aria-hidden="true"><Icon icon={item.icon} /></span>{/if}
+						<span class="glyph-live" style="width:1.3rem;height:1.3rem" aria-hidden="true">{@html GLYPHS[glyphForPage(item.pageKey)]}</span>
 						<span class="site-drawer__item-label">{item.label}</span>
 					</a>
 				{/if}

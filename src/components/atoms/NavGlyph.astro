@@ -1,0 +1,32 @@
+---
+/**
+ * NavGlyph —— 灵动字形图标原子（kombai/selects 风）。
+ *
+ * 呼吸感（描边微缩放 + 光晕脉动）与弹性 hover（弹跳放大 + 青色辉光）
+ * 由全局 .glyph-live 样式驱动（nebula.css），本组件只负责注入 svg 与
+ * 逐项错峰延迟（--glyph-delay），让整排图标呼吸不同步、更有生命感。
+ */
+import { GLYPHS } from "@utils/glyphs";
+
+interface Props {
+	name: keyof typeof GLYPHS | string;
+	/** 呼吸错峰延迟（秒） */
+	delay?: number;
+	/** 图标边长（rem） */
+	size?: number;
+	/** 激活态常亮微光 */
+	lit?: boolean;
+	class?: string;
+}
+
+const { name, delay = 0, size = 1.1, lit = false, class: cls = "" } = Astro.props;
+const markup = GLYPHS[name as string] ?? GLYPHS.spark;
+---
+
+<span
+	class:list={["glyph-live", { "is-lit": lit }, cls]}
+	style={`--glyph-delay:${delay}s;width:${size}rem;height:${size}rem`}
+	data-glyph={name}
+	aria-hidden="true"
+	set:html={markup}
+/>

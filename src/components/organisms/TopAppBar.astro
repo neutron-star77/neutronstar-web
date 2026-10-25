@@ -5,8 +5,9 @@
  * fixed 全宽、surface 底色 + 底部细分隔线；徽标点击回首页，
  * 菜单按钮点击派发 site-drawer:toggle 事件，由 SiteNavigationDrawer 监听开合。
  */
-import IconButton from "@components/atoms/action/IconButton.svelte";
+import NavGlyph from "@components/atoms/NavGlyph.astro";
 import { resolveNavBarLinks, resolvePageKey } from "@utils/nav-utils";
+import { glyphForNav } from "@utils/glyphs";
 import { url } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { siteConfig } from "@/config";
@@ -44,7 +45,7 @@ function isActive(link: (typeof links)[number]): boolean {
 		<nav class:list={["top-app-bar__nav hidden h-full items-center gap-0.5 lg:flex", siteConfig.topAppBar.contentAlign === "center" ? "xl:absolute xl:left-1/2 xl:-translate-x-1/2" : "ml-2"]} aria-label="Main navigation">
 			{/* 丝滑滑动指示器：hover/激活项之间的玻璃胶囊（位置由脚本计算，见 <script>） */}
 			<span class="top-app-bar__nav-pill" data-nav-pill aria-hidden="true"></span>
-			{links.map((link) => {
+			{links.map((link, i) => {
 				const href = link.external ? link.url : hrefFor(link.url);
 				const active = isActive(link);
 				return (
@@ -54,7 +55,7 @@ function isActive(link: (typeof links)[number]): boolean {
 								"top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[0.8rem] font-bold text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]",
 								active && "top-app-bar__nav-link--active",
 							]} aria-expanded="false">
-								{link.icon && <Icon name={link.icon} class="text-[1.1rem]"></Icon>}
+								<NavGlyph name={glyphForNav(link)} delay={i * 0.45} />
 								{link.name}
 								<Icon name="material-symbols:keyboard-arrow-down-rounded" class="text-[1rem]"></Icon>
 							</button>
@@ -62,7 +63,7 @@ function isActive(link: (typeof links)[number]): boolean {
 							<a href={href} target={link.external ? "_blank" : undefined} rel={link.external ? "noopener noreferrer" : undefined}
 								aria-current={active ? "page" : undefined} data-nav-key={link.pageKey ?? ""}
 								class:list={["top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[0.8rem] font-bold text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]", active && "top-app-bar__nav-link--active"]}>
-								{link.icon && <Icon name={link.icon} class="text-[1.1rem]"></Icon>}{link.name}
+								<NavGlyph name={glyphForNav(link)} delay={i * 0.45} lit={active} />{link.name}
 								{link.external && <Icon name="material-symbols:arrow-outward-rounded" class="ml-1 text-[0.875rem]"></Icon>}
 							</a>
 						)}
@@ -70,7 +71,7 @@ function isActive(link: (typeof links)[number]): boolean {
 							{link.children.map((child) => {
 								const childHref = child.external ? child.url : hrefFor(child.url);
 							return <a href={childHref} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} role="menuitem" data-nav-key={child.pageKey ?? ""} class="top-app-bar__submenu-item">
-									{child.icon && <Icon name={child.icon} class="text-[1.2rem]"></Icon>}{child.name}{child.external && <Icon name="material-symbols:arrow-outward-rounded" class="ml-auto text-[0.875rem]"></Icon>}
+									<NavGlyph name={glyphForNav(child)} size={1.2} />{child.name}{child.external && <Icon name="material-symbols:arrow-outward-rounded" class="ml-auto text-[0.875rem]"></Icon>}
 								</a>;
 							})}
 						</div>}
@@ -84,12 +85,13 @@ function isActive(link: (typeof links)[number]): boolean {
 			<TranslateSwitch client:only="svelte"></TranslateSwitch>
 			<button id="theme-toggle" type="button" aria-label="切换日夜模式" title="切换日夜模式"
 				class="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]">
-				<Icon name="material-symbols:dark-mode-outline" class="text-[1.25rem] dark:hidden"></Icon>
-				<Icon name="material-symbols:light-mode-outline" class="hidden text-[1.25rem] dark:block"></Icon>
+				<NavGlyph name="moon" size={1.25} delay={1.8} class="theme-icon-moon" />
+				<NavGlyph name="sun" size={1.25} delay={1.8} class="theme-icon-sun" />
 			</button>
-			<IconButton id="nav-drawer-switch" label="Menu" class="shrink-0 lg:!hidden">
-				<Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
-			</IconButton>
+			<button id="nav-drawer-switch" type="button" aria-label="Menu" title="菜单"
+				class="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)] lg:!hidden">
+				<NavGlyph name="menu" size={1.25} delay={2.2} />
+			</button>
 		</div>
 	</div>
 </div>
@@ -225,8 +227,7 @@ function isActive(link: (typeof links)[number]): boolean {
 			};
 		}
 
-		// 滚动方向检测：向下滚隐藏顶栏、向上滚保持隐藏，
-		// 只有滚回距顶部 TOP_REVEAL 以内才重新唤回（页面顶部永远显示，避免刚进来就被藏掉）。
+		// 滚动方向检测：向下滚隐藏顶栏，向上滚立即唤回；页面顶部永远显示。
 		const nav = document.getElementById("navbar");
 		if (nav && !document.documentElement.dataset.topBarHideBound) {
 			document.documentElement.dataset.topBarHideBound = "true";
@@ -238,8 +239,10 @@ function isActive(link: (typeof links)[number]): boolean {
 				raf = 0;
 				const y = window.scrollY;
 				const goingDown = y > lastY + HIDE_DELTA;
+				const goingUp = y < lastY - HIDE_DELTA;
 				if (y < TOP_REVEAL) nav.classList.remove("navbar-hidden");
 				else if (goingDown) nav.classList.add("navbar-hidden");
+				else if (goingUp) nav.classList.remove("navbar-hidden");
 				lastY = y;
 			};
 			window.addEventListener(

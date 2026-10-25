@@ -16,6 +16,7 @@
  *
  * 语言清单与 translate 服务代码见 src/i18n/languageConfig.ts（单一数据源）。
  */
+import { GLYPHS } from "@utils/glyphs";
 import Icon from "@iconify/svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
@@ -172,7 +173,7 @@ onMount(() => {
 		aria-expanded={isOpen}
 		onclick={onButtonClick}
 	>
-		<Icon icon="material-symbols:translate" class="text-[1.25rem]"></Icon>
+		<span class="glyph-live" style="width:1.25rem;height:1.25rem" aria-hidden="true">{@html GLYPHS.globe}</span>
 	</button>
 
 	<div
