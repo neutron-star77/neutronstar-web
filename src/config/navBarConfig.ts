@@ -103,7 +103,7 @@ const defaultNavBarConfig: NavBarConfig = {
 		{ ...LinkPresets.Moments, name: "素笺" },
 		{ ...LinkPresets.Albums, name: "瑶影" },
 		// 用户要求：取消「更多」下拉；时间线/站点罗盘/项目已按要求移除
-		{ ...LinkPresets.About, name: "司志" },
+		{ ...LinkPresets.About, name: "司志", url: "/posts/guanyu-bozhu/" },
 	],
 };
 
