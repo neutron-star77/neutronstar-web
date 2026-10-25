@@ -22,7 +22,7 @@ import { onMount } from "svelte";
 
 let {
 	moments = [] as MomentItem[],
-	author = { name: "", avatar: "", url: "/about/" } as MomentAuthor,
+	author = { name: "", avatar: "", url: "/posts/guanyu-bozhu/" } as MomentAuthor,
 }: { moments?: MomentItem[]; author?: MomentAuthor } = $props();
 
 const MOMENTS_PAGE_SIZE = 10;

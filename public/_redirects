@@ -1,1 +1,1 @@
-/blog/* /posts/:splat 301
+/blog/* /archive/:splat 301

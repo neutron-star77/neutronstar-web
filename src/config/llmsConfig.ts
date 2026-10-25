@@ -100,7 +100,7 @@ export const llmsConfig: LlmsConfig = withUserConfig("llms", {
 		},
 		{
 			title: "About",
-			url: "/about/",
+			url: "/posts/guanyu-bozhu/",
 			description: "Author profile, technical stack, and background.",
 		},
 		{
