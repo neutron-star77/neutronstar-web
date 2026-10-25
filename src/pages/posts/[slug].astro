@@ -8,6 +8,7 @@ import PostLikeButton from "@components/islands/PostLikeButton";
 import LiveRefreshBanner from "@components/islands/LiveRefreshBanner";
 import WalineComments from "@components/islands/WalineComments";
 import ArticleShare from "@components/organisms/ArticleShare.svelte";
+import ArticleDock from "@components/organisms/ArticleDock.astro";
 import { getPostBySlug, getSortedPosts } from "@utils/content-utils";
 import { apiUrl } from "@/lib/server/api";
 import { siteMarkdownProcessor } from "@utils/markdown-processor";
@@ -101,11 +102,7 @@ const cover = entry.data.image || "";
 
     <ArticleToc headings={headings} />
     <div class="kirameku-page">
-        <nav class="nb-back" aria-label="返回">
-            <a href="/">◀ 返回文章列表</a>
-        </nav>
-        
-        <!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿挪作他处 -->
+<!-- prose-host：正文文字投影作用域钩子（Layout.astro fullscreen 规则用），勿挪作他处 -->
         <article
             class:list={[
                 "kirameku-article prose-host onload-animation rounded-3xl shadow-2xl overflow-hidden bg-white/60 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/30 dark:border-white/10",
@@ -172,9 +169,10 @@ const cover = entry.data.image || "";
 
                 <!-- 分享海报 -->
                 {shareOptions && (
-                    <div class="mt-8">
+                    <div class="hidden">
                         <ArticleShare
                             client:load
+                            iconMode={true}
                             options={shareOptions}
                             title={entry.data.title}
                             description={entry.data.description || ""}
@@ -188,6 +186,9 @@ const cover = entry.data.image || "";
                 )}
             </div>
         </article>
+
+        {/* 底部流光工具栏：返回 / 分享 / 赞赏 / RSS */}
+        <ArticleDock />
 
         {/* 评论区（Waline，文本化皮肤） */}
         <WalineComments client:load path={`/posts/${slug}`} />
@@ -259,14 +260,4 @@ const cover = entry.data.image || "";
 </style>
 
 <style>
-	.nb-back { max-width: 72rem; margin: 0 auto 1rem; }
-	.nb-back a {
-		display: inline-block; padding: .45rem 1.1rem;
-		border: 1px solid var(--nebula-glass-border, rgba(255,255,255,.12));
-		border-radius: 999px; background: var(--nebula-glass-fill, rgba(255,255,255,.08));
-		backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-		color: var(--nebula-ink, #e7ecf7) !important; text-decoration: none !important; font-size: .85rem;
-		transition: border-color .2s ease, color .2s ease;
-	}
-	.nb-back a:hover { border-color: var(--nebula-cyan, #7dd3fc); color: var(--nebula-cyan, #7dd3fc) !important; }
 </style>

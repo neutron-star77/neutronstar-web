@@ -142,6 +142,20 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 }
 .kirameku-waline .wl-btn.primary:hover { background: var(--nebula-violet) !important; border-color: var(--nebula-violet) !important; color: #0b1026 !important; }
 .kirameku-waline .wl-content { color: var(--nebula-ink); }
+/* 评论区可读性修复：表单标签/占位/元信息加白加影（2026-10-26 用户反馈看不清） */
+.kirameku-waline .wl-header-item label,
+.kirameku-waline .wl-card .wl-head .wl-time,
+.kirameku-waline .wl-card .wl-meta,
+.kirameku-waline .wl-count {
+  color: #cdd6ea !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+}
+.kirameku-waline .wl-header-item input::placeholder { color: #8b97b4 !important; }
+.kirameku-waline .wl-card .wl-content,
+.kirameku-waline .wl-content * {
+  color: #e2e9f7 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
 .kirameku-waline .wl-head .wl-nick, .kirameku-waline .wl-user { color: var(--nebula-cyan) !important; }
 
 /* ── 降级与可访问性 ─────────────────────────────────────────────── */

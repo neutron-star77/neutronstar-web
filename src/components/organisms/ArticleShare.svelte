@@ -24,6 +24,7 @@ let {
 	postPath,
 	coverSelector = "#post-cover img",
 	avatarUrl = "",
+	iconMode = false,
 	class: className = "",
 }: {
 	options: ArticleShareOptions;
@@ -39,6 +40,15 @@ let {
 } = $props();
 
 let shareDialogOpen = $state(false);
+
+// 图标模式：由文章底部 ArticleDock 的分享图标唤起（window 事件解耦，两个组件零依赖）
+if (iconMode) {
+	onMount(() => {
+		const open = () => (shareDialogOpen = true);
+		window.addEventListener("dock:share", open);
+		return () => window.removeEventListener("dock:share", open);
+	});
+}
 let posterState = $state<"idle" | "generating" | "ready" | "error">("idle");
 let posterBlobUrl = $state<string | null>(null);
 let posterAbortController: AbortController | null = null;
@@ -208,7 +218,7 @@ function downloadPoster() {
 	data-article-share
 	aria-labelledby="article-share-title"
 >
-	<div class="article-share__content relative z-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+	<div class:list={["article-share__content relative z-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", { hidden: iconMode }]}>
 		<div class="flex items-center gap-3.5 min-w-0 flex-1">
 			<div
 				class="article-share__icon-box flex items-center justify-center h-12 w-12 rounded-xl bg-[var(--primary-container)] text-[var(--on-primary-container)] shrink-0 transition"
@@ -240,9 +250,14 @@ function downloadPoster() {
 		</div>
 	</div>
 
+	{#if iconMode}
+		<!-- 图标模式：由 ArticleDock 唤起，这里只留一个隐形挂载点 -->
+		<span class="hidden" aria-hidden="true"></span>
+	{:else}
 	<span class="article-share__watermark" aria-hidden="true">
 		<Icon icon="material-symbols:share" />
 	</span>
+	{/if}
 
 	<!-- Share Dialog -->
 	{#if shareDialogOpen}

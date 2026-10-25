@@ -18,6 +18,12 @@ export const GLYPHS: Record<string, string> = {
 	albums: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.4" y="5.6" width="17.2" height="13" rx="2.4"/><circle cx="8.8" cy="10" r="1.3"/><path d="M5.4 16.4l3.6-3.6 2.6 2.6 2.9-3.1 4 4.1"/></svg>`,
 	/** 司志 · 合卷书（关于） */
 	about: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.1C10.2 4.6 7.8 4.1 5.1 4.1c-.6 0-1.1.5-1.1 1.1v12.6c0 .6.5 1.1 1.1 1.1 2.7 0 5.1.5 6.9 2 1.8-1.5 4.2-2 6.9-2 .6 0 1.1-.5 1.1-1.1V5.2c0-.6-.5-1.1-1.1-1.1-2.7 0-5.1.5-6.9 2z"/><path d="M12 6.1v14.6"/></svg>`,
+	/** 返回列表 · 左箭头回屋 */
+	back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4.5L3.8 10.2a3 3 0 0 0 0 4.2l5.7 5.7"/><path d="M4 12.3h12.5a4.5 4.5 0 0 1 0 9h-3"/></svg>`,
+	/** 赞赏 · 礼盒 */
+	gift: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.6" y="8.2" width="16.8" height="4" rx="1.2"/><path d="M5 12.2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/><path d="M12 8.2v13"/><path d="M12 8.2c-3.4 0-5-1.4-5-3a2.1 2.1 0 0 1 4-.8c.6.9 1 2.2 1 3.8z"/><path d="M12 8.2c3.4 0 5-1.4 5-3a2.1 2.1 0 0 0-4-.8c-.6.9-1 2.2-1 3.8z"/></svg>`,
+	/** RSS · 电波 */
+	rss: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11a8 8 0 0 1 8 8"/><path d="M5 5a14 14 0 0 1 14 14"/><circle cx="6.2" cy="17.8" r="1.6" fill="currentColor" stroke="none"/></svg>`,
 	/** 通用兜底 · 小四芒星 */
 	spark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.4 6.6L20 12l-6.6 1.4L12 20l-1.4-6.6L4 12l6.6-1.4z"/></svg>`,
 	/** 搜索 */
