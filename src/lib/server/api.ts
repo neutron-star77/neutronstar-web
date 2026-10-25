@@ -31,7 +31,7 @@ export async function apiGet<T>(path: string, ttlMs = MEM_TTL_MS): Promise<T | n
 	try {
 		const res = await fetch(key, {
 			headers: { accept: "application/json" },
-			signal: AbortSignal.timeout(8_000),
+			signal: AbortSignal.timeout(30_000),
 		});
 		if (!res.ok) return null;
 		const data = (await res.json()) as T;

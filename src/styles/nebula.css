@@ -142,14 +142,7 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 }
 .kirameku-waline .wl-btn.primary:hover { background: var(--nebula-violet) !important; border-color: var(--nebula-violet) !important; color: #0b1026 !important; }
 .kirameku-waline .wl-content { color: var(--nebula-ink); }
-/* 评论区可读性修复：表单标签/占位/元信息加白加影（2026-10-26 用户反馈看不清） */
-.kirameku-waline .wl-header-item label,
-.kirameku-waline .wl-card .wl-head .wl-time,
-.kirameku-waline .wl-card .wl-meta,
-.kirameku-waline .wl-count {
-  color: #cdd6ea !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
-}
+
 .kirameku-waline .wl-header-item input::placeholder { color: #8b97b4 !important; }
 .kirameku-waline .wl-card .wl-content,
 .kirameku-waline .wl-content * {
@@ -233,7 +226,7 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 
 /* 评论区：独立玻璃卡 */
 .kirameku-waline {
-  background: rgba(10, 14, 28, 0.42) !important;
+  background: rgba(8, 11, 24, 0.66) !important;
   border: 1px solid var(--nebula-glass-border, rgba(255, 255, 255, 0.12)) !important;
   border-radius: 20px !important;
   padding: 1.5rem 1.6rem !important;
@@ -411,3 +404,55 @@ body { font-family: "Zen Maru Gothic", "Loli", "PingFang SC", "Microsoft YaHei",
 #theme-toggle .theme-icon-sun { display: none; }
 html.dark #theme-toggle .theme-icon-sun { display: inline-flex; }
 html.dark #theme-toggle .theme-icon-moon { display: none; }
+
+/* 评论区可读性修复 v2（2026-10-26 二次反馈仍看不清——根因是玻璃太透+背景亮，
+   双管齐下：面板加深 + 文字提亮放大） */
+.kirameku-waline .wl-count {
+  color: #f4f7ff !important;
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9) !important;
+}
+.kirameku-waline .wl-header-item label {
+  color: #eef2fc !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.9) !important;
+}
+.kirameku-waline .wl-header-item input,
+.kirameku-waline .wl-editor {
+  color: #f4f7ff !important;
+  font-size: 0.92rem !important;
+}
+.kirameku-waline .wl-header-item input::placeholder,
+.kirameku-waline .wl-editor::placeholder {
+  color: #aab6d2 !important;
+}
+.kirameku-waline .wl-footer,
+.kirameku-waline .wl-footer * {
+  color: #dde5f5 !important;
+  font-size: 0.82rem !important;
+}
+.kirameku-waline .wl-btn {
+  color: #f4f7ff !important;
+  font-weight: 600 !important;
+}
+.kirameku-waline .wl-power { opacity: 0.55; }
+.kirameku-waline .wl-card .wl-head .wl-nick,
+.kirameku-waline .wl-user {
+  color: #8fd8ff !important;
+  font-weight: 600 !important;
+}
+.kirameku-waline .wl-card .wl-head .wl-time,
+.kirameku-waline .wl-card .wl-meta {
+  color: #c6d1e8 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85) !important;
+}
+.kirameku-waline .wl-card .wl-content,
+.kirameku-waline .wl-content * {
+  color: #eef2fc !important;
+  font-size: 0.95rem !important;
+  line-height: 1.75 !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.85) !important;
+}

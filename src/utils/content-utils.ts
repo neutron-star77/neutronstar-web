@@ -123,11 +123,11 @@ async function fetchAllPublishedPosts(): Promise<PostEntry[]> {
 
 /** 全量已发布文章（置顶优先，时间倒序），并填好上下篇字段 */
 export async function getSortedPosts(): Promise<PostEntry[]> {
-	// BFF 冷启动（首击可达 ~7s）会让构建期取数超时——重试一次再认输
+	// BFF 冷启动实测可达 10~20s（v2/tunnel 冷）——3 次尝试、间隔 4s，最后认输触发守卫
 	let entries: PostEntry[] = [];
-	for (let attempt = 0; attempt < 2 && entries.length === 0; attempt += 1) {
+	for (let attempt = 0; attempt < 3 && entries.length === 0; attempt += 1) {
 		entries = await fetchAllPublishedPosts();
-		if (entries.length === 0) await new Promise((r) => setTimeout(r, 2500));
+		if (entries.length === 0) await new Promise((r) => setTimeout(r, 4000));
 	}
 	const sorted = entries.sort(comparePublicationEntries);
 	initPostIdMap(sorted as never);
