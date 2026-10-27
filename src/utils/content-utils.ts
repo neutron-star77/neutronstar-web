@@ -10,7 +10,80 @@ import { i18n } from "@i18n/translation";
 import { comparePublicationEntries } from "@utils/content-date";
 import { initPostIdMap } from "@utils/permalink-utils";
 import { getCategoryUrl, getPostUrl, url } from "@utils/url-utils";
-import { apiGet } from "@/lib/server/api";
+import { apiGet, API_BASE_URL } from "@/lib/server/api";
+
+/**
+ * 内网直连模式：构建时 PUBLIC_API_BASE 指向 NAS v2-api（http://192.168.5.4:8200）。
+ * 该后端的当前数据在 /api/v1/*（文本化内容源）；/api/* 旧端点只是回退代理，
+ * 转发到 8100 旧库（中文 slug 的遗留数据）——直连时必须用 v1 端点并对齐字段。
+ * 公网构建走 BFF（API_BASE_URL === bff 域名），/api/posts 由 BFF 内部做 v1 适配，勿动。
+ */
+const DIRECT_V2_MODE = API_BASE_URL !== "https://bff.neutronstar.fun";
+
+/**
+ * v2-api /api/v1 数据 → 旧 PostOut 形状。v1 缺 views/likes/word_count/font_*
+ * （回退默认值）；description←excerpt；status←is_draft；content←plain_text
+ * （正文以 content_html 为主，markdown 管道仅无 html 时兜底，plain_text 够用）。
+ */
+/** v2-api /api/v1 行的宽松形状（只列本函数用到的字段） */
+interface V1PostRow {
+	id: number;
+	title: string;
+	slug: string;
+	excerpt?: string;
+	seo_description?: string;
+	cover?: { url?: string } | string;
+	category?: string;
+	tags?: string[];
+	is_draft?: boolean;
+	is_pinned?: boolean;
+	content_html?: string;
+	reading_time?: number;
+	published_at?: string | null;
+	updated_at?: string | null;
+	plain_text?: string;
+}
+
+function v1PostToApiPost(p: ApiPost): ApiPost {
+	const r = p as unknown as V1PostRow;
+	// v1 的 cover 是对象 { url, ... }（旧 PostOut 是字符串），取 url 字段
+	const coverObj = r.cover as unknown as { url?: string } | string | undefined;
+	const coverUrl =
+		typeof coverObj === "object" && coverObj !== null
+			? coverObj.url || ""
+			: typeof coverObj === "string"
+				? coverObj
+				: "";
+	return {
+		id: r.id,
+		title: r.title,
+		slug: r.slug,
+		description: r.excerpt || r.seo_description || "",
+		cover: coverUrl,
+		category: r.category || "",
+		tags: Array.isArray(r.tags) ? r.tags : [],
+		status: r.is_draft ? "draft" : "published",
+		is_pinned: Boolean(r.is_pinned),
+		views: 0,
+		likes: 0,
+		word_count: 0,
+		content_html: r.content_html || "",
+		reading_time: r.reading_time || 0,
+		font_id: null,
+		font_name: "",
+		font_family: "",
+		published_at: r.published_at ?? null,
+		created_at: r.published_at || r.updated_at || "",
+		updated_at: r.updated_at || r.published_at || "",
+		content: r.plain_text || "",
+	};
+}
+
+/** 直连模式下按模式取端点并归一形状；BFF 模式保持原路径原形状 */
+function normalizeApiPosts(list: ApiPost[] | null): ApiPost[] {
+	const rows = list ?? [];
+	return DIRECT_V2_MODE ? rows.map(v1PostToApiPost) : rows;
+}
 
 /** 后端 PostOut（裸数组返回） */
 export interface ApiPost {
@@ -117,8 +190,13 @@ export function apiPostToEntry(p: ApiPost): PostEntry {
 }
 
 async function fetchAllPublishedPosts(): Promise<PostEntry[]> {
-	const list = await apiGet<ApiPost[]>("/api/posts?status=published&page=1&size=200");
-	return (list ?? []).map(apiPostToEntry);
+	const path = DIRECT_V2_MODE
+		? "/api/v1/posts?status=published&page=1&size=200"
+		: "/api/posts?status=published&page=1&size=200";
+	const raw = await apiGet<{ data?: ApiPost[] } | ApiPost[]>(path);
+	// v2-api 的 /api/v1 列表是 { data: [...], meta } 信封；BFF/旧端点是裸数组
+	const list = Array.isArray(raw) ? raw : raw?.data ?? [];
+	return normalizeApiPosts(list).map(apiPostToEntry);
 }
 
 /** 全量已发布文章（置顶优先，时间倒序），并填好上下篇字段 */
@@ -224,8 +302,11 @@ export async function getArchivePage(
 		(import.meta.env.PUBLIC_API_BASE ?? "").trim() ||
 		"https://bff.neutronstar.fun";
 	if (apiBase !== "https://bff.neutronstar.fun") {
-		const list = await apiGet<ApiPost[]>("/api/posts?status=published&page=1&size=200");
-		const all = (list ?? []).map(apiPostToEntry);
+		const raw = await apiGet<{ data?: ApiPost[] } | ApiPost[]>(
+			"/api/v1/posts?status=published&page=1&size=200",
+		);
+		const list = Array.isArray(raw) ? raw : raw?.data ?? [];
+		const all = normalizeApiPosts(list).map(apiPostToEntry);
 		const total = all.length;
 		const start = (page - 1) * size;
 		const posts = all.slice(start, start + size);
@@ -258,9 +339,12 @@ export async function getArchivePage(
 
 /** 文章详情（含 markdown 原文） */
 export async function getPostBySlug(slug: string): Promise<PostEntry | null> {
-	const post = await apiGet<ApiPost>(`/api/posts/${encodeURIComponent(slug)}`);
+	const path = DIRECT_V2_MODE
+		? `/api/v1/posts/${encodeURIComponent(slug)}`
+		: `/api/posts/${encodeURIComponent(slug)}`;
+	const post = await apiGet<ApiPost>(path);
 	if (!post) return null;
-	const entry = apiPostToEntry(post);
+	const entry = apiPostToEntry(DIRECT_V2_MODE ? v1PostToApiPost(post) : post);
 	entry.body = post.content ?? "";
 	entry.contentHtml = (post as { content_html?: string }).content_html ?? "";
 	entry.url = getPostUrl(entry);
@@ -278,9 +362,12 @@ export async function getSortedPostsWithContent(): Promise<PostEntry[]> {
 			if (p.body) return;
 			try {
 				const detail = await apiGet<ApiPost>(
-					`/api/posts/${encodeURIComponent(p.slug)}`,
+					DIRECT_V2_MODE
+						? `/api/v1/posts/${encodeURIComponent(p.slug)}`
+						: `/api/posts/${encodeURIComponent(p.slug)}`,
 				);
-				if (detail?.content) p.body = detail.content;
+				const normalized = DIRECT_V2_MODE && detail ? v1PostToApiPost(detail) : detail;
+				if (normalized?.content) p.body = normalized.content;
 			} catch {
 				// 单篇拉取失败不阻塞整体，该篇正文留空
 			}

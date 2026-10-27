@@ -12,6 +12,9 @@ const API_BASE =
   ((import.meta.env.PUBLIC_API_BASE as string | undefined) ?? "").trim() ||
   "https://bff.neutronstar.fun";
 
+/** 构建模式判定用：内网直连构建会把 PUBLIC_API_BASE 指向 NAS v2-api */
+export const API_BASE_URL = API_BASE;
+
 const MEM_TTL_MS = 15_000;
 
 type CacheItem = { expires: number; data: unknown };
