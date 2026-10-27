@@ -1,8 +1,10 @@
 @reference "tailwindcss";
 
 /* Page transition animations with Swup */
+/* 时长压缩：swup 要等出场动画播完才换内容，200ms×2 的默认节奏在已预取的页面上
+   反而成了最大头开销；120ms 出 + 120ms 入保住方向感又不拖切页 */
 html.is-changing .transition-swup-fade {
-    transition: opacity 200ms cubic-bezier(0.2, 0, 0, 1), transform 200ms cubic-bezier(0.2, 0, 0, 1);
+    transition: opacity 120ms cubic-bezier(0.2, 0, 0, 1), transform 120ms cubic-bezier(0.2, 0, 0, 1);
 }
 html.is-animating .transition-swup-fade {
     opacity: 0;
@@ -24,17 +26,17 @@ html.is-animating .transition-swup-fade {
 /* Main components */
 .onload-animation {
     opacity: 0;
-    animation: 300ms fade-in-up;
+    animation: 200ms fade-in-up;
     animation-fill-mode: forwards;
 }
 #navbar {
     animation-delay: 0ms
 }
 #sidebar {
-    animation-delay: 100ms
+    animation-delay: 50ms
 }
 #sidebar-secondary {
-    animation-delay: 100ms
+    animation-delay: 50ms
 }
 #swup-container {
     outline: none;
@@ -43,13 +45,13 @@ html.is-animating .transition-swup-fade {
     animation-delay: var(--content-delay);
 }
 .footer {
-    animation-delay: 250ms;
+    animation-delay: 100ms;
 }
 
 /* Post content */
 #post-container .onload-animation:nth-child(1) { animation-delay: calc(var(--content-delay) + 0ms) }
-#post-container .onload-animation:nth-child(2) { animation-delay: calc(var(--content-delay) + 50ms) }
-#post-container .onload-animation:nth-child(3) { animation-delay: calc(var(--content-delay) + 100ms) }
-#post-container .onload-animation:nth-child(4) { animation-delay: calc(var(--content-delay) + 175ms) }
-#post-container .onload-animation:nth-child(5) { animation-delay: calc(var(--content-delay) + 250ms) }
-#post-container .onload-animation:nth-child(6) { animation-delay: calc(var(--content-delay) + 325ms) }
+#post-container .onload-animation:nth-child(2) { animation-delay: calc(var(--content-delay) + 25ms) }
+#post-container .onload-animation:nth-child(3) { animation-delay: calc(var(--content-delay) + 50ms) }
+#post-container .onload-animation:nth-child(4) { animation-delay: calc(var(--content-delay) + 90ms) }
+#post-container .onload-animation:nth-child(5) { animation-delay: calc(var(--content-delay) + 130ms) }
+#post-container .onload-animation:nth-child(6) { animation-delay: calc(var(--content-delay) + 170ms) }

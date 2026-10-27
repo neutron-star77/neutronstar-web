@@ -1,0 +1,33 @@
+# Cloudflare Workers 静态资产响应头（构建时随 public/ 拷入 dist/client，由 Assets 层应用）。
+# ⚠ 规则路径必须互不重叠：CF/workerd 对同一路径命中多条规则的同名响应头是「拼接成
+# 一条」而不是「后者覆盖」（preview 实测 `/*` 与 `/_astro/*` 都设 Cache-Control 时，
+# 哈希资源拿到 `max-age=300, ..., max-age=31536000, immutable` 拼串，重复指令在
+# 浏览器里行为不可预期）。所以禁止「/* 兜底再覆盖」的写法。
+# 只作用于静态资产；SSR 路由（rss.xml / api/* / auth 等）走 Worker，不受本文件影响。
+#
+# HTML 页面的 Cache-Control（max-age=300 + SWR）与 CSS Link preload（Early Hints）
+# 由 src/integration/asset-headers.mjs 在构建时按页面路径逐一写入——哈希文件名只在
+# 产物里可知，且每页规则独立、互不重叠。
+
+# 构建产物（文件名含内容哈希）：永久缓存。
+# 必须显式保留——@astrojs/cloudflare 适配器检测到本文件已有匹配 /_astro 的
+# Cache-Control 规则后会跳过它自己的注入（其 dist/utils/headers.js 的
+# headersFileHasCacheControlForPath），删了这条哈希资源就退回 max-age=0 每次重验证。
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 稳定命名的媒体/索引目录：短 TTL + SWR（文件可能被替换，不能给永久缓存）
+/pagefind/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/images/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/assets/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/favicon/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/logo/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400

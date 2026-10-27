@@ -190,8 +190,8 @@ const cover = entry.data.image || "";
         {/* 底部流光工具栏：返回 / 分享 / 赞赏 / RSS */}
         <ArticleDock />
 
-        {/* 评论区（Waline，文本化皮肤） */}
-        <WalineComments client:load path={`/posts/${slug}`} />
+        {/* 评论区（Waline，文本化皮肤）——在页面底部，滚到可见才水合，省首屏 JS/CSS */}
+        <WalineComments client:visible path={`/posts/${slug}`} />
     </div>
 </MainGridLayout>
 <LiveRefreshBanner client:load />

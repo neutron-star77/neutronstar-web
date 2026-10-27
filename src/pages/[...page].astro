@@ -37,7 +37,7 @@ const tagline = "玄穹浩渺，时序奔流。";
 				<h2 id="nb-latest-title" class="nb-sr">最新文章</h2>
 				<div class="nb-posts" style={`--nb-card-cols: ${cardRatio.columns};`}>
 					{posts.map((post) => (
-						<LiquidGlass client:load radius={16}>
+						<LiquidGlass client:idle radius={16}>
 						<article class="nb-post">
 							<div class="nb-post__body">
 								<p class="nb-post__meta">

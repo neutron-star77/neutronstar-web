@@ -26,6 +26,7 @@ import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badg
 import { getLocalFontVariants } from "./src/utils/font-options.ts";
 import { siteMarkdownProcessor } from "./src/utils/markdown-processor.mjs";
 import { shironesSsrNodeShims } from "./src/integration/ssr-node-shims.ts";
+import { pageLinkPreloadIntegration } from "./src/integration/asset-headers.mjs";
 
 // 渲染策略（Astro 7）：output "static" = 默认全部预渲染；
 // 需要实时的页面在 frontmatter 写 `export const prerender = false`（等价于旧版 hybrid 语义）。
@@ -205,11 +206,13 @@ export default defineConfig({
 	site: siteConfig.site,
 	base: siteConfig.base ?? "/",
 	trailingSlash: "always",
-	// 站内链接预取：swup 已覆盖 hover/touch（@swup/astro preload），这里只
-	// 让显式标注 data-astro-prefetch 的链接（文章卡=viewport）进视口即预取，
-	// 补上「访客滚动浏览时后台偷偷加载文章页」的缺口。prefetchAll 关闭，
-	// 其余无标注链接不预取，避免与 swup 重复请求。
-	prefetch: { prefetchAll: false, defaultStrategy: "hover" },
+	// 站内链接预取。注意：@swup/astro 的 preload 在 cache:false 时会被其源码
+	// `if (!cache) preload = false` 静默关闭——本站 swup 必须关缓存（见下，防
+	// stale-forever），所以 hover/touchstart 预取全靠 Astro prefetch 承担，
+	// prefetchAll 必须开。导航栏/文章卡另加 data-astro-prefetch="viewport"，
+	// 落地即把主页面预取进浏览器缓存。前提：public/_headers 给 HTML 的
+	// max-age=300 —— 没有它预取副本立即过期（HTML 无 ETag 无法 304），预取无效。
+	prefetch: { prefetchAll: true, defaultStrategy: "hover" },
 	fonts: configuredFonts,
 	adapter: cloudflare({
 		// 构建期用 sharp 处理图片（出静态 /_astro URL，等价上游 static 站行为）；
@@ -219,6 +222,7 @@ export default defineConfig({
 	}),
 	integrations: [
 		react(),
+		pageLinkPreloadIntegration(),
 		...(umamiIntegration ? [umamiIntegration] : []),
 		swup({
 			theme: false,
@@ -230,7 +234,10 @@ export default defineConfig({
 			// HTML 以 cache-first 持久存进浏览器，旧版 /posts（曾=归档）一旦被缓存，
 			// 之后点「文章」永远命中旧缓存、不再发网络 —— 这就是"刷新后仍跳归档"的根因。
 			// 改 cache:false 后每次导航都走网络拿最新，杜绝 stale-forever。
+			// 代价：cache:false 会同时关掉它的 hover 预取（源码 if (!cache) preload=false），
+			// 切页提速改由 Astro prefetch + _headers 缓存头承担（见 prefetch 配置）。
 			cache: false,
+			// preload: true 在 cache:false 下实际不生效，仅保留占位防误删语义
 			preload: true,
 			accessibility: true,
 			updateHead: {

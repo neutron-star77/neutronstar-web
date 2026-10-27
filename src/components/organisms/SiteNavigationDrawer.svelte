@@ -131,7 +131,7 @@ let drawerEl: HTMLElement | undefined = $state();
 						{#if openGroups[item.value]}
 							<div class="site-drawer__group-body">
 								{#each item.children as child (child.value)}
-									<a href={child.href} class="site-drawer__item site-drawer__item--child" class:site-drawer__item--active={activePrimary === child.value} aria-current={activePrimary === child.value ? "page" : undefined} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} onclick={handleNavClick}>
+									<a href={child.href} class="site-drawer__item site-drawer__item--child" class:site-drawer__item--active={activePrimary === child.value} aria-current={activePrimary === child.value ? "page" : undefined} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} data-astro-prefetch={child.external ? undefined : "viewport"} onclick={handleNavClick}>
 										<span class="glyph-live" style="width:1.25rem;height:1.25rem" aria-hidden="true">{@html GLYPHS[glyphForPage(child.pageKey)]}</span>
 										<span class="site-drawer__item-label">{child.label}</span>
 									</a>
@@ -140,7 +140,7 @@ let drawerEl: HTMLElement | undefined = $state();
 						{/if}
 					</div>
 				{:else if item.href}
-					<a href={item.href} class="site-drawer__item" class:site-drawer__item--active={activePrimary === item.value} aria-current={activePrimary === item.value ? "page" : undefined} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined} onclick={handleNavClick}>
+					<a href={item.href} class="site-drawer__item" class:site-drawer__item--active={activePrimary === item.value} aria-current={activePrimary === item.value ? "page" : undefined} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined} data-astro-prefetch={item.external ? undefined : "viewport"} onclick={handleNavClick}>
 						<span class="glyph-live" style="width:1.3rem;height:1.3rem" aria-hidden="true">{@html GLYPHS[glyphForPage(item.pageKey)]}</span>
 						<span class="site-drawer__item-label">{item.label}</span>
 					</a>

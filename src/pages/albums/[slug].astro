@@ -37,7 +37,7 @@ const backHref = "/albums/";
 			<!-- CSS columns 瀑布流照片墙 + 灯箱（island） -->
 			<AlbumDetail client:load albumId={album.id} />
 
-			<WalineComments client:load path={`/albums/${albumSlug(album)}`} title="相册留言" />
+			<WalineComments client:visible path={`/albums/${albumSlug(album)}`} title="相册留言" />
 		</div>
 	)}
 </MainGridLayout>

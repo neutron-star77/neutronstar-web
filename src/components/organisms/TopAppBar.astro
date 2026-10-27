@@ -61,6 +61,7 @@ function isActive(link: (typeof links)[number]): boolean {
 							</button>
 						) : (
 							<a href={href} target={link.external ? "_blank" : undefined} rel={link.external ? "noopener noreferrer" : undefined}
+								data-astro-prefetch={link.external ? undefined : "viewport"}
 								aria-current={active ? "page" : undefined} data-nav-key={link.pageKey ?? ""}
 								class:list={["top-app-bar__nav-link m3-state-layer relative flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[0.8rem] font-bold text-[var(--nebula-ink)] transition-colors hover:text-[var(--nebula-cyan)]", active && "top-app-bar__nav-link--active"]}>
 								<NavGlyph name={glyphForNav(link)} delay={i * 0.45} lit={active} />{link.name}
@@ -70,7 +71,7 @@ function isActive(link: (typeof links)[number]): boolean {
 						{link.children && <div class="top-app-bar__submenu" role="menu">
 							{link.children.map((child) => {
 								const childHref = child.external ? child.url : hrefFor(child.url);
-							return <a href={childHref} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} role="menuitem" data-nav-key={child.pageKey ?? ""} class="top-app-bar__submenu-item">
+								return <a href={childHref} target={child.external ? "_blank" : undefined} rel={child.external ? "noopener noreferrer" : undefined} role="menuitem" data-astro-prefetch={child.external ? undefined : "viewport"} data-nav-key={child.pageKey ?? ""} class="top-app-bar__submenu-item">
 									<NavGlyph name={glyphForNav(child)} size={1.2} />{child.name}{child.external && <Icon name="material-symbols:arrow-outward-rounded" class="ml-auto text-[0.875rem]"></Icon>}
 								</a>;
 							})}
