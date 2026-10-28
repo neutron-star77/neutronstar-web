@@ -1,1 +1,8 @@
 /blog/* /archive/:splat 301
+
+# 历史兼容入口（2026-10-28）：302 而非 301——错误目标被浏览器永久缓存无法自愈（坑 6.1.25）；
+# 只做精确匹配，禁止 /posts/* 泛匹配（会吞掉全部 /posts/<slug>/ 文章页真 404 语义）。
+/about /posts/guanyu-bozhu/ 302
+/about/ /posts/guanyu-bozhu/ 302
+/posts /archive/ 302
+/posts/ /archive/ 302

@@ -1,0 +1,128 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { siteConfig } from "@/config/siteConfig";
+
+// 自定义 404（2026-10-28）：构建期预渲染为 /404.html，SSR 运行时对未知路径
+// 经 Astro 错误页机制回退到本页（status 404 + 本页 HTML）。
+// 轻量约束：只带 Layout 全局导航与文案链接，不挂评论/统计/WebGL/大型 island。
+const siteTitle = siteConfig.title || "Neutronstar";
+const tagline = "玄穹浩渺，时序奔流。";
+---
+
+<Layout title="404 页面不存在" description="你访问的页面不在星图里。">
+	<div class="n404">
+		<main class="n404__card" aria-labelledby="n404-title">
+			<p class="n404__code" aria-hidden="true">404</p>
+			<h1 id="n404-title" class="n404__title">此路不通</h1>
+			<p class="n404__desc">星图里没有这一页——它可能已被移动、删除，或从未存在。</p>
+			<nav class="n404__links" aria-label="404 页导航">
+				<a href="/">返回首页</a>
+				<a href="/archive/">归墟 · 全部文章</a>
+				<button type="button" class="n404__back" onclick="history.back()">返回上一页</button>
+			</nav>
+		</main>
+		<footer class="n404__footer">
+			<span>{tagline}</span>
+			<span>© {new Date().getFullYear()} {siteTitle}</span>
+		</footer>
+	</div>
+</Layout>
+
+<style>
+	.n404 {
+		min-height: 100svh;
+		position: relative;
+		z-index: 10;
+		color: var(--nebula-ink);
+		text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55), 0 0 2px rgba(0, 0, 0, 0.35);
+	}
+	.n404__card,
+	.n404__footer {
+		width: min(72rem, calc(100% - 2.5rem));
+		margin-inline: auto;
+	}
+	/* 全局导航为 fixed 悬浮：内容下移让位（同首页 .nb-body） */
+	.n404__card {
+		margin-top: 5.75rem;
+		border: 1px solid var(--nebula-glass-border);
+		border-radius: 16px;
+		padding: 3.5rem 2rem;
+		text-align: center;
+		/* 块级布局 + text-align：子项恒受容器宽度约束换行，
+		   不用 grid place-items:center（窄屏下子项按 max-content 计宽会水平溢出） */
+		background:
+			radial-gradient(120% 120% at 15% 10%, rgba(96, 165, 250, 0.18), transparent 55%),
+			radial-gradient(110% 110% at 85% 90%, rgba(167, 139, 250, 0.14), transparent 60%),
+			linear-gradient(150deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.7));
+	}
+	.n404__title { margin-top: 0.5rem; }
+	.n404__code {
+		margin: 0;
+		font: 700 clamp(4rem, 14vw, 7.5rem)/1 Georgia, "Zen Maru Gothic", serif;
+		letter-spacing: 0.08em;
+		color: var(--nebula-cyan);
+	}
+	.n404__title {
+		margin: 0;
+		font-size: 1.5rem;
+		line-height: 1.35;
+	}
+	.n404__desc {
+		margin: 0;
+		color: var(--nebula-ink-muted);
+		font-size: 0.95rem;
+	}
+	.n404__links {
+		margin-top: 0.75rem;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.75rem 1.25rem;
+	}
+	.n404__links a,
+	.n404__back {
+		color: var(--nebula-cyan);
+		font-size: 0.95rem;
+		text-decoration: none;
+		border: 1px solid var(--nebula-glass-border);
+		border-radius: 999px;
+		padding: 0.5rem 1.1rem;
+		background: transparent;
+		font-family: inherit;
+		cursor: pointer;
+		transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+	}
+	.n404__links a:hover,
+	.n404__back:hover {
+		color: var(--nebula-violet);
+		border-color: var(--nebula-violet);
+		transform: translateY(-2px);
+	}
+	.n404__links a:focus-visible,
+	.n404__back:focus-visible {
+		outline: 2px solid var(--nebula-cyan);
+		outline-offset: 4px;
+	}
+	.n404__footer {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 2.2rem 0 1.6rem;
+		color: var(--nebula-ink-muted);
+		font-size: 0.8rem;
+	}
+	@media (max-width: 640px) {
+		.n404__card { padding: 2.5rem 1.25rem; }
+		.n404__footer { flex-direction: column; align-items: center; gap: 0.35rem; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.n404__links a,
+		.n404__back {
+			transition: none;
+		}
+		.n404__links a:hover,
+		.n404__back:hover {
+			transform: none;
+		}
+	}
+</style>
