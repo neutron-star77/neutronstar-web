@@ -100,8 +100,10 @@ const widgets = sidebarConfig.enable
 			(widget) =>
 				(sidebarOverrides?.[widget.type] ?? widget.enable) &&
 				(widget.column ?? "primary") === column &&
-				(widget.type !== "music" || componentMap.music != null) &&
-				(widget.type !== "toc" || headings.length > 0) /* 无标题文章不编排目录 */,
+				(widget.type !== "music" || componentMap.music != null),
+				/* toc 不再按 headings 过滤（T3）：swup 容器 #toc 必须全站存在，
+				   无标题页面由 SidebarTOC 渲染空壳容器 + 本包装层 hidden 标记兜底，
+				   否则文章页 → 其它页导航时 swup 报 Container mismatch 回退整页 */
 		)
 	: [];
 const topWidgets = widgets.filter((widget) => widget.slot === "top");

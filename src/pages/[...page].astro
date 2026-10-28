@@ -31,6 +31,9 @@ const tagline = "玄穹浩渺，时序奔流。";
 ---
 
 <Layout title={siteTitle} description={tagline} page="home">
+	{/* T3（2026-10-29）：swup 主容器——首页此前无 <main>，主导航软切换因
+	   容器不匹配（Container mismatch）回退整页。main 包裹不改变内部布局。 */}
+	<main id="swup-container" data-current-page="home">
 	<div class="nebula-home">
 		<div class="nb-body is-ready">
 			<section class="nb-latest" aria-labelledby="nb-latest-title">
@@ -80,6 +83,9 @@ const tagline = "玄穹浩渺，时序奔流。";
 			<span>© {new Date().getFullYear()} {siteTitle} · PAGE {String(pageNumber).padStart(2, "0")}</span>
 		</footer>
 	</div>
+	</main>
+	{/* T3：#toc swup 容器全站存在性占位——首页无目录，空壳仅供软导航交换 */}
+	<div id="toc" hidden aria-hidden="true"></div>
 </Layout>
 
 <style>

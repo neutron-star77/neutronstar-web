@@ -133,7 +133,7 @@ export function generateMainContentClasses(
 	config: ResponsiveSidebarConfig,
 ): string {
 	const base = [
-		"transition-swup-fade",
+		"page-enter-fade",
 		"col-span-2",
 		"lg:col-span-1",
 		"overflow-hidden",

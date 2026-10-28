@@ -15,9 +15,12 @@ interface Props {
 
 const { headings = [], class: className, style } = Astro.props;
 
-// 2026-09-15：文章无任何标题（headings 为空）时不渲染目录栏，
-// 避免出现空壳「文章目录」卡片；SideBar 编排层也已按此过滤。
-if (headings.length === 0) return;
+// 2026-09-15：文章无标题时不出「文章目录」卡片（避免空壳）。
+// T3（2026-10-29）调整：#toc 是 swup 容器，必须全站存在——无标题时仍渲染
+// 一个隐藏的空容器（不带卡片壳），否则文章页 → 其它页软导航报
+// Container mismatch 回退整页。卡片壳的显隐由包装层 data-sidebar-pages
+// + content:replace 重过滤脚本负责。
+const isTocEmpty = headings.length === 0;
 
 const removeTailingHash = (text: string) => {
 	const lastIndexOfHash = text.lastIndexOf("#");
@@ -36,18 +39,22 @@ const tocHeadings = headings.map((heading) => ({
 }));
 ---
 
-<WidgetLayout
-	id="toc-inner-wrapper"
-	name={i18n(I18nKey.tableOfContents)}
-	class:list={["sidebar-toc", className]}
-	{style}
->
-	<div id="toc" class="sidebar-toc__content">
-		<table-of-contents>
-			<TocList headings={tocHeadings} maxDepth={maxLevel} />
-		</table-of-contents>
-	</div>
-</WidgetLayout>
+{isTocEmpty ? (
+	<div id="toc" class="sidebar-toc__content" hidden aria-hidden="true" />
+) : (
+	<WidgetLayout
+		id="toc-inner-wrapper"
+		name={i18n(I18nKey.tableOfContents)}
+		class:list={["sidebar-toc", className]}
+		{style}
+	>
+		<div id="toc" class="sidebar-toc__content">
+			<table-of-contents>
+				<TocList headings={tocHeadings} maxDepth={maxLevel} />
+			</table-of-contents>
+		</div>
+	</WidgetLayout>
+)}
 
 <style lang="stylus">
 .sidebar-toc__content

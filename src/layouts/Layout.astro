@@ -330,6 +330,59 @@ html[data-wallpaper-mode="fullscreen"] .m3-floating-toc-panel {
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 		<FloatingControls page={page} hasComments={hasComments} />
 		<SiteNavigationDrawer client:load />
+		<script is:inline>
+			/* T3（2026-10-29）：swup 软切换关键绑定。
+			   为什么单独轮询：@swup/astro 运行时（page.js）异步创建 window.swup
+			   且**从不派发 swup:enable**（产物 chunk 实测 0 次出现），站内模块
+			   `document.addEventListener("swup:enable", …)` 的延迟绑定路径全部
+			   永不执行（__shironeNavigationBound 恒为空，预存在缺陷）。这里轮询
+			   到实例后绑定三件事，全部幂等、可与其他绑定共存：
+			   ① 站内链接规范化为尾斜杠（无尾斜杠会命中 307 → swup 整页回退，
+			      坑 6.1.25 规范 URL 原则）；
+			   ② content:replace 后对新内容重跑规范化；
+			   ③ visit:start 置 visit.animation.animate/wait=false——swup 4.10 的
+			      animation:in:await 在「新内容终态插入即就位」时等不到
+			      transitionend，visit 卡 navigating=true，后续软导航全被忽略
+			      （实测复现）；入场动效由 CSS animation 插入即播（transition.css
+			      的 .page-enter-fade）。 */
+			(function bindSwupT3() {
+				var swup = window.swup;
+				if (!swup || !swup.hooks) return void setTimeout(bindSwupT3, 25);
+				if (window.__t3SwupBound) return;
+				window.__t3SwupBound = true;
+				var normalize = function (root) {
+					root.querySelectorAll('a[href]').forEach(function (a) {
+						var href = a.getAttribute('href') || '';
+						if (!href.startsWith('/') || href.startsWith('//')) return;
+						if (href.endsWith('/') || href.indexOf('#') >= 0 || href.indexOf('?') >= 0) return;
+						if (/\.[a-zA-Z0-9]+$/.test(href)) return;
+						a.setAttribute('href', href + '/');
+					});
+				};
+				normalize(document);
+				swup.hooks.on('content:replace', function () {
+					normalize(document);
+				});
+				/* 导航水合（TopAppBar 脚本）会把 href 重置回无斜杠配置值——
+				   capture 相在 swup 读取 href 前即时规范化，时序无关。 */
+				document.addEventListener('click', function (e) {
+					var t = e.target;
+					var a = t && t.closest ? t.closest('a[href]') : null;
+					if (!a) return;
+					var href = a.getAttribute('href') || '';
+					if (!href.startsWith('/') || href.startsWith('//')) return;
+					if (href.endsWith('/') || href.indexOf('#') >= 0 || href.indexOf('?') >= 0) return;
+					if (/\.[a-zA-Z0-9]+$/.test(href)) return;
+					a.setAttribute('href', href + '/');
+				}, true);
+				swup.hooks.on('visit:start', function (visit) {
+					if (visit && visit.animation) {
+						visit.animation.animate = false;
+						visit.animation.wait = false;
+					}
+				});
+			})();
+		</script>
 	</body>
 </html>
 
@@ -416,6 +469,34 @@ document.addEventListener("click", async (event) => {
 const setup = () => {
 	if (!window.swup || window.__shironeNavigationBound) return;
 	window.__shironeNavigationBound = true;
+
+	/* T3（2026-10-29）：后台 SiteConfig 导航 href 无尾斜杠（如 /archive），
+	   swup fetch 命中 307 后整页回退（实测；带斜杠的 swup.navigate 软切换正常）。
+	   依坑 6.1.25「用户入口一律规范 URL」原则，把站内链接规范成尾斜杠，
+	   并在每次容器替换后对新内容重跑（外链//开头/带扩展名/锚点/query 的不动）。 */
+	const normalizeLinkSlashes = (root: ParentNode) => {
+		root.querySelectorAll('a[href]').forEach((a) => {
+			const href = a.getAttribute('href') ?? '';
+			if (!href.startsWith('/') || href.startsWith('//')) return;
+			if (href.endsWith('/') || href.includes('#') || href.includes('?')) return;
+			if (/\.[a-zA-Z0-9]+$/.test(href)) return;
+			a.setAttribute('href', href + '/');
+		});
+	};
+	normalizeLinkSlashes(document);
+	window.swup.hooks.on('content:replace', () => normalizeLinkSlashes(document));
+	/* T3：swup 完全跳过动画机制（animate=false）——实测 swup 4.10 的
+	   animation:in:await 在「新内容终态插入即就位」时等不到 transitionend，
+	   visit 卡 navigating=true，后续软导航全被静默忽略；wait=false 也拦不住
+	   out/in await。入场动效改由无条件 CSS animation 插入即播（transition.css），
+	   不依赖任何 swup 等待方。 */
+	window.swup.hooks.on('visit:start', (visit) => {
+		if (visit && visit.animation) {
+			visit.animation.animate = false;
+			visit.animation.wait = false;
+		}
+	});
+
 	let scrollStarted = false;
 	let visitActive = false;
 	let finishTimer: number | undefined;

@@ -95,7 +95,7 @@ const currentGridClasses = sidebarResponsive.hasPrimary
 			)}
 
             <!-- 主内容列（位于 Swup 容器外），页面切换时保持固定不重渲染 -->
-            <div id="main-content-column" class={mainContentClasses.replace("transition-swup-fade", "").trim()}>
+            <div id="main-content-column" class={mainContentClasses.replace("page-enter-fade", "").trim()}>
                 <main
                     id="swup-container"
                     data-current-post-category={postCategory || ""}
@@ -104,7 +104,7 @@ const currentGridClasses = sidebarResponsive.hasPrimary
                     data-banner-title={title || ""}
                     data-banner-description={description || ""}
                     data-banner-date={bannerDate || ""}
-                    class="transition-swup-fade"
+                    class="page-enter-fade"
                 >
                     <div id="content-wrapper" class="onload-animation">
                         <!-- the overflow-hidden here prevent long text break the layout-->
@@ -121,6 +121,13 @@ const currentGridClasses = sidebarResponsive.hasPrimary
                 <Footer></Footer>
             </div>
         </div>
+
+        {/* T3（2026-10-29）：#toc 是 swup 容器（containers=["main","#toc"]），必须全站存在。
+            文章页由侧栏目录卡提供；其余页面（含侧栏被后台覆盖关闭、无标题文章）在此渲染
+            隐藏空壳占位，否则涉及本页的软导航一律 Container mismatch 回退整页。 */}
+        {!sidebarResponsive.hasPrimary && (
+            <div id="toc" hidden aria-hidden="true"></div>
+        )}
 
         <RouteProgress client:load />
     </div>
