@@ -189,14 +189,45 @@ export function apiPostToEntry(p: ApiPost): PostEntry {
 	};
 }
 
+/** v2 公开列表契约（内网 openapi.json 2026-10-29 核实）：参数为 page/page_size
+ * （默认 20、上限 100，无 size/status），服务端仅返回已发布。逐页取全量，
+ * 单页失败返回 null——交由调用方按既有重试与构建期硬失败守卫处理，
+ * 不得把上游故障降级成空集合静默上线。 */
+const V2_PAGE_SIZE = 100;
+
+async function fetchV2PublishedPage(page: number) {
+	const raw = await apiGet<{
+		data?: ApiPost[];
+		meta?: { total?: number; total_pages?: number };
+	}>(`/api/v1/posts?page=${page}&page_size=${V2_PAGE_SIZE}`);
+	const rows = raw?.data;
+	if (!raw || !Array.isArray(rows)) return null;
+	const totalPages = Math.min(50, Math.max(1, Number(raw.meta?.total_pages ?? 1) || 1));
+	return { rows, totalPages };
+}
+
+async function fetchV2AllPublishedRaw(): Promise<ApiPost[] | null> {
+	const first = await fetchV2PublishedPage(1);
+	if (!first) return null;
+	const all = [...first.rows];
+	for (let p = 2; p <= first.totalPages; p += 1) {
+		const next = await fetchV2PublishedPage(p);
+		if (!next) return null;
+		all.push(...next.rows);
+	}
+	return all;
+}
+
 async function fetchAllPublishedPosts(): Promise<PostEntry[]> {
-	const path = DIRECT_V2_MODE
-		? "/api/v1/posts?status=published&page=1&size=200"
-		: "/api/posts?status=published&page=1&size=200";
-	const raw = await apiGet<{ data?: ApiPost[] } | ApiPost[]>(path);
-	// v2-api 的 /api/v1 列表是 { data: [...], meta } 信封；BFF/旧端点是裸数组
-	const list = Array.isArray(raw) ? raw : raw?.data ?? [];
-	return normalizeApiPosts(list).map(apiPostToEntry);
+	let list: ApiPost[] | null;
+	if (DIRECT_V2_MODE) {
+		list = await fetchV2AllPublishedRaw();
+	} else {
+		// BFF 模式：/api/posts 内部翻页取全量返回裸数组（客户端旧 size 参数已废弃）
+		const raw = await apiGet<ApiPost[]>("/api/posts");
+		list = Array.isArray(raw) ? raw : null;
+	}
+	return normalizeApiPosts(list ?? []).map(apiPostToEntry);
 }
 
 /** 全量已发布文章（置顶优先，时间倒序），并填好上下篇字段 */
@@ -302,10 +333,7 @@ export async function getArchivePage(
 		(import.meta.env.PUBLIC_API_BASE ?? "").trim() ||
 		"https://bff.neutronstar.fun";
 	if (apiBase !== "https://bff.neutronstar.fun") {
-		const raw = await apiGet<{ data?: ApiPost[] } | ApiPost[]>(
-			"/api/v1/posts?status=published&page=1&size=200",
-		);
-		const list = Array.isArray(raw) ? raw : raw?.data ?? [];
+		const list = (await fetchV2AllPublishedRaw()) ?? [];
 		const all = normalizeApiPosts(list).map(apiPostToEntry);
 		const total = all.length;
 		const start = (page - 1) * size;
