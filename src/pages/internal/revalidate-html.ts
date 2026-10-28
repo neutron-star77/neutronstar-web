@@ -75,11 +75,17 @@ export async function POST({ request }: { request: Request }) {
 
   // 解析 body.urls：兼容完整 URL 与本站路径。只保留 pathname，
   // 统一用本站 host 重写缓存键（Cache API 强制同源，跨源 delete 静默失败）。
-  let payload: { urls?: unknown };
+  let payload: { urls?: unknown; tags?: unknown };
   try {
-    payload = JSON.parse(raw) as { urls?: unknown };
+    payload = JSON.parse(raw) as { urls?: unknown; tags?: unknown };
   } catch {
     payload = {};
+  }
+  // posts 实体变更必然改变订阅源内容：精确清掉两个 feed 缓存键
+  // （键与 middleware cacheablePath 的 /rss.xml、/atom.xml 一致），不全站清。
+  if (Array.isArray(payload.tags) && payload.tags.includes("posts")) {
+    paths.add("/rss.xml");
+    paths.add("/atom.xml");
   }
   if (Array.isArray(payload.urls)) {
     for (const u of payload.urls) {

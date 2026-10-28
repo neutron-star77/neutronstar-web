@@ -25,6 +25,8 @@ export async function GET(context: APIContext): Promise<Response> {
 	return new Response(xml, {
 		headers: {
 			"Content-Type": "application/atom+xml; charset=utf-8",
+			// XML 内容不变，只加缓存指令；边缘真缓存由 middleware Cache API 负责
+			"Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
 		},
 	});
 }

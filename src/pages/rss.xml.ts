@@ -25,5 +25,14 @@ export async function GET(context: APIContext): Promise<Response> {
 			content: post.contentHtml,
 		})),
 		customData: `<language>${siteConfig.lang}</language>`,
+	}).then((response) => {
+		// XML 内容/日期/密文提示/content 字段保持不变，只加缓存指令。
+		// 边缘真缓存由 middleware 的 Cache API 路径负责（TTL 120），
+		// 这里是给中间层的声明（middleware 未启用的环境仍有短 SWR 兜底）。
+		response.headers.set(
+			"Cache-Control",
+			"public, s-maxage=120, stale-while-revalidate=600",
+		);
+		return response;
 	});
 }

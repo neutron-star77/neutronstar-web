@@ -2,8 +2,10 @@
  * 静态 HTML 边缘缓存（功能③：TTFB ~1.6s → 边缘命中 <100ms）。
  *
  * 设计：
- * - 缓存两类 GET HTML（无 query）：首页 `/` 与文章详情页 `/posts/<slug>/`。
- *   其余页面（归档/分页/说说/相册…）按需再扩。
+ * - 缓存三类 GET 响应（无 query）：首页 `/`、文章详情页 `/posts/<slug>/`、
+ *   订阅源 `/rss.xml` 与 `/atom.xml`（2026-10-28 新增——feed SSR 每次回源
+ *   BFF 全量列表 ~560KB，实测 p50 TTFB 3-4s；边缘缓存 120s 后热命中 <100ms）。
+ *   其余页面（归档/说说/相册…）按需再扩。
  * - Cloudflare Cache API 是 per-PoP 的：同一边缘节点内命中率高，跨节点自然回源。
  * - 给用户的响应一律 `Cache-Control: no-store`——浏览器行为与改造前完全一致
  *   （后台发文后用户刷新立刻见新内容），缓存只发生在边缘。
@@ -24,19 +26,25 @@ const HOME_CACHE_TTL = 180;
 // 精确清除范围（Cache API 不能枚举），改短 TTL 把"保存配置→文章页更新"
 // 的窗口从 60s 压到 10s；配合 SSE 实时广播体验接近秒级。
 const POST_CACHE_TTL = 10;
+// 订阅源 TTL：与失效钩子（revalidate-html 对 tags 含 posts 时精确清两个键）
+// 配合，正常发布秒级失效；120s 只是钩子异常时的兜底窗口。
+const FEED_CACHE_TTL = 120;
 
 /** 文章详情页路径（兼容不带尾斜杠的请求，缓存键统一规范化为带尾斜杠） */
 const POST_PATH_RE = /^\/posts\/([^/]+)\/?$/;
 
 /**
  * 返回可缓存的规范化路径；不可缓存（带 query / 其他页面）返回 null。
- * 首页键就是 "/"；文章页统一成 "/posts/<slug>/"。
+ * 首页键就是 "/"；文章页统一成 "/posts/<slug>/"；订阅源键为字面路径。
  */
 function cacheablePath(url: URL): { key: string; ttl: number } | null {
 	if (url.search) return null;
 	if (url.pathname === "/") return { key: "/", ttl: HOME_CACHE_TTL };
 	const m = POST_PATH_RE.exec(url.pathname);
 	if (m) return { key: `/posts/${m[1]}/`, ttl: POST_CACHE_TTL };
+	if (url.pathname === "/rss.xml" || url.pathname === "/atom.xml") {
+		return { key: url.pathname, ttl: FEED_CACHE_TTL };
+	}
 	return null;
 }
 
